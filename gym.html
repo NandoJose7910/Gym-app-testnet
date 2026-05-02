@@ -1,0 +1,2134 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GymPro — Sistema Integral de Gestión</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+/* ======================================================
+   VARIABLES GLOBALES
+====================================================== */
+:root {
+  --bg:          #0a0a0a;
+  --bg-card:     #141414;
+  --bg-card2:    #1e1e1e;
+  --bg-card3:    #252525;
+  --green:       #00FF66;
+  --green-dk:    #00cc44;
+  --green-dim:   rgba(0,255,102,.10);
+  --green-dim2:  rgba(0,255,102,.05);
+  --white:       #ffffff;
+  --gray:        #888888;
+  --gray-lt:     #444444;
+  --gray-dk:     #2a2a2a;
+  --red:         #ff4444;
+  --red-dim:     rgba(255,68,68,.10);
+  --orange:      #ff8800;
+  --orange-dim:  rgba(255,136,0,.10);
+  --blue:        #4488ff;
+  --blue-dim:    rgba(68,136,255,.10);
+  --sidebar-w:   260px;
+  --sidebar-col: 68px;
+  --radius:      10px;
+  --radius-lg:   14px;
+}
+
+/* ======================================================
+   RESET & BASE
+====================================================== */
+*,*::before,*::after { margin:0; padding:0; box-sizing:border-box; }
+html,body { height:100%; overflow:hidden; }
+body {
+  font-family:'Barlow',sans-serif;
+  background:var(--bg);
+  color:var(--white);
+  font-size:15px;
+  line-height:1.5;
+}
+a { color:inherit; text-decoration:none; }
+button { font-family:'Barlow',sans-serif; }
+input,select,textarea { font-family:'Barlow',sans-serif; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width:5px; height:5px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb { background:var(--gray-lt); border-radius:3px; }
+::-webkit-scrollbar-thumb:hover { background:var(--green); }
+
+/* ======================================================
+   PANTALLA DE LOGIN
+====================================================== */
+#login-screen {
+  position:fixed; inset:0;
+  background:var(--bg);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index:1000;
+  padding:16px;
+}
+
+.login-bg-accent {
+  position:absolute;
+  width:600px; height:600px;
+  border-radius:50%;
+  background:radial-gradient(circle, rgba(0,255,102,.06) 0%, transparent 70%);
+  top:-100px; left:-100px;
+  pointer-events:none;
+}
+
+.login-box {
+  background:var(--bg-card);
+  border:1px solid #222;
+  border-radius:var(--radius-lg);
+  padding:48px 40px;
+  width:100%;
+  max-width:420px;
+  text-align:center;
+  position:relative;
+  z-index:1;
+  box-shadow:0 32px 80px rgba(0,0,0,.6);
+}
+
+.login-logo {
+  font-family:'Bebas Neue',sans-serif;
+  font-size:52px;
+  letter-spacing:5px;
+  line-height:1;
+  margin-bottom:4px;
+}
+.login-logo span { color:var(--green); }
+
+.login-tagline {
+  font-size:11px;
+  font-weight:600;
+  letter-spacing:3px;
+  text-transform:uppercase;
+  color:var(--gray);
+  margin-bottom:36px;
+}
+
+.role-tabs {
+  display:flex;
+  background:var(--bg-card2);
+  border-radius:8px;
+  padding:4px;
+  margin-bottom:28px;
+  gap:4px;
+}
+.role-tab {
+  flex:1;
+  padding:10px 8px;
+  border:none;
+  border-radius:6px;
+  background:transparent;
+  color:var(--gray);
+  font-size:13px;
+  font-weight:600;
+  letter-spacing:1px;
+  text-transform:uppercase;
+  cursor:pointer;
+  transition:all .2s;
+}
+.role-tab.active {
+  background:var(--green);
+  color:#000;
+}
+
+.login-form { text-align:left; }
+
+.lg-field { margin-bottom:20px; }
+.lg-field label {
+  display:block;
+  font-size:11px;
+  font-weight:700;
+  letter-spacing:1.5px;
+  text-transform:uppercase;
+  color:var(--gray);
+  margin-bottom:8px;
+}
+.lg-field input {
+  width:100%;
+  padding:13px 16px;
+  background:var(--bg-card2);
+  border:1px solid #333;
+  border-radius:8px;
+  color:var(--white);
+  font-size:15px;
+  outline:none;
+  transition:border-color .2s, box-shadow .2s;
+}
+.lg-field input:focus {
+  border-color:var(--green);
+  box-shadow:0 0 0 3px var(--green-dim);
+}
+.lg-field input[type="password"] { letter-spacing:4px; font-size:18px; }
+
+#login-error {
+  display:none;
+  background:var(--red-dim);
+  border:1px solid rgba(255,68,68,.3);
+  border-radius:8px;
+  padding:10px 14px;
+  font-size:13px;
+  color:var(--red);
+  margin-bottom:16px;
+  text-align:center;
+}
+
+.btn-login {
+  width:100%;
+  padding:15px;
+  background:var(--green);
+  color:#000;
+  border:none;
+  border-radius:10px;
+  font-family:'Bebas Neue',sans-serif;
+  font-size:20px;
+  letter-spacing:3px;
+  cursor:pointer;
+  transition:all .2s;
+  margin-top:4px;
+}
+.btn-login:hover { background:var(--green-dk); transform:translateY(-1px); box-shadow:0 8px 24px rgba(0,255,102,.25); }
+.btn-login:active { transform:translateY(0); }
+
+.login-hint {
+  margin-top:20px;
+  font-size:12px;
+  color:var(--gray);
+  text-align:center;
+  line-height:1.8;
+}
+
+/* ======================================================
+   APP LAYOUT
+====================================================== */
+#app {
+  display:none;
+  height:100vh;
+  overflow:hidden;
+}
+#app.show { display:flex; }
+
+/* ======================================================
+   SIDEBAR
+====================================================== */
+#sidebar {
+  width:var(--sidebar-w);
+  min-width:var(--sidebar-w);
+  background:var(--bg-card);
+  border-right:1px solid #1e1e1e;
+  display:flex;
+  flex-direction:column;
+  height:100vh;
+  overflow:hidden;
+  transition:width .28s ease, min-width .28s ease;
+  position:relative;
+  z-index:100;
+  flex-shrink:0;
+}
+#sidebar.collapsed {
+  width:var(--sidebar-col);
+  min-width:var(--sidebar-col);
+}
+
+.sidebar-head {
+  padding:20px 16px;
+  border-bottom:1px solid #1e1e1e;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  min-height:70px;
+  flex-shrink:0;
+}
+.sidebar-logo {
+  font-family:'Bebas Neue',sans-serif;
+  font-size:26px;
+  letter-spacing:3px;
+  white-space:nowrap;
+  overflow:hidden;
+  transition:opacity .2s;
+}
+.sidebar-logo span { color:var(--green); }
+#sidebar.collapsed .sidebar-logo { opacity:0; width:0; }
+
+.sidebar-toggle-btn {
+  margin-left:auto;
+  background:transparent;
+  border:none;
+  color:var(--gray);
+  cursor:pointer;
+  padding:6px;
+  border-radius:6px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-shrink:0;
+  transition:color .2s, background .2s;
+}
+.sidebar-toggle-btn:hover { color:var(--white); background:var(--bg-card2); }
+
+.sidebar-nav {
+  flex:1;
+  overflow-y:auto;
+  overflow-x:hidden;
+  padding:12px 8px;
+}
+
+.nav-group-label {
+  padding:10px 10px 4px;
+  font-size:10px;
+  font-weight:700;
+  letter-spacing:2px;
+  text-transform:uppercase;
+  color:var(--gray-lt);
+  white-space:nowrap;
+  overflow:hidden;
+  transition:opacity .2s;
+}
+#sidebar.collapsed .nav-group-label { opacity:0; }
+
+.nav-item {
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:11px 12px;
+  border-radius:8px;
+  margin:2px 0;
+  cursor:pointer;
+  color:var(--gray);
+  white-space:nowrap;
+  overflow:hidden;
+  position:relative;
+  transition:background .15s, color .15s;
+  user-select:none;
+}
+.nav-item:hover { background:var(--bg-card2); color:var(--white); }
+.nav-item.active {
+  background:var(--green-dim);
+  color:var(--green);
+}
+.nav-item.active::before {
+  content:'';
+  position:absolute;
+  left:0; top:50%;
+  transform:translateY(-50%);
+  width:3px; height:22px;
+  background:var(--green);
+  border-radius:0 2px 2px 0;
+}
+.nav-icon { font-size:18px; flex-shrink:0; width:22px; text-align:center; }
+.nav-label { font-size:14px; font-weight:500; overflow:hidden; }
+#sidebar.collapsed .nav-label { display:none; }
+
+/* Tooltip on collapsed sidebar */
+#sidebar.collapsed .nav-item { justify-content:center; }
+#sidebar.collapsed .nav-item[title]:hover::after {
+  content:attr(title);
+  position:absolute;
+  left:calc(var(--sidebar-col) + 8px);
+  background:var(--bg-card2);
+  border:1px solid #333;
+  border-radius:6px;
+  padding:6px 12px;
+  font-size:13px;
+  color:var(--white);
+  white-space:nowrap;
+  pointer-events:none;
+  z-index:200;
+}
+
+.sidebar-foot {
+  border-top:1px solid #1e1e1e;
+  padding:14px 12px;
+  flex-shrink:0;
+  overflow:hidden;
+}
+.user-chip {
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:8px;
+  border-radius:8px;
+  margin-bottom:8px;
+  overflow:hidden;
+}
+.user-avatar {
+  width:36px; height:36px;
+  border-radius:50%;
+  background:var(--green-dim);
+  border:2px solid var(--green);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:var(--green);
+  font-weight:700;
+  font-size:14px;
+  flex-shrink:0;
+}
+.user-dets { overflow:hidden; }
+.user-name-s { font-size:13px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.user-role-s { font-size:11px; color:var(--gray); text-transform:uppercase; letter-spacing:1px; }
+#sidebar.collapsed .user-dets { display:none; }
+
+.btn-logout {
+  width:100%;
+  padding:8px;
+  background:transparent;
+  border:1px solid #2a2a2a;
+  border-radius:7px;
+  color:var(--gray);
+  font-size:12px;
+  font-weight:600;
+  cursor:pointer;
+  letter-spacing:.5px;
+  transition:all .2s;
+  white-space:nowrap;
+  overflow:hidden;
+}
+.btn-logout:hover { border-color:var(--red); color:var(--red); }
+#sidebar.collapsed .btn-logout { font-size:16px; padding:6px; }
+
+/* ======================================================
+   MAIN CONTENT AREA
+====================================================== */
+#main {
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  height:100vh;
+  overflow:hidden;
+  min-width:0;
+}
+
+#topbar {
+  background:var(--bg-card);
+  border-bottom:1px solid #1e1e1e;
+  padding:0 28px;
+  height:64px;
+  display:flex;
+  align-items:center;
+  gap:16px;
+  flex-shrink:0;
+}
+.topbar-title {
+  font-family:'Bebas Neue',sans-serif;
+  font-size:26px;
+  letter-spacing:2px;
+}
+.topbar-breadcrumb {
+  margin-left:auto;
+  font-size:12px;
+  color:var(--gray);
+}
+.topbar-back {
+  background:transparent;
+  border:1px solid #333;
+  border-radius:7px;
+  color:var(--gray);
+  padding:6px 14px;
+  font-size:12px;
+  font-weight:600;
+  cursor:pointer;
+  transition:all .2s;
+}
+.topbar-back:hover { color:var(--white); border-color:var(--gray); }
+
+#view {
+  flex:1;
+  overflow-y:auto;
+  padding:28px;
+}
+
+/* ======================================================
+   BOTTOM NAV (mobile)
+====================================================== */
+#bottom-nav {
+  display:none;
+  position:fixed;
+  bottom:0; left:0; right:0;
+  background:var(--bg-card);
+  border-top:1px solid #1e1e1e;
+  padding:6px 0 10px;
+  z-index:200;
+}
+.bnav-items { display:flex; justify-content:space-around; }
+.bnav-item {
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:3px;
+  padding:4px 10px;
+  cursor:pointer;
+  color:var(--gray);
+  font-size:10px;
+  font-weight:600;
+  letter-spacing:.5px;
+  text-transform:uppercase;
+  transition:color .15s;
+}
+.bnav-item.active { color:var(--green); }
+.bnav-item span:first-child { font-size:20px; }
+
+/* ======================================================
+   CARDS
+====================================================== */
+.card {
+  background:var(--bg-card);
+  border:1px solid #222;
+  border-radius:var(--radius-lg);
+  padding:24px;
+}
+.card + .card { margin-top:0; }
+
+.card-title {
+  font-family:'Bebas Neue',sans-serif;
+  font-size:19px;
+  letter-spacing:2px;
+  margin-bottom:18px;
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+
+/* ======================================================
+   STAT CARDS
+====================================================== */
+.stat-card {
+  background:var(--bg-card);
+  border:1px solid #222;
+  border-radius:var(--radius-lg);
+  padding:20px 22px;
+  position:relative;
+  overflow:hidden;
+}
+.stat-card::after {
+  content:'';
+  position:absolute;
+  top:0; left:0; right:0;
+  height:3px;
+  background:var(--green);
+  border-radius:0 0 2px 2px;
+}
+.stat-card.red::after { background:var(--red); }
+.stat-card.orange::after { background:var(--orange); }
+.stat-card.blue::after { background:var(--blue); }
+
+.stat-lbl { font-size:11px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:var(--gray); margin-bottom:6px; }
+.stat-val { font-family:'Bebas Neue',sans-serif; font-size:40px; letter-spacing:2px; line-height:1; color:var(--green); }
+.stat-card.red .stat-val { color:var(--red); }
+.stat-card.orange .stat-val { color:var(--orange); }
+.stat-card.blue .stat-val { color:var(--blue); }
+.stat-sub { font-size:12px; color:var(--gray); margin-top:4px; }
+
+/* ======================================================
+   GRIDS
+====================================================== */
+.g2 { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+.g3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:20px; }
+.g4 { display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:20px; }
+.gap-16 { gap:16px !important; }
+.gap-12 { gap:12px !important; }
+
+/* ======================================================
+   SECTION HEADER
+====================================================== */
+.sec-head {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  margin-bottom:20px;
+}
+.sec-title {
+  font-family:'Bebas Neue',sans-serif;
+  font-size:24px;
+  letter-spacing:2px;
+}
+
+/* ======================================================
+   TABLAS
+====================================================== */
+.tbl-wrap {
+  border-radius:var(--radius);
+  border:1px solid #222;
+  overflow:hidden;
+  overflow-x:auto;
+}
+table {
+  width:100%;
+  border-collapse:collapse;
+  font-size:14px;
+}
+thead th {
+  background:var(--bg-card2);
+  padding:11px 16px;
+  text-align:left;
+  font-size:10px;
+  font-weight:700;
+  letter-spacing:1.5px;
+  text-transform:uppercase;
+  color:var(--gray);
+  border-bottom:1px solid #2a2a2a;
+  white-space:nowrap;
+}
+tbody tr { border-bottom:1px solid #1a1a1a; transition:background .12s; }
+tbody tr:nth-child(even) { background:rgba(255,255,255,.015); }
+tbody tr:hover { background:rgba(0,255,102,.025); }
+tbody tr:last-child { border-bottom:none; }
+tbody td {
+  padding:11px 16px;
+  vertical-align:middle;
+}
+.tbl-actions { display:flex; gap:6px; }
+
+/* ======================================================
+   BADGES
+====================================================== */
+.badge {
+  display:inline-flex;
+  align-items:center;
+  gap:4px;
+  padding:3px 10px;
+  border-radius:20px;
+  font-size:11px;
+  font-weight:700;
+  letter-spacing:.8px;
+  text-transform:uppercase;
+  white-space:nowrap;
+}
+.badge-green { background:rgba(0,255,102,.12); color:var(--green); border:1px solid rgba(0,255,102,.25); }
+.badge-red   { background:rgba(255,68,68,.12); color:var(--red); border:1px solid rgba(255,68,68,.25); }
+.badge-orange{ background:rgba(255,136,0,.12); color:var(--orange); border:1px solid rgba(255,136,0,.25); }
+.badge-gray  { background:rgba(136,136,136,.1); color:var(--gray); border:1px solid rgba(136,136,136,.2); }
+.badge-blue  { background:rgba(68,136,255,.12); color:var(--blue); border:1px solid rgba(68,136,255,.25); }
+
+@keyframes blink {
+  0%,100% { opacity:1; }
+  50% { opacity:.3; }
+}
+.badge-blink { animation:blink 1.3s ease-in-out infinite; }
+
+/* ======================================================
+   BOTONES
+====================================================== */
+.btn {
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding:10px 20px;
+  border-radius:8px;
+  border:none;
+  font-size:14px;
+  font-weight:600;
+  cursor:pointer;
+  transition:all .18s;
+  white-space:nowrap;
+}
+.btn-sm { padding:6px 14px; font-size:12px; }
+.btn-lg { padding:14px 28px; font-size:16px; }
+.btn-icon {
+  background:transparent;
+  border:none;
+  color:var(--gray);
+  cursor:pointer;
+  padding:6px 8px;
+  border-radius:6px;
+  font-size:15px;
+  transition:all .18s;
+}
+.btn-icon:hover { background:var(--bg-card2); }
+.btn-icon.g:hover { color:var(--green); }
+.btn-icon.r:hover { color:var(--red); }
+.btn-icon.b:hover { color:var(--blue); }
+
+.btn-green { background:var(--green); color:#000; font-weight:700; }
+.btn-green:hover { background:var(--green-dk); transform:translateY(-1px); box-shadow:0 6px 20px rgba(0,255,102,.2); }
+
+.btn-outline { background:transparent; border:1px solid #3a3a3a; color:var(--white); }
+.btn-outline:hover { border-color:var(--white); background:rgba(255,255,255,.04); }
+
+.btn-outline-green { background:transparent; border:1px solid var(--green); color:var(--green); }
+.btn-outline-green:hover { background:var(--green-dim); }
+
+.btn-danger { background:transparent; border:1px solid var(--red); color:var(--red); }
+.btn-danger:hover { background:var(--red-dim); }
+
+.btn-ghost { background:transparent; border:none; color:var(--gray); }
+.btn-ghost:hover { color:var(--white); background:var(--bg-card2); }
+
+/* ======================================================
+   FORMULARIOS
+====================================================== */
+.frow { display:grid; gap:16px; margin-bottom:16px; }
+.frow-2 { grid-template-columns:1fr 1fr; }
+.frow-3 { grid-template-columns:1fr 1fr 1fr; }
+.frow-4 { grid-template-columns:1fr 1fr 1fr 1fr; }
+
+.field { display:flex; flex-direction:column; gap:6px; }
+.field label {
+  font-size:11px;
+  font-weight:700;
+  letter-spacing:1.2px;
+  text-transform:uppercase;
+  color:var(--gray);
+}
+.field input,
+.field select,
+.field textarea {
+  background:var(--bg-card2);
+  border:1px solid #333;
+  border-radius:8px;
+  color:var(--white);
+  font-size:14px;
+  padding:10px 14px;
+  outline:none;
+  transition:border-color .18s, box-shadow .18s;
+  width:100%;
+}
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+  border-color:var(--green);
+  box-shadow:0 0 0 3px var(--green-dim);
+}
+.field textarea { resize:vertical; min-height:80px; }
+.field select option { background:var(--bg-card2); }
+.field input[type="number"] { -moz-appearance:textfield; }
+.field input[type="number"]::-webkit-inner-spin-button { -webkit-appearance:none; }
+.field-note { font-size:11px; color:var(--gray); margin-top:2px; }
+.field-calc {
+  background:var(--bg-card3);
+  border:1px solid #333;
+  border-radius:8px;
+  color:var(--green);
+  font-family:'Bebas Neue',sans-serif;
+  font-size:20px;
+  padding:10px 14px;
+  letter-spacing:1px;
+}
+
+/* Checkboxes y radios */
+.check-group, .radio-group { display:flex; flex-wrap:wrap; gap:10px; }
+.check-item, .radio-item {
+  display:flex;
+  align-items:center;
+  gap:7px;
+  cursor:pointer;
+  padding:7px 12px;
+  border:1px solid #333;
+  border-radius:7px;
+  transition:all .15s;
+}
+.check-item:hover, .radio-item:hover { border-color:var(--green); background:var(--green-dim); }
+.check-item input[type="checkbox"],
+.radio-item input[type="radio"] {
+  width:15px; height:15px;
+  accent-color:var(--green);
+  cursor:pointer;
+  background:transparent;
+  border:none;
+  padding:0;
+  box-shadow:none;
+}
+.check-item label, .radio-item label {
+  font-size:13px;
+  color:var(--white);
+  cursor:pointer;
+  font-weight:500;
+  text-transform:none;
+  letter-spacing:0;
+}
+/* Eliminar bordes heredados en inputs dentro de check/radio */
+.check-item input, .radio-item input { background:none !important; border:none !important; box-shadow:none !important; padding:0 !important; width:15px !important; height:15px !important; }
+
+.fsec { margin-bottom:28px; padding-bottom:28px; border-bottom:1px solid #1e1e1e; }
+.fsec:last-child { border-bottom:none; margin-bottom:0; }
+.fsec-title {
+  font-family:'Bebas Neue',sans-serif;
+  font-size:17px;
+  letter-spacing:2px;
+  color:var(--green);
+  margin-bottom:16px;
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+
+/* ======================================================
+   MODALES
+====================================================== */
+.modal-overlay {
+  position:fixed; inset:0;
+  background:rgba(0,0,0,.82);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index:500;
+  padding:20px;
+  backdrop-filter:blur(4px);
+}
+.modal {
+  background:var(--bg-card);
+  border:1px solid #2a2a2a;
+  border-radius:var(--radius-lg);
+  width:100%;
+  max-width:560px;
+  max-height:92vh;
+  overflow-y:auto;
+  box-shadow:0 32px 80px rgba(0,0,0,.7);
+}
+.modal-md { max-width:720px; }
+.modal-lg { max-width:960px; }
+.modal-xl { max-width:1200px; }
+
+.modal-head {
+  padding:22px 26px;
+  border-bottom:1px solid #1e1e1e;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  position:sticky;
+  top:0;
+  background:var(--bg-card);
+  z-index:10;
+}
+.modal-title {
+  font-family:'Bebas Neue',sans-serif;
+  font-size:22px;
+  letter-spacing:2px;
+}
+.modal-close {
+  background:transparent;
+  border:none;
+  color:var(--gray);
+  cursor:pointer;
+  font-size:26px;
+  line-height:1;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:32px; height:32px;
+  border-radius:6px;
+  transition:all .18s;
+}
+.modal-close:hover { color:var(--white); background:var(--bg-card2); }
+.modal-body { padding:24px 26px; }
+.modal-foot {
+  padding:16px 26px 22px;
+  border-top:1px solid #1e1e1e;
+  display:flex;
+  gap:10px;
+  justify-content:flex-end;
+}
+
+/* ======================================================
+   TABS
+====================================================== */
+.tabs {
+  display:flex;
+  border-bottom:1px solid #222;
+  margin-bottom:24px;
+  overflow-x:auto;
+  gap:0;
+}
+.tab-btn {
+  padding:11px 18px;
+  background:transparent;
+  border:none;
+  border-bottom:2px solid transparent;
+  color:var(--gray);
+  font-size:13px;
+  font-weight:600;
+  letter-spacing:.8px;
+  text-transform:uppercase;
+  cursor:pointer;
+  transition:all .18s;
+  white-space:nowrap;
+  margin-bottom:-1px;
+}
+.tab-btn:hover { color:var(--white); }
+.tab-btn.active { color:var(--green); border-bottom-color:var(--green); }
+.tab-pane { display:none; }
+.tab-pane.active { display:block; }
+
+/* ======================================================
+   ALERTAS
+====================================================== */
+.alert {
+  padding:12px 16px;
+  border-radius:8px;
+  font-size:13px;
+  display:flex;
+  align-items:flex-start;
+  gap:10px;
+  margin-bottom:16px;
+  line-height:1.5;
+}
+.alert-icon { flex-shrink:0; font-size:16px; }
+.alert-warn { background:var(--orange-dim); border:1px solid rgba(255,136,0,.3); color:var(--orange); }
+.alert-danger { background:var(--red-dim); border:1px solid rgba(255,68,68,.3); color:var(--red); }
+.alert-success { background:var(--green-dim); border:1px solid rgba(0,255,102,.25); color:var(--green); }
+.alert-info { background:var(--blue-dim); border:1px solid rgba(68,136,255,.25); color:var(--blue); }
+
+/* ======================================================
+   SEARCH BAR
+====================================================== */
+.search-wrap {
+  display:flex;
+  align-items:center;
+  gap:10px;
+  background:var(--bg-card2);
+  border:1px solid #2a2a2a;
+  border-radius:var(--radius);
+  padding:10px 16px;
+  margin-bottom:20px;
+}
+.search-wrap input {
+  flex:1;
+  background:transparent;
+  border:none;
+  color:var(--white);
+  font-size:14px;
+  outline:none;
+}
+.search-wrap select {
+  background:transparent;
+  border:none;
+  color:var(--gray);
+  font-size:13px;
+  outline:none;
+  cursor:pointer;
+}
+.search-wrap select option { background:var(--bg-card2); }
+.search-icon { color:var(--gray); font-size:18px; flex-shrink:0; }
+
+/* ======================================================
+   MEMBER CARD (lista)
+====================================================== */
+.member-card {
+  background:var(--bg-card);
+  border:1px solid #222;
+  border-radius:var(--radius-lg);
+  padding:18px 20px;
+  display:flex;
+  gap:16px;
+  align-items:center;
+  cursor:pointer;
+  transition:all .18s;
+}
+.member-card:hover { border-color:var(--green); transform:translateY(-2px); box-shadow:0 8px 24px rgba(0,0,0,.4); }
+
+.m-avatar {
+  width:48px; height:48px;
+  border-radius:50%;
+  background:var(--green-dim);
+  border:2px solid var(--green);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:var(--green);
+  font-weight:700;
+  font-size:18px;
+  flex-shrink:0;
+}
+.m-info { flex:1; min-width:0; }
+.m-name { font-weight:600; font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.m-meta { font-size:12px; color:var(--gray); margin-top:2px; }
+.m-badges { display:flex; gap:6px; flex-wrap:wrap; margin-top:6px; }
+.m-side { text-align:right; flex-shrink:0; }
+
+/* ======================================================
+   PROFILE HEADER CARD
+====================================================== */
+.profile-hero {
+  background:var(--bg-card);
+  border:1px solid #222;
+  border-radius:var(--radius-lg);
+  padding:28px;
+  display:flex;
+  gap:24px;
+  align-items:center;
+  margin-bottom:24px;
+}
+.profile-avatar-lg {
+  width:72px; height:72px;
+  border-radius:50%;
+  background:var(--green-dim);
+  border:3px solid var(--green);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:var(--green);
+  font-family:'Bebas Neue',sans-serif;
+  font-size:28px;
+  letter-spacing:1px;
+  flex-shrink:0;
+}
+.profile-info { flex:1; min-width:0; }
+.profile-name {
+  font-family:'Bebas Neue',sans-serif;
+  font-size:30px;
+  letter-spacing:2px;
+  line-height:1.1;
+}
+.profile-sub { font-size:13px; color:var(--gray); margin-top:4px; }
+.profile-badges { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
+.profile-actions { display:flex; flex-direction:column; gap:8px; }
+
+/* ======================================================
+   PROGRESS BARS
+====================================================== */
+.pbar { height:6px; background:#2a2a2a; border-radius:3px; overflow:hidden; }
+.pbar-fill { height:100%; border-radius:3px; transition:width .5s ease; }
+.pbar-green { background:var(--green); }
+.pbar-red { background:var(--red); }
+.pbar-orange { background:var(--orange); }
+
+/* ======================================================
+   CHARTS
+====================================================== */
+.chart-wrap { position:relative; height:240px; width:100%; }
+.chart-wrap.tall { height:300px; }
+
+/* ======================================================
+   DELTA CARDS (avances)
+====================================================== */
+.delta-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:12px; margin-bottom:24px; }
+.delta-card {
+  background:var(--bg-card2);
+  border-radius:var(--radius);
+  padding:16px;
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+}
+.delta-ico { font-size:22px; margin-bottom:4px; }
+.delta-lbl { font-size:11px; color:var(--gray); text-transform:uppercase; letter-spacing:1px; }
+.delta-val { font-family:'Bebas Neue',sans-serif; font-size:22px; }
+.dv-pos { color:var(--green); }
+.dv-neg { color:var(--red); }
+.dv-neu { color:var(--white); }
+
+/* ======================================================
+   NUTRITION TOTALS
+====================================================== */
+.nutri-totals {
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:12px;
+  background:var(--bg-card2);
+  border-radius:var(--radius);
+  padding:16px;
+  margin-top:16px;
+}
+.nt-item { text-align:center; }
+.nt-val { font-family:'Bebas Neue',sans-serif; font-size:26px; color:var(--green); }
+.nt-lbl { font-size:11px; color:var(--gray); text-transform:uppercase; letter-spacing:1px; }
+
+/* ======================================================
+   CALC BOX (TMB/TDEE)
+====================================================== */
+.calc-box {
+  background:var(--green-dim2);
+  border:1px solid rgba(0,255,102,.15);
+  border-radius:var(--radius);
+  padding:16px 20px;
+  margin:16px 0;
+}
+.calc-box-title {
+  font-size:11px;
+  font-weight:700;
+  letter-spacing:2px;
+  text-transform:uppercase;
+  color:var(--green);
+  margin-bottom:12px;
+}
+.calc-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:12px; }
+.calc-item .c-lbl { font-size:10px; color:var(--gray); text-transform:uppercase; letter-spacing:1px; }
+.calc-item .c-val { font-family:'Bebas Neue',sans-serif; font-size:24px; color:var(--white); }
+
+/* ======================================================
+   TRAINING DAY
+====================================================== */
+.day-block {
+  background:var(--bg-card2);
+  border-radius:var(--radius);
+  margin-bottom:12px;
+  overflow:hidden;
+  border:1px solid #222;
+}
+.day-block-head {
+  padding:12px 18px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  cursor:pointer;
+  transition:background .15s;
+}
+.day-block-head:hover { background:var(--bg-card3); }
+.day-block-title {
+  font-family:'Bebas Neue',sans-serif;
+  font-size:18px;
+  letter-spacing:2px;
+  color:var(--green);
+}
+.day-block-body { padding:0 18px 16px; }
+
+/* Inline exercise table (editable) */
+.ex-tbl-wrap { overflow-x:auto; border-radius:8px; border:1px solid #2a2a2a; }
+.ex-tbl thead th { background:var(--bg-card3); }
+.ex-tbl input, .ex-tbl select {
+  background:var(--bg-card3);
+  border:1px solid #333;
+  border-radius:5px;
+  color:var(--white);
+  font-size:13px;
+  padding:5px 8px;
+  width:100%;
+  min-width:60px;
+  outline:none;
+}
+.ex-tbl input:focus, .ex-tbl select:focus { border-color:var(--green); }
+
+/* ======================================================
+   EMPTY STATE
+====================================================== */
+.empty-state {
+  text-align:center;
+  padding:60px 20px;
+  color:var(--gray);
+}
+.empty-ico { font-size:48px; margin-bottom:16px; }
+.empty-txt { font-size:15px; margin-bottom:6px; }
+.empty-sub { font-size:13px; color:var(--gray-lt); }
+
+/* ======================================================
+   SEPARADORES Y UTILS
+====================================================== */
+.sep { border:none; border-top:1px solid #1e1e1e; margin:20px 0; }
+.mt-8 { margin-top:8px; }
+.mt-12 { margin-top:12px; }
+.mt-16 { margin-top:16px; }
+.mt-20 { margin-top:20px; }
+.mt-24 { margin-top:24px; }
+.mt-32 { margin-top:32px; }
+.mb-8 { margin-bottom:8px; }
+.mb-12 { margin-bottom:12px; }
+.mb-16 { margin-bottom:16px; }
+.mb-20 { margin-bottom:20px; }
+.mb-24 { margin-bottom:24px; }
+.flex { display:flex; }
+.flex-c { display:flex; align-items:center; }
+.flex-b { display:flex; align-items:center; justify-content:space-between; }
+.gap-8 { gap:8px; }
+.gap-12 { gap:12px; }
+.gap-16 { gap:16px; }
+.tc { text-align:center; }
+.tr { text-align:right; }
+.text-green { color:var(--green); }
+.text-red { color:var(--red); }
+.text-orange { color:var(--orange); }
+.text-gray { color:var(--gray); }
+.text-sm { font-size:12px; }
+.text-xs { font-size:11px; }
+.text-lg { font-size:18px; }
+.fw-600 { font-weight:600; }
+.fw-700 { font-weight:700; }
+.font-title { font-family:'Bebas Neue',sans-serif; letter-spacing:2px; }
+.hidden { display:none !important; }
+.w-full { width:100%; }
+.truncate { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+/* ======================================================
+   TOAST
+====================================================== */
+#toast-box {
+  position:fixed;
+  bottom:24px; right:24px;
+  z-index:9999;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+.toast {
+  background:var(--bg-card);
+  border:1px solid #333;
+  border-radius:10px;
+  padding:14px 18px;
+  font-size:13px;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  min-width:260px;
+  max-width:380px;
+  box-shadow:0 8px 32px rgba(0,0,0,.5);
+  animation:toastIn .28s ease;
+}
+.toast.ok  { border-left:3px solid var(--green); }
+.toast.err { border-left:3px solid var(--red); }
+.toast.wrn { border-left:3px solid var(--orange); }
+.toast.inf { border-left:3px solid var(--blue); }
+@keyframes toastIn  { from { transform:translateX(110%); opacity:0; } to { transform:none; opacity:1; } }
+@keyframes toastOut { from { transform:none; opacity:1; } to { transform:translateX(110%); opacity:0; } }
+
+/* ======================================================
+   RESPONSIVE
+====================================================== */
+@media (max-width:900px) {
+  .g4 { grid-template-columns:1fr 1fr; }
+  .g3 { grid-template-columns:1fr 1fr; }
+  .nutri-totals { grid-template-columns:1fr 1fr; }
+}
+@media (max-width:768px) {
+  #sidebar { display:none; }
+  #bottom-nav { display:block; }
+  #view { padding:16px 16px 80px; }
+  #topbar { padding:0 16px; }
+  .g2, .g3, .g4 { grid-template-columns:1fr; }
+  .frow-2, .frow-3, .frow-4 { grid-template-columns:1fr; }
+  .nutri-totals { grid-template-columns:1fr 1fr; }
+  .modal { max-width:100%; border-radius:var(--radius-lg) var(--radius-lg) 0 0; }
+  .modal-overlay { align-items:flex-end; padding:0; }
+  .profile-hero { flex-direction:column; text-align:center; }
+  .profile-actions { flex-direction:row; flex-wrap:wrap; justify-content:center; }
+  #toast-box { left:16px; right:16px; bottom:80px; }
+  .toast { min-width:unset; }
+  .login-box { padding:32px 24px; }
+}
+@media (max-width:480px) {
+  .topbar-title { font-size:20px; }
+  .stat-val { font-size:32px; }
+  .sec-title { font-size:20px; }
+  .g2 { grid-template-columns:1fr; }
+  .delta-grid { grid-template-columns:1fr 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- ====================================================
+     LOGIN SCREEN
+==================================================== -->
+<div id="login-screen">
+  <div class="login-bg-accent"></div>
+  <div class="login-box">
+    <div class="login-logo">GYM<span>PRO</span></div>
+    <div class="login-tagline">Sistema Integral de Gestión</div>
+
+    <div class="role-tabs">
+      <button class="role-tab active" id="tab-admin" onclick="setRole('admin')">🔐 Administrador</button>
+      <button class="role-tab" id="tab-member" onclick="setRole('member')">👤 Miembro</button>
+    </div>
+
+    <div class="login-form">
+      <!-- Admin fields -->
+      <div id="admin-fields">
+        <div class="lg-field">
+          <label>Usuario</label>
+          <input type="text" id="inp-user" placeholder="admin" autocomplete="off" onkeydown="if(event.key==='Enter')doLogin()">
+        </div>
+        <div class="lg-field">
+          <label>Contraseña</label>
+          <input type="password" id="inp-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
+        </div>
+      </div>
+      <!-- Member fields -->
+      <div id="member-fields" class="hidden">
+        <div class="lg-field">
+          <label>Número de Cédula</label>
+          <input type="text" id="inp-cedula" placeholder="Ingresa tu cédula" autocomplete="off" onkeydown="if(event.key==='Enter')doLogin()">
+        </div>
+      </div>
+
+      <div id="login-error">❌ Credenciales incorrectas. Intenta de nuevo.</div>
+      <button class="btn-login" onclick="doLogin()">INGRESAR</button>
+    </div>
+
+    <div class="login-hint">
+      Admin: <strong>admin</strong> / <strong>GymPro2024</strong><br>
+      Miembros: ingresa con tu cédula
+    </div>
+  </div>
+</div>
+
+<!-- ====================================================
+     APP SHELL
+==================================================== -->
+<div id="app">
+
+  <!-- SIDEBAR (desktop) -->
+  <nav id="sidebar">
+    <div class="sidebar-head">
+      <div class="sidebar-logo">GYM<span>PRO</span></div>
+      <button class="sidebar-toggle-btn" onclick="toggleSidebar()" title="Colapsar menú">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+          <line x1="3" y1="12" x2="21" y2="12"/>
+          <line x1="3" y1="6"  x2="21" y2="6"/>
+          <line x1="3" y1="18" x2="21" y2="18"/>
+        </svg>
+      </button>
+    </div>
+    <div class="sidebar-nav" id="sidebar-nav"></div>
+    <div class="sidebar-foot">
+      <div class="user-chip">
+        <div class="user-avatar" id="s-avatar">A</div>
+        <div class="user-dets">
+          <div class="user-name-s" id="s-name">Administrador</div>
+          <div class="user-role-s" id="s-role">Admin</div>
+        </div>
+      </div>
+      <button class="btn-logout" onclick="logout()">⬅ Cerrar sesión</button>
+    </div>
+  </nav>
+
+  <!-- MAIN -->
+  <div id="main">
+    <div id="topbar">
+      <span class="topbar-title" id="topbar-title">Dashboard</span>
+      <div id="topbar-extra"></div>
+    </div>
+    <div id="view">
+      <!-- Views rendered here by JS -->
+    </div>
+  </div>
+
+</div><!-- /#app -->
+
+<!-- BOTTOM NAV (mobile) -->
+<nav id="bottom-nav">
+  <div class="bnav-items" id="bnav-items"></div>
+</nav>
+
+<!-- TOAST CONTAINER -->
+<div id="toast-box"></div>
+
+<!-- ====================================================
+     JAVASCRIPT — Parte 1: Base, Auth, Nav, Skeleton
+==================================================== -->
+<script>
+'use strict';
+
+/* ======================================================
+   ESTADO GLOBAL
+====================================================== */
+const S = {
+  role:    null,   // 'admin' | 'member'
+  uid:     null,   // userId activo (rol miembro)
+  view:    null,   // vista actual
+  param:   null,   // parámetro de vista (userId, etc.)
+  charts:  {}      // instancias Chart.js activas
+};
+
+/* ======================================================
+   BASE DE DATOS — localStorage
+====================================================== */
+const DB = {
+  // Usuarios / miembros
+  users:    () => JSON.parse(localStorage.getItem('gp_users')   || '[]'),
+  setUsers: (d) => localStorage.setItem('gp_users',   JSON.stringify(d)),
+  user:     (id) => DB.users().find(u => u.id === id) || null,
+  saveUser: (u)  => {
+    const arr = DB.users();
+    const i   = arr.findIndex(x => x.id === u.id);
+    i >= 0 ? arr[i] = u : arr.push(u);
+    DB.setUsers(arr);
+  },
+  delUser:  (id) => DB.setUsers(DB.users().filter(u => u.id !== id)),
+
+  // Planes de entrenamiento
+  plans:    () => JSON.parse(localStorage.getItem('gp_plans')   || '[]'),
+  setPlans: (d) => localStorage.setItem('gp_plans',   JSON.stringify(d)),
+  plan:     (id) => DB.plans().find(p => p.id === id) || null,
+  userPlans:(uid) => DB.plans().filter(p => p.userId === uid),
+  activePlan:(uid) => DB.plans().find(p => p.userId === uid && p.isActive) || null,
+  savePlan: (p)  => {
+    const arr = DB.plans();
+    const i   = arr.findIndex(x => x.id === p.id);
+    i >= 0 ? arr[i] = p : arr.push(p);
+    DB.setPlans(arr);
+  },
+  delPlan:  (id) => DB.setPlans(DB.plans().filter(p => p.id !== id)),
+
+  // Planes de nutrición
+  nutris:    () => JSON.parse(localStorage.getItem('gp_nutri')  || '[]'),
+  setNutris: (d) => localStorage.setItem('gp_nutri',  JSON.stringify(d)),
+  nutri:     (id) => DB.nutris().find(p => p.id === id) || null,
+  userNutris:(uid) => DB.nutris().filter(p => p.userId === uid),
+  activeNutri:(uid) => DB.nutris().find(p => p.userId === uid && p.isActive) || null,
+  saveNutri: (p)  => {
+    const arr = DB.nutris();
+    const i   = arr.findIndex(x => x.id === p.id);
+    i >= 0 ? arr[i] = p : arr.push(p);
+    DB.setNutris(arr);
+  },
+  delNutri:  (id) => DB.setNutris(DB.nutris().filter(p => p.id !== id)),
+
+  // Asistencia
+  att:    () => JSON.parse(localStorage.getItem('gp_att')    || '[]'),
+  setAtt: (d) => localStorage.setItem('gp_att',    JSON.stringify(d)),
+  userAtt:(uid) => DB.att().filter(a => a.userId === uid),
+  addAtt: (rec) => { const a = DB.att(); a.push(rec); DB.setAtt(a); },
+
+  // Admin password
+  adminPass:    () => localStorage.getItem('gp_apass') || 'GymPro2024',
+  setAdminPass: (p) => localStorage.setItem('gp_apass', p),
+
+  // Flag inicialización
+  isInit: () => localStorage.getItem('gp_init') === '1',
+  setInit: () => localStorage.setItem('gp_init', '1')
+};
+
+/* ======================================================
+   UTILIDADES
+====================================================== */
+function uid() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+}
+function today() { return new Date().toISOString().slice(0, 10); }
+function nowTime() {
+  const d = new Date();
+  return d.toTimeString().slice(0,5);
+}
+function fDate(s) {
+  if (!s) return '—';
+  const d = new Date(s + 'T12:00:00');
+  return d.toLocaleDateString('es-CO', { day:'2-digit', month:'short', year:'numeric' });
+}
+function fDateShort(s) {
+  if (!s) return '—';
+  const d = new Date(s + 'T12:00:00');
+  return d.toLocaleDateString('es-CO', { day:'2-digit', month:'short' });
+}
+function daysUntil(s) {
+  if (!s) return null;
+  const n = new Date(); n.setHours(0,0,0,0);
+  const t = new Date(s + 'T12:00:00');
+  return Math.round((t - n) / 86400000);
+}
+function daysSince(s) {
+  if (!s) return null;
+  const n = new Date(); n.setHours(0,0,0,0);
+  const t = new Date(s + 'T12:00:00');
+  return Math.round((n - t) / 86400000);
+}
+function getAge(bdate) {
+  if (!bdate) return null;
+  const b = new Date(bdate + 'T12:00:00'), n = new Date();
+  let a = n.getFullYear() - b.getFullYear();
+  if (n.getMonth() < b.getMonth() || (n.getMonth() === b.getMonth() && n.getDate() < b.getDate())) a--;
+  return a;
+}
+function initials(name) {
+  if (!name) return '?';
+  const p = name.trim().split(/\s+/);
+  return p.length === 1 ? p[0][0].toUpperCase() : (p[0][0] + p[p.length-1][0]).toUpperCase();
+}
+function formatCOP(n) {
+  if (!n && n !== 0) return '$0';
+  return '$' + parseInt(n).toLocaleString('es-CO');
+}
+function escH(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+// Estado de membresía
+function memStatus(u) {
+  if (!u.membership || !u.membership.endDate)
+    return { s:'none', label:'Sin membresía', cls:'badge-gray', days:null, urgent:false };
+  if (u.membership.status === 'suspended')
+    return { s:'suspended', label:'Suspendida', cls:'badge-orange', days:null, urgent:false };
+  const d = daysUntil(u.membership.endDate);
+  if (d < 0)  return { s:'expired',  label:'Vencida',  cls:'badge-red',   days:d, urgent:false };
+  if (d <= 5) return { s:'expiring', label:`Vence ${d}d`, cls:'badge-red badge-blink', days:d, urgent:true };
+  return { s:'active', label:'Activa', cls:'badge-green', days:d, urgent:false };
+}
+
+// Descuento por antigüedad
+function antiquityPct(joinDate) {
+  if (!joinDate) return 0;
+  const yrs = daysSince(joinDate) / 365;
+  if (yrs >= 3) return 15;
+  if (yrs >= 2) return 10;
+  if (yrs >= 1) return 5;
+  return 0;
+}
+
+// Cumpleaños esta semana (próximos 7 días)
+function bdayThisWeek(bdate) {
+  if (!bdate) return false;
+  const n = new Date(); n.setHours(0,0,0,0);
+  const b = new Date(bdate + 'T12:00:00');
+  const next = new Date(n.getFullYear(), b.getMonth(), b.getDate());
+  if (next < n) next.setFullYear(n.getFullYear() + 1);
+  return (next - n) / 86400000 <= 7;
+}
+
+// IMC
+function calcIMC(w, h) {
+  if (!w || !h) return null;
+  return parseFloat((w / Math.pow(h/100, 2)).toFixed(1));
+}
+function imcCat(v) {
+  if (!v) return '';
+  if (v < 18.5) return 'Bajo peso';
+  if (v < 25)   return 'Normal';
+  if (v < 30)   return 'Sobrepeso';
+  if (v < 35)   return 'Obesidad I';
+  return 'Obesidad II+';
+}
+
+// TMB Mifflin-St Jeor
+function calcTMB(w, h, age, gender) {
+  if (!w || !h || !age) return null;
+  const base = 10*w + 6.25*h - 5*age;
+  return Math.round(gender === 'M' ? base + 5 : base - 161);
+}
+function calcTDEE(tmb, level) {
+  const f = { sedentary:1.2, low:1.375, moderate:1.55, active:1.725, very_active:1.9 };
+  return Math.round(tmb * (f[level] || 1.2));
+}
+function targetMacros(tdee, obj) {
+  const adj  = { lose_weight:-400, gain_muscle:400, maintenance:0, resistance:100, rehabilitation:0, sports_performance:200 };
+  const dist = {
+    lose_weight:        [0.40, 0.30, 0.30],
+    gain_muscle:        [0.30, 0.50, 0.20],
+    maintenance:        [0.30, 0.40, 0.30],
+    resistance:         [0.25, 0.55, 0.20],
+    rehabilitation:     [0.30, 0.40, 0.30],
+    sports_performance: [0.30, 0.50, 0.20]
+  };
+  const cal = tdee + (adj[obj] || 0);
+  const d   = dist[obj] || dist.maintenance;
+  return {
+    calories: cal,
+    protein:  Math.round(cal * d[0] / 4),
+    carbs:    Math.round(cal * d[1] / 4),
+    fat:      Math.round(cal * d[2] / 9)
+  };
+}
+
+// Semana para gráfico de asistencia
+function weekLabel(dateStr) {
+  const d  = new Date(dateStr + 'T12:00:00');
+  const s  = new Date(d); s.setDate(d.getDate() - d.getDay() + 1);
+  return s.toLocaleDateString('es-CO', { day:'2-digit', month:'short' });
+}
+
+/* ======================================================
+   TOAST
+====================================================== */
+function toast(msg, type = 'ok') {
+  const icons = { ok:'✅', err:'❌', wrn:'⚠️', inf:'ℹ️' };
+  const box   = document.getElementById('toast-box');
+  const t     = document.createElement('div');
+  t.className = `toast ${type}`;
+  t.innerHTML = `<span>${icons[type]||'●'}</span><span>${msg}</span>`;
+  box.appendChild(t);
+  setTimeout(() => {
+    t.style.animation = 'toastOut .28s ease forwards';
+    setTimeout(() => t.remove(), 300);
+  }, 3200);
+}
+
+/* ======================================================
+   MODAL
+====================================================== */
+function showModal(html, size = '') {
+  closeModal();
+  const ov = document.createElement('div');
+  ov.className = 'modal-overlay';
+  ov.id = 'modal-ov';
+  ov.innerHTML = `<div class="modal ${size}">${html}</div>`;
+  ov.addEventListener('click', e => { if (e.target === ov) closeModal(); });
+  document.body.appendChild(ov);
+}
+function closeModal() {
+  document.getElementById('modal-ov')?.remove();
+}
+function confirmDlg(msg, cb, title = 'Confirmar acción') {
+  showModal(`
+    <div class="modal-head">
+      <span class="modal-title">⚠️ ${escH(title)}</span>
+      <button class="modal-close" onclick="closeModal()">×</button>
+    </div>
+    <div class="modal-body"><p style="font-size:15px">${msg}</p></div>
+    <div class="modal-foot">
+      <button class="btn btn-outline" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-danger" id="confirm-yes">Confirmar</button>
+    </div>
+  `);
+  document.getElementById('confirm-yes').onclick = () => { closeModal(); cb(); };
+}
+
+/* ======================================================
+   AUTH — Login / Logout
+====================================================== */
+function setRole(role) {
+  S._role = role;
+  document.getElementById('tab-admin').classList.toggle('active',  role === 'admin');
+  document.getElementById('tab-member').classList.toggle('active', role === 'member');
+  document.getElementById('admin-fields').classList.toggle('hidden',  role !== 'admin');
+  document.getElementById('member-fields').classList.toggle('hidden', role !== 'member');
+  document.getElementById('login-error').style.display = 'none';
+}
+
+function doLogin() {
+  const role = S._role || 'admin';
+  document.getElementById('login-error').style.display = 'none';
+
+  if (role === 'admin') {
+    const user = document.getElementById('inp-user').value.trim();
+    const pass = document.getElementById('inp-pass').value;
+    if (user === 'admin' && pass === DB.adminPass()) {
+      S.role = 'admin'; S.uid = null;
+      launchApp();
+    } else {
+      document.getElementById('login-error').style.display = 'block';
+    }
+  } else {
+    const ced = document.getElementById('inp-cedula').value.trim();
+    const u   = DB.users().find(x => x.cedula === ced);
+    if (u) {
+      S.role = 'member'; S.uid = u.id;
+      launchApp();
+    } else {
+      document.getElementById('login-error').style.display = 'block';
+    }
+  }
+}
+
+function launchApp() {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').classList.add('show');
+  buildSidebar();
+  navigate(S.role === 'admin' ? 'dashboard' : 'profile');
+}
+
+function logout() {
+  // Destruir charts activos
+  destroyCharts();
+  S.role = null; S.uid = null;
+  document.getElementById('app').classList.remove('show');
+  document.getElementById('login-screen').style.display = 'flex';
+  // Limpiar inputs
+  ['inp-user','inp-pass','inp-cedula'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  document.getElementById('login-error').style.display = 'none';
+  setRole('admin');
+}
+
+function destroyCharts() {
+  Object.values(S.charts).forEach(c => { try { c.destroy(); } catch(e){} });
+  S.charts = {};
+}
+
+/* ======================================================
+   SIDEBAR & BOTTOM NAV
+====================================================== */
+const ADMIN_NAV = [
+  { label:'PRINCIPAL', type:'group' },
+  { view:'dashboard', icon:'📊', label:'Dashboard' },
+  { view:'members',   icon:'👥', label:'Miembros' },
+  { label:'MÓDULOS', type:'group' },
+  { view:'valuation', icon:'📋', label:'Valoraciones' },
+  { view:'training',  icon:'💪', label:'Entrenamientos' },
+  { view:'nutrition', icon:'🥗', label:'Nutrición' },
+  { view:'progress',  icon:'📈', label:'Avances' },
+];
+const MEMBER_NAV = [
+  { view:'profile',      icon:'👤', label:'Mi Perfil' },
+  { view:'my-training',  icon:'💪', label:'Mi Entrenamiento' },
+  { view:'my-nutrition', icon:'🥗', label:'Mi Nutrición' },
+  { view:'my-progress',  icon:'📈', label:'Mis Avances' },
+];
+
+function buildSidebar() {
+  const nav   = document.getElementById('sidebar-nav');
+  const bnav  = document.getElementById('bnav-items');
+  const items = S.role === 'admin' ? ADMIN_NAV : MEMBER_NAV;
+  let html = '', bhtml = '';
+
+  items.forEach(it => {
+    if (it.type === 'group') {
+      html += `<div class="nav-group-label">${it.label}</div>`;
+      return;
+    }
+    html  += `<div class="nav-item" data-view="${it.view}" title="${it.label}" onclick="navigate('${it.view}')">
+                <span class="nav-icon">${it.icon}</span>
+                <span class="nav-label">${it.label}</span>
+              </div>`;
+    bhtml += `<div class="bnav-item" data-view="${it.view}" onclick="navigate('${it.view}')">
+                <span>${it.icon}</span><span>${it.label.split(' ')[0]}</span>
+              </div>`;
+  });
+
+  nav.innerHTML  = html;
+  bnav.innerHTML = bhtml;
+
+  // Info usuario en sidebar
+  if (S.role === 'admin') {
+    document.getElementById('s-avatar').textContent = 'A';
+    document.getElementById('s-name').textContent   = 'Administrador';
+    document.getElementById('s-role').textContent   = 'Admin';
+  } else {
+    const u = DB.user(S.uid);
+    if (u) {
+      document.getElementById('s-avatar').textContent = initials(u.name);
+      document.getElementById('s-name').textContent   = u.name.split(' ').slice(0,2).join(' ');
+      document.getElementById('s-role').textContent   = 'Miembro';
+    }
+  }
+}
+
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('collapsed');
+}
+
+function updateNavActive(view) {
+  document.querySelectorAll('[data-view]').forEach(el => {
+    el.classList.toggle('active', el.dataset.view === view);
+  });
+}
+
+/* ======================================================
+   NAVEGACIÓN (SPA)
+====================================================== */
+const VIEW_TITLES = {
+  dashboard:     '📊 Dashboard',
+  members:       '👥 Miembros',
+  'member-detail':'👤 Perfil del Miembro',
+  valuation:     '📋 Valoraciones',
+  'val-detail':  '📋 Valoración Física',
+  training:      '💪 Entrenamientos',
+  'train-detail':'💪 Plan de Entrenamiento',
+  nutrition:     '🥗 Nutrición',
+  'nutri-detail':'🥗 Plan de Nutrición',
+  progress:      '📈 Avances',
+  'prog-detail': '📈 Seguimiento — ',
+  profile:       '👤 Mi Perfil',
+  'my-training': '💪 Mi Entrenamiento',
+  'my-nutrition':'🥗 Mi Nutrición',
+  'my-progress': '📈 Mis Avances'
+};
+
+function navigate(view, param) {
+  destroyCharts();
+  S.view  = view;
+  S.param = param || null;
+  updateNavActive(view);
+
+  const title = VIEW_TITLES[view] || 'GymPro';
+  document.getElementById('topbar-title').textContent = title.replace('📊 ','').replace('👥 ','').replace('👤 ','').replace('📋 ','').replace('💪 ','').replace('🥗 ','').replace('📈 ','');
+  document.getElementById('topbar-extra').innerHTML = '';
+
+  const v = document.getElementById('view');
+
+  switch (view) {
+    case 'dashboard':      renderDashboard(v);         break;
+    case 'members':        renderMembers(v, param);    break;
+    case 'member-detail':  renderMemberDetail(v, param); break;
+    case 'valuation':      renderValuationList(v);     break;
+    case 'val-detail':     renderValDetail(v, param);  break;
+    case 'training':       renderTrainingList(v);      break;
+    case 'train-detail':   renderTrainDetail(v, param); break;
+    case 'nutrition':      renderNutriList(v);         break;
+    case 'nutri-detail':   renderNutriDetail(v, param); break;
+    case 'progress':       renderProgressList(v);      break;
+    case 'prog-detail':    renderProgDetail(v, param); break;
+    case 'profile':        renderProfile(v);           break;
+    case 'my-training':    renderMyTraining(v);        break;
+    case 'my-nutrition':   renderMyNutrition(v);       break;
+    case 'my-progress':    renderProgDetail(v, S.uid); break;
+    default:
+      v.innerHTML = `<div class="empty-state"><div class="empty-ico">🔍</div><p class="empty-txt">Vista no encontrada</p></div>`;
+  }
+}
+
+/* ======================================================
+   VISTAS PLACEHOLDER — se reemplazarán en siguientes partes
+====================================================== */
+function renderDashboard(v) {
+  v.innerHTML = `<div class="empty-state"><div class="empty-ico">📊</div><p class="empty-txt">Dashboard — Próxima parte</p></div>`;
+}
+function renderMembers(v)        { v.innerHTML = `<div class="empty-state"><div class="empty-ico">👥</div><p>Miembros — Próxima parte</p></div>`; }
+function renderMemberDetail(v,p) { v.innerHTML = `<div class="empty-state"><div class="empty-ico">👤</div><p>Detalle — Próxima parte</p></div>`; }
+function renderValuationList(v)  { v.innerHTML = `<div class="empty-state"><div class="empty-ico">📋</div><p>Valoraciones — Próxima parte</p></div>`; }
+function renderValDetail(v,p)    { v.innerHTML = `<div class="empty-state"><div class="empty-ico">📋</div><p>Valoración — Próxima parte</p></div>`; }
+function renderTrainingList(v)   { v.innerHTML = `<div class="empty-state"><div class="empty-ico">💪</div><p>Entrenamientos — Próxima parte</p></div>`; }
+function renderTrainDetail(v,p)  { v.innerHTML = `<div class="empty-state"><div class="empty-ico">💪</div><p>Plan — Próxima parte</p></div>`; }
+function renderNutriList(v)      { v.innerHTML = `<div class="empty-state"><div class="empty-ico">🥗</div><p>Nutrición — Próxima parte</p></div>`; }
+function renderNutriDetail(v,p)  { v.innerHTML = `<div class="empty-state"><div class="empty-ico">🥗</div><p>Plan Nutri — Próxima parte</p></div>`; }
+function renderProgressList(v)   { v.innerHTML = `<div class="empty-state"><div class="empty-ico">📈</div><p>Avances — Próxima parte</p></div>`; }
+function renderProgDetail(v,p)   { v.innerHTML = `<div class="empty-state"><div class="empty-ico">📈</div><p>Progreso — Próxima parte</p></div>`; }
+function renderProfile(v)        { v.innerHTML = `<div class="empty-state"><div class="empty-ico">👤</div><p>Perfil — Próxima parte</p></div>`; }
+function renderMyTraining(v)     { v.innerHTML = `<div class="empty-state"><div class="empty-ico">💪</div><p>Mi Entrenamiento — Próxima parte</p></div>`; }
+function renderMyNutrition(v)    { v.innerHTML = `<div class="empty-state"><div class="empty-ico">🥗</div><p>Mi Nutrición — Próxima parte</p></div>`; }
+
+/* ======================================================
+   DATOS DEMO
+====================================================== */
+const DEMO_USERS = [
+  {
+    id: 'u01',
+    name: 'Carlos Andrés Martínez Pérez',
+    cedula: '1020304050',
+    phone: '3001234567',
+    email: 'carlos.martinez@email.com',
+    birthdate: '1990-03-15',
+    gender: 'M',
+    occupation: 'Ingeniero de Software',
+    workHoursPerDay: 8,
+    sleepHoursAvg: 7,
+    activityLevel: 'moderate',
+    joinDate: '2022-01-10',
+    membership: { status:'active', type:'Mensual', startDate:'2026-04-01', endDate:'2026-05-17' },
+    trunkBox: [
+      { id:'tb01', months:1, type:'Mensual', addedDate:'2026-03-01', used:false }
+    ],
+    debt: { amount:0, description:'' },
+    referredBy: null,
+    referralPoints: 50,
+    referralCount: 1,
+    medicalConditions: [],
+    medicalNotes: '',
+    medications: '',
+    hasSurgeries: false,
+    surgeriesDesc: '',
+    objectives: {
+      primary:'gain_muscle',
+      secondary:'Mejorar definición muscular en torso',
+      daysPerWeek:4,
+      sessionDuration:60,
+      equipment:'gym_only'
+    },
+    physicalHistory: [
+      { date:'2024-01-10', weight:82, height:178, bodyFat:22, muscleMass:42,
+        measures:{ chest:100, waist:88, hip:98, rArm:34, lArm:33, rThigh:58, lThigh:57 }, restHR:72 },
+      { date:'2024-03-10', weight:80, height:178, bodyFat:20, muscleMass:43,
+        measures:{ chest:101, waist:86, hip:97, rArm:35, lArm:34, rThigh:59, lThigh:58 }, restHR:70 },
+      { date:'2024-06-10', weight:78, height:178, bodyFat:18, muscleMass:44.5,
+        measures:{ chest:102, waist:83, hip:96, rArm:36, lArm:35, rThigh:60, lThigh:59 }, restHR:68 },
+      { date:'2025-01-15', weight:76.5, height:178, bodyFat:16, muscleMass:46,
+        measures:{ chest:103, waist:81, hip:95, rArm:37, lArm:36, rThigh:61, lThigh:60 }, restHR:66 },
+      { date:'2025-06-10', weight:75, height:178, bodyFat:15, muscleMass:47,
+        measures:{ chest:104, waist:80, hip:95, rArm:38, lArm:37, rThigh:62, lThigh:61 }, restHR:65 },
+      { date:'2026-01-10', weight:74, height:178, bodyFat:14, muscleMass:48,
+        measures:{ chest:105, waist:79, hip:94, rArm:38.5, lArm:37.5, rThigh:63, lThigh:62 }, restHR:64 }
+    ]
+  },
+  {
+    id: 'u02',
+    name: 'Laura Valentina González',
+    cedula: '9876543210',
+    phone: '3109876543',
+    email: 'laura.gonzalez@email.com',
+    birthdate: '1995-05-08',
+    gender: 'F',
+    occupation: 'Profesora',
+    workHoursPerDay: 7,
+    sleepHoursAvg: 6,
+    activityLevel: 'low',
+    joinDate: '2023-06-15',
+    membership: { status:'active', type:'Mensual', startDate:'2026-04-02', endDate:'2026-05-05' },
+    trunkBox: [],
+    debt: { amount:0, description:'' },
+    referredBy: 'u01',
+    referralPoints: 0,
+    referralCount: 0,
+    medicalConditions: ['hipertension'],
+    medicalNotes: 'Tensión arterial controlada con medicación. No actividades de muy alta intensidad.',
+    medications: 'Losartán 50mg',
+    hasSurgeries: false,
+    surgeriesDesc: '',
+    objectives: {
+      primary:'lose_weight',
+      secondary:'Tonificar piernas y glúteos',
+      daysPerWeek:3,
+      sessionDuration:45,
+      equipment:'gym_only'
+    },
+    physicalHistory: [
+      { date:'2023-06-15', weight:72, height:163, bodyFat:32, muscleMass:28,
+        measures:{ chest:92, waist:78, hip:102, rArm:30, lArm:30, rThigh:56, lThigh:55 }, restHR:80 },
+      { date:'2024-01-15', weight:68, height:163, bodyFat:27, muscleMass:30,
+        measures:{ chest:90, waist:73, hip:98, rArm:29, lArm:29, rThigh:54, lThigh:53 }, restHR:76 },
+      { date:'2024-09-10', weight:65, height:163, bodyFat:24, muscleMass:31.5,
+        measures:{ chest:89, waist:70, hip:96, rArm:28.5, lArm:28.5, rThigh:52, lThigh:51 }, restHR:73 },
+      { date:'2025-04-10', weight:63, height:163, bodyFat:22, muscleMass:32,
+        measures:{ chest:88, waist:68, hip:95, rArm:28, lArm:28, rThigh:51, lThigh:50 }, restHR:71 }
+    ]
+  },
+  {
+    id: 'u03',
+    name: 'Diego Fernando Rodríguez',
+    cedula: '5555666677',
+    phone: '3207654321',
+    email: 'diego.rodriguez@email.com',
+    birthdate: '1988-11-20',
+    gender: 'M',
+    occupation: 'Contador',
+    workHoursPerDay: 9,
+    sleepHoursAvg: 5,
+    activityLevel: 'sedentary',
+    joinDate: '2023-01-05',
+    membership: { status:'expired', type:'Mensual', startDate:'2024-03-01', endDate:'2024-04-01' },
+    trunkBox: [
+      { id:'tb02', months:2, type:'2 Meses', addedDate:'2024-01-15', used:false },
+      { id:'tb03', months:1, type:'Mensual', addedDate:'2024-02-10', used:false }
+    ],
+    debt: { amount:150000, description:'Mensualidad de marzo 2024 pendiente' },
+    referredBy: null,
+    referralPoints: 0,
+    referralCount: 0,
+    medicalConditions: ['diabetes','joint_injury'],
+    medicalNotes: 'Diabetes tipo 2 controlada. Lesión en rodilla derecha (menisco). Evitar sentadillas profundas y movimientos explosivos de pierna.',
+    medications: 'Metformina 500mg c/12h',
+    hasSurgeries: true,
+    surgeriesDesc: 'Artroscopia rodilla derecha — Enero 2021',
+    objectives: {
+      primary:'rehabilitation',
+      secondary:'Fortalecer rodilla y bajar de peso gradualmente',
+      daysPerWeek:3,
+      sessionDuration:45,
+      equipment:'gym_only'
+    },
+    physicalHistory: [
+      { date:'2023-01-05', weight:95, height:175, bodyFat:30, muscleMass:36,
+        measures:{ chest:108, waist:100, hip:108, rArm:36, lArm:36, rThigh:62, lThigh:62 }, restHR:85 },
+      { date:'2023-07-05', weight:91, height:175, bodyFat:27, muscleMass:37,
+        measures:{ chest:106, waist:96, hip:105, rArm:35, lArm:35, rThigh:60, lThigh:60 }, restHR:82 }
+    ]
+  }
+];
+
+const DEMO_PLANS = [
+  {
+    id: 'p01',
+    userId: 'u01',
+    name: 'Plan Hipertrofia 4 días — Carlos',
+    durationWeeks: 12,
+    createdAt: '2024-01-15',
+    isActive: true,
+    days: [
+      { dayName:'Lunes', type:'training', restType:null, exercises:[
+        { num:1, name:'Press de banca con barra', muscle:'Pecho', sets:4, reps:'8-10', weight:70, rest:90, notes:'Control en la negativa' },
+        { num:2, name:'Press inclinado con mancuernas', muscle:'Pecho', sets:3, reps:'10-12', weight:24, rest:75, notes:'' },
+        { num:3, name:'Aperturas en polea baja', muscle:'Pecho', sets:3, reps:'12-15', weight:15, rest:60, notes:'' },
+        { num:4, name:'Press militar con barra', muscle:'Hombros', sets:4, reps:'8-10', weight:50, rest:90, notes:'' },
+        { num:5, name:'Elevaciones laterales', muscle:'Hombros', sets:3, reps:'12-15', weight:10, rest:60, notes:'' }
+      ]},
+      { dayName:'Martes', type:'training', restType:null, exercises:[
+        { num:1, name:'Sentadilla con barra', muscle:'Cuádriceps', sets:4, reps:'8-10', weight:90, rest:120, notes:'Profundidad completa' },
+        { num:2, name:'Prensa de pierna', muscle:'Cuádriceps', sets:3, reps:'12-15', weight:150, rest:90, notes:'' },
+        { num:3, name:'Curl femoral en máquina', muscle:'Isquiotibiales', sets:3, reps:'12-15', weight:40, rest:75, notes:'' },
+        { num:4, name:'Gemelos en máquina', muscle:'Gemelos', sets:4, reps:'15-20', weight:80, rest:60, notes:'' }
+      ]},
+      { dayName:'Miércoles', type:'rest', restType:'active', exercises:[] },
+      { dayName:'Jueves', type:'training', restType:null, exercises:[
+        { num:1, name:'Dominadas lastre', muscle:'Espalda', sets:4, reps:'6-8', weight:10, rest:90, notes:'' },
+        { num:2, name:'Remo con barra', muscle:'Espalda', sets:4, reps:'8-10', weight:70, rest:90, notes:'' },
+        { num:3, name:'Jalón al pecho en polea', muscle:'Espalda', sets:3, reps:'10-12', weight:65, rest:75, notes:'' },
+        { num:4, name:'Curl de bíceps con barra', muscle:'Bíceps', sets:4, reps:'10-12', weight:30, rest:75, notes:'' },
+        { num:5, name:'Martillo con mancuernas', muscle:'Bíceps', sets:3, reps:'12', weight:14, rest:60, notes:'' }
+      ]},
+      { dayName:'Viernes', type:'training', restType:null, exercises:[
+        { num:1, name:'Fondos en paralelas', muscle:'Tríceps', sets:4, reps:'8-12', weight:0, rest:90, notes:'Peso corporal' },
+        { num:2, name:'Extensión tríceps en polea', muscle:'Tríceps', sets:3, reps:'12-15', weight:30, rest:60, notes:'' },
+        { num:3, name:'Peso muerto rumano', muscle:'Glúteos', sets:4, reps:'10-12', weight:80, rest:90, notes:'' },
+        { num:4, name:'Hip thrust con barra', muscle:'Glúteos', sets:4, reps:'12-15', weight:60, rest:75, notes:'' },
+        { num:5, name:'Plancha abdominal', muscle:'Core', sets:3, reps:'45-60s', weight:0, rest:60, notes:'' }
+      ]},
+      { dayName:'Sábado', type:'rest', restType:'total', exercises:[] },
+      { dayName:'Domingo', type:'rest', restType:'total', exercises:[] }
+    ]
+  },
+  {
+    id: 'p02',
+    userId: 'u02',
+    name: 'Plan Pérdida de Grasa 3 días — Laura',
+    durationWeeks: 8,
+    createdAt: '2023-07-01',
+    isActive: true,
+    days: [
+      { dayName:'Lunes', type:'training', restType:null, exercises:[
+        { num:1, name:'Sentadilla goblet', muscle:'Piernas', sets:4, reps:'12-15', weight:16, rest:60, notes:'Evitar impacto alto' },
+        { num:2, name:'Prensa pierna (ángulo alto)', muscle:'Glúteos', sets:3, reps:'15', weight:80, rest:60, notes:'' },
+        { num:3, name:'Estocadas caminando', muscle:'Cuádriceps', sets:3, reps:'12 p/lado', weight:8, rest:60, notes:'' },
+        { num:4, name:'Hip thrust con barra', muscle:'Glúteos', sets:4, reps:'15', weight:40, rest:60, notes:'' },
+        { num:5, name:'Cardio elíptica', muscle:'Cardio', sets:1, reps:'20 min', weight:0, rest:0, notes:'FC 130-150 ppm' }
+      ]},
+      { dayName:'Martes', type:'rest', restType:'active', exercises:[] },
+      { dayName:'Miércoles', type:'training', restType:null, exercises:[
+        { num:1, name:'Press con mancuernas inclinado', muscle:'Pecho', sets:3, reps:'12-15', weight:12, rest:60, notes:'' },
+        { num:2, name:'Remo en máquina', muscle:'Espalda', sets:3, reps:'12-15', weight:40, rest:60, notes:'' },
+        { num:3, name:'Jalón al pecho en polea', muscle:'Espalda', sets:3, reps:'12', weight:45, rest:60, notes:'' },
+        { num:4, name:'Curl de bíceps con mancuernas', muscle:'Bíceps', sets:3, reps:'12-15', weight:8, rest:45, notes:'' },
+        { num:5, name:'Cardio caminadora inclinada', muscle:'Cardio', sets:1, reps:'25 min', weight:0, rest:0, notes:'8% inclinación' }
+      ]},
+      { dayName:'Jueves', type:'rest', restType:'active', exercises:[] },
+      { dayName:'Viernes', type:'training', restType:null, exercises:[
+        { num:1, name:'Peso muerto con mancuernas', muscle:'Espalda/Glúteos', sets:4, reps:'12', weight:18, rest:75, notes:'' },
+        { num:2, name:'Sentadilla sumo', muscle:'Aductores/Glúteos', sets:3, reps:'15', weight:20, rest:60, notes:'' },
+        { num:3, name:'Elevaciones de cadera suelo', muscle:'Glúteos', sets:3, reps:'20', weight:0, rest:45, notes:'' },
+        { num:4, name:'Plancha lateral', muscle:'Core', sets:3, reps:'30s p/lado', weight:0, rest:45, notes:'' },
+        { num:5, name:'Cardio elíptica', muscle:'Cardio', sets:1, reps:'20 min', weight:0, rest:0, notes:'FC moderada' }
+      ]},
+      { dayName:'Sábado', type:'rest', restType:'total', exercises:[] },
+      { dayName:'Domingo', type:'rest', restType:'total', exercises:[] }
+    ]
+  }
+];
+
+const DEMO_NUTRI = [
+  {
+    id: 'n01',
+    userId: 'u01',
+    name: 'Plan Nutrición Hipertrofia — Carlos',
+    createdAt: '2024-01-15',
+    isActive: true,
+    calories: 2900,
+    protein: 180,
+    carbs: 320,
+    fat: 90,
+    specialNotes: 'Mínimo 3L de agua al día. Evitar azúcar refinada. Preferir carbohidratos complejos. No saltarse el post-entreno.',
+    supplements: [
+      { name:'Proteína Whey', dose:'30g', schedule:'Post-entreno con 300ml agua' },
+      { name:'Creatina monohidrato', dose:'5g', schedule:'Diario con desayuno' },
+      { name:'Vitamina D3 + K2', dose:'2000 IU', schedule:'Con almuerzo' }
+    ],
+    meals: [
+      { type:'Desayuno', active:true, items:[
+        { food:'Avena en hojuelas', qty:'80g', protein:12, carbs:54, fat:5, calories:307, notes:'' },
+        { food:'Huevos enteros', qty:'3 und', protein:18, carbs:0, fat:14, calories:198, notes:'Revueltos' },
+        { food:'Banano', qty:'1 mediano', protein:1, carbs:27, fat:0, calories:112, notes:'' }
+      ]},
+      { type:'Media mañana', active:true, items:[
+        { food:'Yogur griego natural', qty:'200g', protein:20, carbs:8, fat:5, calories:153, notes:'Sin azúcar' },
+        { food:'Almendras', qty:'30g', protein:6, carbs:5, fat:14, calories:170, notes:'' }
+      ]},
+      { type:'Almuerzo', active:true, items:[
+        { food:'Pechuga de pollo a la plancha', qty:'200g', protein:60, carbs:0, fat:4, calories:276, notes:'' },
+        { food:'Arroz integral', qty:'150g cocido', protein:4, carbs:32, fat:1, calories:153, notes:'' },
+        { food:'Ensalada mixta c/ aguacate', qty:'100g + 50g', protein:2, carbs:8, fat:8, calories:110, notes:'' }
+      ]},
+      { type:'Pre-entreno', active:true, items:[
+        { food:'Pan integral', qty:'2 tajadas', protein:6, carbs:26, fat:2, calories:148, notes:'1h antes' },
+        { food:'Mantequilla de maní', qty:'30g', protein:7, carbs:6, fat:14, calories:180, notes:'' }
+      ]},
+      { type:'Post-entreno', active:true, items:[
+        { food:'Whey protein', qty:'30g polvo', protein:24, carbs:3, fat:1, calories:120, notes:'Con agua' },
+        { food:'Banano', qty:'1 und', protein:1, carbs:27, fat:0, calories:112, notes:'' }
+      ]},
+      { type:'Cena', active:true, items:[
+        { food:'Salmón al horno', qty:'180g', protein:43, carbs:0, fat:16, calories:320, notes:'' },
+        { food:'Quinoa cocida', qty:'120g', protein:5, carbs:21, fat:2, calories:120, notes:'' },
+        { food:'Brócoli al vapor', qty:'150g', protein:4, carbs:8, fat:0, calories:48, notes:'' }
+      ]},
+      { type:'Merienda', active:false, items:[] }
+    ]
+  },
+  {
+    id: 'n02',
+    userId: 'u02',
+    name: 'Plan Nutrición Déficit — Laura',
+    createdAt: '2023-07-01',
+    isActive: true,
+    calories: 1600,
+    protein: 130,
+    carbs: 160,
+    fat: 50,
+    specialNotes: 'Controlar sodio por hipertensión. Evitar procesados. 2.5L de agua diarios.',
+    supplements: [
+      { name:'Omega 3', dose:'2 cápsulas', schedule:'Con almuerzo' },
+      { name:'Magnesio glicinato', dose:'400mg', schedule:'Antes de dormir' }
+    ],
+    meals: [
+      { type:'Desayuno', active:true, items:[
+        { food:'Claras de huevo', qty:'4 und', protein:14, carbs:0, fat:0, calories:56, notes:'' },
+        { food:'Arepa integral pequeña', qty:'1 und', protein:3, carbs:18, fat:1, calories:93, notes:'' },
+        { food:'Fresas', qty:'100g', protein:1, carbs:8, fat:0, calories:36, notes:'' }
+      ]},
+      { type:'Media mañana', active:true, items:[
+        { food:'Manzana', qty:'1 und', protein:0, carbs:25, fat:0, calories:95, notes:'' },
+        { food:'Nueces', qty:'20g', protein:4, carbs:3, fat:13, calories:131, notes:'' }
+      ]},
+      { type:'Almuerzo', active:true, items:[
+        { food:'Pechuga pollo a la plancha', qty:'150g', protein:45, carbs:0, fat:3, calories:207, notes:'Sin sal extra' },
+        { food:'Papa cocida', qty:'100g', protein:2, carbs:20, fat:0, calories:88, notes:'' },
+        { food:'Ensalada verde grande', qty:'200g', protein:3, carbs:6, fat:1, calories:44, notes:'Limón y aceite de oliva' }
+      ]},
+      { type:'Merienda', active:true, items:[
+        { food:'Yogur griego bajo en grasa', qty:'150g', protein:15, carbs:6, fat:3, calories:111, notes:'' }
+      ]},
+      { type:'Cena', active:true, items:[
+        { food:'Atún en agua', qty:'120g', protein:28, carbs:0, fat:2, calories:130, notes:'' },
+        { food:'Espinaca salteada', qty:'100g', protein:3, carbs:3, fat:1, calories:33, notes:'' },
+        { food:'Aguacate', qty:'50g', protein:1, carbs:3, fat:8, calories:80, notes:'' }
+      ]},
+      { type:'Pre-entreno', active:false, items:[] },
+      { type:'Post-entreno', active:false, items:[] }
+    ]
+  }
+];
+
+// Asistencias demo (últimas semanas)
+const DEMO_ATT = (() => {
+  const recs = [];
+  const users = [
+    { id:'u01', freq:4, start:'2025-01-01' },
+    { id:'u02', freq:3, start:'2023-07-01' },
+    { id:'u03', freq:2, start:'2023-01-15' }
+  ];
+  users.forEach(({ id, freq, start }) => {
+    const d = new Date(start + 'T12:00:00');
+    const end = new Date();
+    while (d <= end) {
+      const dow = d.getDay(); // 0=dom,6=sab
+      if (dow >= 1 && dow <= 5) { // L-V
+        // probabilidad según freq
+        const prob = freq / 5;
+        if (Math.random() < prob) {
+          const h = 6 + Math.floor(Math.random() * 14);
+          const m = Math.floor(Math.random() * 60);
+          recs.push({
+            id: `att_${id}_${d.toISOString().slice(0,10)}`,
+            userId: id,
+            date: d.toISOString().slice(0,10),
+            time: `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`
+          });
+        }
+      }
+      d.setDate(d.getDate() + 1);
+    }
+  });
+  return recs;
+})();
+
+/* ======================================================
+   INICIALIZACIÓN
+====================================================== */
+function initApp() {
+  // Solo cargar datos demo si es la primera vez
+  if (!DB.isInit()) {
+    DB.setUsers(DEMO_USERS);
+    DB.setPlans(DEMO_PLANS);
+    DB.setNutris(DEMO_NUTRI);
+    DB.setAtt(DEMO_ATT);
+    DB.setInit();
+  }
+  // Asegurar estado login correcto
+  setRole('admin');
+}
+
+// Arrancar al cargar
+document.addEventListener('DOMContentLoaded', initApp);
+</script>
+</body>
+</html>
