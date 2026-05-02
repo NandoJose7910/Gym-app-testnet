@@ -2671,8 +2671,594 @@ function exportUserJSON(userId) {
 /* ======================================================
    VISTAS PLACEHOLDER — próximas partes
 ====================================================== */
-function renderValuationList(v)  { v.innerHTML = `<div class="empty-state"><div class="empty-ico">📋</div><p class="empty-txt">Módulo Valoraciones</p><p class="empty-sub">Disponible en la siguiente parte</p></div>`; }
-function renderValDetail(v,p)    { v.innerHTML = `<div class="empty-state"><div class="empty-ico">📋</div><p class="empty-txt">Valoración Física</p><p class="empty-sub">Disponible en la siguiente parte</p></div>`; }
+/* ======================================================
+   MÓDULO 2 — LISTA VALORACIONES
+====================================================== */
+function renderValuationList(v) {
+  const users = DB.users();
+  v.innerHTML = `
+    <div class="sec-head mb-20">
+      <span class="sec-title">VALORACIONES FÍSICAS</span>
+    </div>
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="val-search" placeholder="Buscar miembro..." oninput="filterValList()">
+      <select id="val-filter" onchange="filterValList()">
+        <option value="">Todos</option>
+        <option value="with">Con valoración</option>
+        <option value="without">Sin valoración</option>
+      </select>
+    </div>
+    <div id="val-list"></div>`;
+  filterValList();
+}
+
+function filterValList() {
+  const search = (document.getElementById('val-search')?.value || '').toLowerCase().trim();
+  const filter = document.getElementById('val-filter')?.value || '';
+  const list   = document.getElementById('val-list');
+  if (!list) return;
+
+  let users = DB.users();
+  if (search) users = users.filter(u => u.name.toLowerCase().includes(search) || u.cedula.includes(search));
+  if (filter === 'with')    users = users.filter(u => u.physicalHistory?.length > 0);
+  if (filter === 'without') users = users.filter(u => !u.physicalHistory?.length);
+
+  if (!users.length) {
+    list.innerHTML = `<div class="empty-state"><div class="empty-ico">📋</div><p class="empty-txt">Sin resultados</p></div>`;
+    return;
+  }
+  list.innerHTML = `<div style="display:flex;flex-direction:column;gap:10px">
+    ${users.map(u => {
+      const last   = u.physicalHistory?.length ? u.physicalHistory[u.physicalHistory.length - 1] : null;
+      const imcVal = last ? calcIMC(last.weight, last.height) : null;
+      const medW   = (u.medicalConditions || []).length;
+      return `<div class="member-card" onclick="navigate('val-detail','${u.id}')">
+        <div class="m-avatar">${initials(u.name)}</div>
+        <div class="m-info">
+          <div class="m-name">${escH(u.name)}</div>
+          <div class="m-meta">CC: ${u.cedula} • ${u.gender === 'M' ? '♂' : u.gender === 'F' ? '♀' : '—'} • ${getAge(u.birthdate) || '—'} años</div>
+          <div class="m-badges">
+            ${last
+              ? `<span class="badge badge-green">✅ ${u.physicalHistory.length} med${u.physicalHistory.length > 1 ? 'iciones' : 'ición'}</span>
+                 <span class="badge badge-gray">Última: ${fDateShort(last.date)}</span>
+                 <span class="badge badge-blue">IMC ${imcVal} — ${imcCat(imcVal)}</span>`
+              : `<span class="badge badge-orange">⚠️ Sin mediciones</span>`}
+            ${medW > 0 ? `<span class="badge badge-red">⚕️ ${medW} cond.</span>` : ''}
+          </div>
+        </div>
+        <div class="m-side">
+          ${last ? `<div class="font-title text-green" style="font-size:22px">${last.weight} kg</div>
+                    <div class="text-xs text-gray">${last.height} cm</div>` : ''}
+        </div>
+      </div>`;
+    }).join('')}
+  </div>`;
+}
+
+/* ======================================================
+   MÓDULO 2 — DETALLE VALORACIÓN
+====================================================== */
+function renderValDetail(v, userId) {
+  const u = DB.user(userId);
+  if (!u) { v.innerHTML = `<div class="empty-state"><div class="empty-ico">❌</div><p>Miembro no encontrado</p></div>`; return; }
+
+  const last   = u.physicalHistory?.length ? u.physicalHistory[u.physicalHistory.length - 1] : null;
+  const medW   = (u.medicalConditions || []).map(c => _medLabel(c));
+
+  v.innerHTML = `
+    <div class="flex-c gap-12 mb-20">
+      <button class="btn btn-ghost btn-sm" onclick="navigate('valuation')">← Volver</button>
+      <div class="profile-name" style="font-size:20px">${escH(u.name)}</div>
+      <span class="badge ${memStatus(u).cls} ">${memStatus(u).label}</span>
+      ${medW.length > 0 ? `<span class="badge badge-red">⚕️ ${medW.join(' · ')}</span>` : ''}
+    </div>
+
+    ${medW.length > 0 ? `<div class="alert alert-danger mb-20"><span class="alert-icon">⚕️</span>
+      <div><strong>Condición médica registrada:</strong> ${medW.join(', ')}. ${escH(u.medicalNotes || '')}</div></div>` : ''}
+
+    <div class="tabs" id="val-tabs">
+      <button class="tab-btn active" data-tab="fisica"   onclick="switchValTab('fisica')">⚖️ Datos Físicos</button>
+      <button class="tab-btn" data-tab="medica"          onclick="switchValTab('medica')">⚕️ Condición Médica</button>
+      <button class="tab-btn" data-tab="objetivos"       onclick="switchValTab('objetivos')">🎯 Objetivos</button>
+    </div>
+    <div id="val-fisica"    class="tab-pane active">${_valFisicaTab(u)}</div>
+    <div id="val-medica"    class="tab-pane">${_valMedicaTab(u)}</div>
+    <div id="val-objetivos" class="tab-pane">${_valObjetivosTab(u)}</div>`;
+}
+
+function switchValTab(tab) {
+  document.querySelectorAll('#val-tabs .tab-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.tab === tab));
+  ['fisica','medica','objetivos'].forEach(t => {
+    const el = document.getElementById('val-' + t);
+    if (el) el.classList.toggle('active', t === tab);
+  });
+}
+
+/* ---------- Tab: Datos Físicos ---------- */
+function _valFisicaTab(u) {
+  const hist   = u.physicalHistory || [];
+  const last   = hist.length ? hist[hist.length - 1] : null;
+  const first  = hist.length ? hist[0] : null;
+  const imcVal = last ? calcIMC(last.weight, last.height) : null;
+  const imcCls = !imcVal ? '' : imcVal < 18.5 ? 'text-blue' : imcVal < 25 ? 'text-green' : imcVal < 30 ? 'text-orange' : 'text-red';
+
+  // Delta primera vs última medición
+  const delta = (key, sub) => {
+    if (!first || !last) return null;
+    const a = sub ? first[sub]?.[key] : first[key];
+    const b = sub ? last[sub]?.[key]  : last[key];
+    if (a == null || b == null) return null;
+    return parseFloat((b - a).toFixed(1));
+  };
+
+  const dWeight = delta('weight');
+  const dFat    = delta('bodyFat');
+  const dMuscle = delta('muscleMass');
+  const dWaist  = delta('waist','measures');
+
+  return `
+  <!-- Resumen última medición -->
+  ${last ? `
+  <div class="g4 mb-20">
+    <div class="stat-card">
+      <div class="stat-lbl">Peso actual</div>
+      <div class="stat-val">${last.weight}<span style="font-size:18px"> kg</span></div>
+      ${dWeight !== null ? `<div class="stat-sub ${dWeight < 0 ? 'text-green' : dWeight > 0 ? 'text-orange' : ''}">${dWeight > 0 ? '+' : ''}${dWeight} kg desde inicio</div>` : ''}
+    </div>
+    <div class="stat-card">
+      <div class="stat-lbl">IMC</div>
+      <div class="stat-val ${imcCls}">${imcVal}</div>
+      <div class="stat-sub">${imcCat(imcVal)}</div>
+    </div>
+    <div class="stat-card red">
+      <div class="stat-lbl">% Grasa corporal</div>
+      <div class="stat-val">${last.bodyFat}<span style="font-size:18px">%</span></div>
+      ${dFat !== null ? `<div class="stat-sub ${dFat < 0 ? 'text-green' : 'text-orange'}">${dFat > 0 ? '+' : ''}${dFat}% desde inicio</div>` : ''}
+    </div>
+    <div class="stat-card">
+      <div class="stat-lbl">% Masa muscular</div>
+      <div class="stat-val">${last.muscleMass}<span style="font-size:18px">%</span></div>
+      ${dMuscle !== null ? `<div class="stat-sub ${dMuscle > 0 ? 'text-green' : 'text-orange'}">${dMuscle > 0 ? '+' : ''}${dMuscle}% desde inicio</div>` : ''}
+    </div>
+  </div>
+
+  <!-- Medidas corporales + FC -->
+  <div class="g2 mb-20">
+    <div class="card">
+      <div class="card-title">📏 Medidas Corporales <span class="text-xs text-gray fw-600" style="font-family:'Barlow'">(${fDate(last.date)})</span></div>
+      <div class="g2">
+        ${[['Pecho','chest'],['Cintura','waist'],['Cadera','hip'],['Brazo Der.','rArm'],
+           ['Brazo Izq.','lArm'],['Muslo Der.','rThigh'],['Muslo Izq.','lThigh']].map(([lbl, key]) => {
+          const val  = last.measures?.[key];
+          const dVal = delta(key, 'measures');
+          return `<div>
+            <div class="text-xs text-gray">${lbl.toUpperCase()}</div>
+            <div class="fw-600">${val != null ? val + ' cm' : '—'}</div>
+            ${dVal !== null ? `<div class="text-xs ${dVal < 0 ? 'text-green' : dVal > 0 ? 'text-orange' : 'text-gray'}">${dVal > 0 ? '+' : ''}${dVal} cm</div>` : ''}
+          </div>`;
+        }).join('')}
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">❤️ Datos Vitales</div>
+      <div style="display:flex;flex-direction:column;gap:16px">
+        <div>
+          <div class="text-xs text-gray">FC EN REPOSO</div>
+          <div class="font-title" style="font-size:32px">${last.restHR || '—'} <span class="text-sm text-gray fw-600" style="font-family:'Barlow'">ppm</span></div>
+          ${last.restHR ? `<div class="text-xs text-gray">${last.restHR < 60 ? '✅ Atlético' : last.restHR < 80 ? '✅ Normal' : '⚠️ Elevado'}</div>` : ''}
+        </div>
+        <div>
+          <div class="text-xs text-gray">ESTATURA</div>
+          <div class="font-title" style="font-size:28px">${last.height} <span class="text-sm text-gray fw-600" style="font-family:'Barlow'">cm</span></div>
+        </div>
+        <div>
+          <div class="text-xs text-gray">TOTAL MEDICIONES</div>
+          <div class="font-title text-green" style="font-size:28px">${hist.length}</div>
+        </div>
+      </div>
+    </div>
+  </div>` : `
+  <div class="alert alert-info mb-20">
+    <span class="alert-icon">ℹ️</span>
+    <span>Este miembro no tiene mediciones registradas. Agrega la primera usando el botón de abajo.</span>
+  </div>`}
+
+  <!-- Botón agregar medición -->
+  <div class="flex-b mb-20">
+    <div class="sec-title" style="font-size:18px">HISTORIAL DE MEDICIONES (${hist.length})</div>
+    <button class="btn btn-green" onclick="showAddMeasurementModal('${u.id}')">➕ Nueva Medición</button>
+  </div>
+
+  <!-- Tabla historial -->
+  ${hist.length === 0 ? `<p class="text-gray text-sm">Sin mediciones registradas aún.</p>` : `
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr>
+        <th>Fecha</th><th>Peso (kg)</th><th>Talla (cm)</th><th>IMC</th>
+        <th>% Grasa</th><th>% Músculo</th><th>Cintura</th><th>Brazo D.</th><th>Muslo D.</th><th>FC Rep.</th><th></th>
+      </tr></thead>
+      <tbody>
+        ${[...hist].reverse().map((m, i) => {
+          const imcM = calcIMC(m.weight, m.height);
+          const isLast = i === 0;
+          return `<tr${isLast ? ' style="background:var(--green-dim2)"' : ''}>
+            <td>${fDate(m.date)}${isLast ? ' <span class="badge badge-green">Última</span>' : ''}</td>
+            <td class="fw-600">${m.weight}</td>
+            <td>${m.height}</td>
+            <td><span class="fw-600 ${imcM < 18.5 ? 'text-blue' : imcM < 25 ? 'text-green' : imcM < 30 ? 'text-orange' : 'text-red'}">${imcM}</span></td>
+            <td>${m.bodyFat}%</td>
+            <td class="text-green">${m.muscleMass}%</td>
+            <td>${m.measures?.waist || '—'} cm</td>
+            <td>${m.measures?.rArm || '—'} cm</td>
+            <td>${m.measures?.rThigh || '—'} cm</td>
+            <td>${m.restHR || '—'} ppm</td>
+            <td><button class="btn-icon r" onclick="deleteMeasurement('${u.id}',${hist.length - 1 - i})" title="Eliminar">🗑</button></td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>
+  </div>`}`;
+}
+
+/* ---------- Tab: Condición Médica ---------- */
+function _valMedicaTab(u) {
+  const MED = [
+    ['hipertension','Hipertensión','🫀'],['diabetes','Diabetes','🩸'],
+    ['heart','Problemas cardíacos','❤️'],['joint_injury','Lesión articular','🦵'],
+    ['scoliosis','Escoliosis / Columna','🦴'],['osteoporosis','Osteoporosis','💊'],
+    ['pregnancy','Embarazo','🤱'],['none','Ninguna','✅']
+  ];
+  return `
+  <div class="card">
+    <div class="card-title">⚕️ Condición Médica Actual</div>
+    <div class="fsec">
+      <div class="fsec-title">Condiciones (selecciona todas las que apliquen)</div>
+      <div class="check-group mb-16">
+        ${MED.map(([v,l,ico]) => `
+        <label class="check-item" id="medchk-wrap-${v}">
+          <input type="checkbox" value="${v}" class="vm-chk" id="medchk-${v}"
+            ${(u.medicalConditions||[]).includes(v) ? 'checked' : ''}
+            onchange="handleNoneCheck('${v}')">
+          <label for="medchk-${v}">${ico} ${l}</label>
+        </label>`).join('')}
+      </div>
+    </div>
+
+    <div class="fsec">
+      <div class="fsec-title">Detalle médico</div>
+      <div class="frow frow-2">
+        <div class="field">
+          <label>Descripción de condición / lesión</label>
+          <textarea id="vm-notes" style="min-height:100px" placeholder="Describe detalladamente la condición, zona afectada, restricciones...">${escH(u.medicalNotes||'')}</textarea>
+        </div>
+        <div class="field">
+          <label>Medicamentos actuales</label>
+          <textarea id="vm-meds" style="min-height:100px" placeholder="Lista de medicamentos, dosis y frecuencia...">${escH(u.medications||'')}</textarea>
+        </div>
+      </div>
+    </div>
+
+    <div class="fsec">
+      <div class="fsec-title">Antecedentes quirúrgicos</div>
+      <div class="frow frow-2">
+        <div class="field">
+          <label>¿Ha tenido cirugías?</label>
+          <select id="vm-hassurg">
+            <option value="false" ${!u.hasSurgeries ? 'selected' : ''}>No</option>
+            <option value="true"  ${u.hasSurgeries  ? 'selected' : ''}>Sí</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Descripción de cirugías</label>
+          <input id="vm-surgdesc" value="${escH(u.surgeriesDesc||'')}" placeholder="Tipo, fecha y descripción de la cirugía">
+        </div>
+      </div>
+    </div>
+
+    <div class="frow frow-2">
+      <div class="field">
+        <label>Horas de sueño promedio / noche</label>
+        <input id="vm-sleep" type="number" min="1" max="12" step="0.5" value="${u.sleepHoursAvg||7}">
+      </div>
+      <div class="field">
+        <label>Horas de trabajo / día</label>
+        <input id="vm-work" type="number" min="0" max="24" step="0.5" value="${u.workHoursPerDay||8}">
+      </div>
+    </div>
+
+    <div class="flex" style="justify-content:flex-end;margin-top:20px">
+      <button class="btn btn-green" onclick="saveMedicalForm('${u.id}')">💾 Guardar Condición Médica</button>
+    </div>
+  </div>`;
+}
+
+/* ---------- Tab: Objetivos ---------- */
+function _valObjetivosTab(u) {
+  const obj = u.objectives || {};
+  const OBJS = [
+    ['lose_weight','Bajar de peso','🔥'],
+    ['gain_muscle','Ganar masa muscular','💪'],
+    ['resistance','Mejorar resistencia','🏃'],
+    ['rehabilitation','Rehabilitación','🩺'],
+    ['maintenance','Mantenimiento','⚖️'],
+    ['sports_performance','Rendimiento deportivo','🏆']
+  ];
+  const ACT = [
+    ['sedentary','Sedentario — Sin actividad física'],
+    ['low','Poco activo — 1-2 días/semana'],
+    ['moderate','Moderado — 3-4 días/semana'],
+    ['active','Activo — 5 días/semana'],
+    ['very_active','Muy activo — Intensidad diaria']
+  ];
+  return `
+  <div class="card">
+    <div class="card-title">🎯 Objetivos y Preferencias de Entrenamiento</div>
+
+    <div class="fsec">
+      <div class="fsec-title">Objetivo principal</div>
+      <div class="radio-group mb-0">
+        ${OBJS.map(([v,l,ico]) => `
+        <label class="radio-item">
+          <input type="radio" name="vo-primary" value="${v}" ${(obj.primary||'maintenance') === v ? 'checked' : ''}>
+          <label>${ico} ${l}</label>
+        </label>`).join('')}
+      </div>
+    </div>
+
+    <div class="fsec">
+      <div class="fsec-title">Objetivo secundario</div>
+      <div class="field">
+        <textarea id="vo-secondary" placeholder="Describe el objetivo secundario con detalle..." style="min-height:80px">${escH(obj.secondary||'')}</textarea>
+      </div>
+    </div>
+
+    <div class="fsec">
+      <div class="fsec-title">Nivel de actividad física previa</div>
+      <div class="radio-group">
+        ${ACT.map(([v,l]) => `
+        <label class="radio-item">
+          <input type="radio" name="vo-activity" value="${v}" ${(u.activityLevel||'moderate') === v ? 'checked' : ''}>
+          <label>${l}</label>
+        </label>`).join('')}
+      </div>
+    </div>
+
+    <div class="fsec">
+      <div class="fsec-title">Disponibilidad y preferencias</div>
+      <div class="frow frow-3">
+        <div class="field">
+          <label>Días disponibles / semana</label>
+          <select id="vo-days">
+            ${[2,3,4,5,6].map(n => `<option value="${n}" ${obj.daysPerWeek==n?'selected':''}>${n} días</option>`).join('')}
+          </select>
+        </div>
+        <div class="field">
+          <label>Duración deseada de sesión</label>
+          <select id="vo-duration">
+            ${[[45,'45 minutos'],[60,'60 minutos'],[90,'90 minutos'],[120,'120 minutos']].map(([v,l]) =>
+              `<option value="${v}" ${obj.sessionDuration==v?'selected':''}>${l}</option>`).join('')}
+          </select>
+        </div>
+        <div class="field">
+          <label>Equipo disponible</label>
+          <select id="vo-equip">
+            <option value="gym_only"  ${(obj.equipment||'gym_only')==='gym_only'?'selected':''}>Solo gym</option>
+            <option value="home_gym"  ${obj.equipment==='home_gym'?'selected':''}>Casa + gym</option>
+            <option value="home_only" ${obj.equipment==='home_only'?'selected':''}>Solo casa</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex" style="justify-content:flex-end">
+      <button class="btn btn-green" onclick="saveObjectivesForm('${u.id}')">💾 Guardar Objetivos</button>
+    </div>
+  </div>`;
+}
+
+/* ======================================================
+   MÓDULO 2 — MODAL NUEVA MEDICIÓN
+====================================================== */
+function showAddMeasurementModal(userId) {
+  const u = DB.user(userId); if (!u) return;
+  const last = u.physicalHistory?.length ? u.physicalHistory[u.physicalHistory.length - 1] : null;
+
+  showModal(`
+  <div class="modal-head">
+    <span class="modal-title">📏 Nueva Medición — ${escH(u.name.split(' ')[0])}</span>
+    <button class="modal-close" onclick="closeModal()">×</button>
+  </div>
+  <div class="modal-body">
+
+    <div class="fsec">
+      <div class="fsec-title">📅 Fecha y datos principales</div>
+      <div class="frow frow-3">
+        <div class="field">
+          <label>Fecha de medición</label>
+          <input id="nm-date" type="date" value="${today()}">
+        </div>
+        <div class="field">
+          <label>Peso (kg)</label>
+          <input id="nm-weight" type="number" step="0.1" min="20" max="300"
+            value="${last?.weight||''}" placeholder="Ej: 75.5"
+            oninput="autoIMC()">
+        </div>
+        <div class="field">
+          <label>Estatura (cm)</label>
+          <input id="nm-height" type="number" step="0.1" min="100" max="250"
+            value="${last?.height||''}" placeholder="Ej: 175"
+            oninput="autoIMC()">
+        </div>
+      </div>
+      <div class="frow frow-3">
+        <div class="field">
+          <label>IMC (calculado)</label>
+          <div class="field-calc" id="nm-imc">—</div>
+          <div class="field-note" id="nm-imc-cat" style="color:var(--green)"></div>
+        </div>
+        <div class="field">
+          <label>% Grasa corporal</label>
+          <input id="nm-fat" type="number" step="0.1" min="1" max="70"
+            value="${last?.bodyFat||''}" placeholder="Ej: 20">
+        </div>
+        <div class="field">
+          <label>% Masa muscular</label>
+          <input id="nm-muscle" type="number" step="0.1" min="1" max="80"
+            value="${last?.muscleMass||''}" placeholder="Ej: 40">
+        </div>
+      </div>
+      <div class="frow frow-2">
+        <div class="field">
+          <label>FC en reposo (ppm)</label>
+          <input id="nm-hr" type="number" min="30" max="200"
+            value="${last?.restHR||''}" placeholder="Ej: 72">
+        </div>
+        <div class="field" style="justify-content:flex-end;padding-top:22px">
+          <div class="field-note">✅ Mide la FC tras 5 min de reposo total sentado</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="fsec">
+      <div class="fsec-title">📐 Medidas Corporales (cm)</div>
+      <div class="frow frow-3">
+        ${[['nm-chest','Pecho / torax','chest'],['nm-waist','Cintura','waist'],['nm-hip','Cadera','hip']].map(([id,lbl,key]) =>
+          `<div class="field"><label>${lbl}</label>
+           <input id="${id}" type="number" step="0.1" min="30" max="200"
+             value="${last?.measures?.[key]||''}" placeholder="cm"></div>`).join('')}
+      </div>
+      <div class="frow frow-2">
+        <div class="frow frow-2" style="margin-bottom:0">
+          ${[['nm-rarm','Brazo derecho','rArm'],['nm-larm','Brazo izquierdo','lArm']].map(([id,lbl,key]) =>
+            `<div class="field"><label>${lbl}</label>
+             <input id="${id}" type="number" step="0.1" min="10" max="100"
+               value="${last?.measures?.[key]||''}" placeholder="cm"></div>`).join('')}
+        </div>
+        <div class="frow frow-2" style="margin-bottom:0">
+          ${[['nm-rthigh','Muslo derecho','rThigh'],['nm-lthigh','Muslo izquierdo','lThigh']].map(([id,lbl,key]) =>
+            `<div class="field"><label>${lbl}</label>
+             <input id="${id}" type="number" step="0.1" min="20" max="120"
+               value="${last?.measures?.[key]||''}" placeholder="cm"></div>`).join('')}
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <div class="modal-foot">
+    <button class="btn btn-outline" onclick="closeModal()">Cancelar</button>
+    <button class="btn btn-green" onclick="saveMeasurement('${userId}')">💾 Guardar Medición</button>
+  </div>`, 'modal-md');
+
+  autoIMC();
+}
+
+function autoIMC() {
+  const w = parseFloat(document.getElementById('nm-weight')?.value);
+  const h = parseFloat(document.getElementById('nm-height')?.value);
+  const imcEl  = document.getElementById('nm-imc');
+  const catEl  = document.getElementById('nm-imc-cat');
+  if (!imcEl) return;
+  if (w && h) {
+    const val = calcIMC(w, h);
+    imcEl.textContent = val;
+    const cat = imcCat(val);
+    catEl.textContent = cat;
+    catEl.style.color = val < 18.5 ? '#4488ff' : val < 25 ? 'var(--green)' : val < 30 ? 'var(--orange)' : 'var(--red)';
+  } else {
+    imcEl.textContent = '—';
+    catEl.textContent = '';
+  }
+}
+
+function saveMeasurement(userId) {
+  const u = DB.user(userId); if (!u) return;
+  const date   = document.getElementById('nm-date').value;
+  const weight = parseFloat(document.getElementById('nm-weight').value);
+  const height = parseFloat(document.getElementById('nm-height').value);
+  if (!date)   { toast('La fecha es obligatoria', 'err'); return; }
+  if (!weight) { toast('El peso es obligatorio', 'err'); return; }
+  if (!height) { toast('La estatura es obligatoria', 'err'); return; }
+
+  const rec = {
+    date, weight, height,
+    bodyFat:    parseFloat(document.getElementById('nm-fat').value)    || 0,
+    muscleMass: parseFloat(document.getElementById('nm-muscle').value) || 0,
+    restHR:     parseInt(document.getElementById('nm-hr').value)       || 0,
+    measures: {
+      chest:   parseFloat(document.getElementById('nm-chest').value)  || 0,
+      waist:   parseFloat(document.getElementById('nm-waist').value)  || 0,
+      hip:     parseFloat(document.getElementById('nm-hip').value)    || 0,
+      rArm:    parseFloat(document.getElementById('nm-rarm').value)   || 0,
+      lArm:    parseFloat(document.getElementById('nm-larm').value)   || 0,
+      rThigh:  parseFloat(document.getElementById('nm-rthigh').value) || 0,
+      lThigh:  parseFloat(document.getElementById('nm-lthigh').value) || 0
+    }
+  };
+
+  if (!u.physicalHistory) u.physicalHistory = [];
+  // Insertar ordenado por fecha
+  u.physicalHistory.push(rec);
+  u.physicalHistory.sort((a, b) => a.date.localeCompare(b.date));
+  DB.saveUser(u);
+  closeModal();
+  toast('Medición guardada ✅', 'ok');
+  navigate('val-detail', userId);
+}
+
+function deleteMeasurement(userId, index) {
+  const u = DB.user(userId); if (!u) return;
+  confirmDlg('¿Eliminar esta medición? No se puede deshacer.', () => {
+    u.physicalHistory.splice(index, 1);
+    DB.saveUser(u);
+    toast('Medición eliminada', 'wrn');
+    navigate('val-detail', userId);
+  }, 'Eliminar Medición');
+}
+
+/* ======================================================
+   MÓDULO 2 — GUARDAR MÉDICA Y OBJETIVOS
+====================================================== */
+function handleNoneCheck(val) {
+  if (val === 'none' && document.getElementById('medchk-none')?.checked) {
+    document.querySelectorAll('.vm-chk').forEach(c => { if (c.value !== 'none') c.checked = false; });
+  } else {
+    document.getElementById('medchk-none') && (document.getElementById('medchk-none').checked = false);
+  }
+}
+
+function saveMedicalForm(userId) {
+  const u = DB.user(userId); if (!u) return;
+  const selected = Array.from(document.querySelectorAll('.vm-chk:checked')).map(c => c.value);
+  u.medicalConditions = selected.includes('none') ? [] : selected;
+  u.medicalNotes   = document.getElementById('vm-notes').value.trim();
+  u.medications    = document.getElementById('vm-meds').value.trim();
+  u.hasSurgeries   = document.getElementById('vm-hassurg').value === 'true';
+  u.surgeriesDesc  = document.getElementById('vm-surgdesc').value.trim();
+  u.sleepHoursAvg  = parseFloat(document.getElementById('vm-sleep').value) || 7;
+  u.workHoursPerDay= parseFloat(document.getElementById('vm-work').value)  || 8;
+  DB.saveUser(u);
+  toast('Condición médica guardada ✅', 'ok');
+  navigate('val-detail', userId);
+}
+
+function saveObjectivesForm(userId) {
+  const u = DB.user(userId); if (!u) return;
+  const primary  = document.querySelector('input[name="vo-primary"]:checked')?.value || 'maintenance';
+  const activity = document.querySelector('input[name="vo-activity"]:checked')?.value || 'moderate';
+  u.objectives = {
+    primary,
+    secondary:       document.getElementById('vo-secondary').value.trim(),
+    daysPerWeek:     parseInt(document.getElementById('vo-days').value)     || 3,
+    sessionDuration: parseInt(document.getElementById('vo-duration').value) || 60,
+    equipment:       document.getElementById('vo-equip').value
+  };
+  u.activityLevel = activity;
+  DB.saveUser(u);
+  toast('Objetivos guardados ✅', 'ok');
+  navigate('val-detail', userId);
+}
 function renderTrainingList(v)   { v.innerHTML = `<div class="empty-state"><div class="empty-ico">💪</div><p class="empty-txt">Módulo Entrenamientos</p><p class="empty-sub">Disponible en la siguiente parte</p></div>`; }
 function renderTrainDetail(v,p)  { v.innerHTML = `<div class="empty-state"><div class="empty-ico">💪</div><p class="empty-txt">Plan de Entrenamiento</p><p class="empty-sub">Disponible en la siguiente parte</p></div>`; }
 function renderNutriList(v)      { v.innerHTML = `<div class="empty-state"><div class="empty-ico">🥗</div><p class="empty-txt">Módulo Nutrición</p><p class="empty-sub">Disponible en la siguiente parte</p></div>`; }
