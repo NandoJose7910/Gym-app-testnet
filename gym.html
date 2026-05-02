@@ -1752,24 +1752,936 @@ function navigate(view, param) {
 }
 
 /* ======================================================
-   VISTAS PLACEHOLDER — se reemplazarán en siguientes partes
+   MÓDULO 1 — DASHBOARD
 ====================================================== */
 function renderDashboard(v) {
-  v.innerHTML = `<div class="empty-state"><div class="empty-ico">📊</div><p class="empty-txt">Dashboard — Próxima parte</p></div>`;
+  const users    = DB.users();
+  const att      = DB.att();
+  const todayStr = today();
+
+  let active = 0, expired = 0, withDebt = 0;
+  const expiring  = [];
+  const birthdays = [];
+  const todayAtt  = att.filter(a => a.date === todayStr);
+
+  users.forEach(u => {
+    const st = memStatus(u);
+    if (st.s === 'active' || st.s === 'expiring') active++;
+    if (st.s === 'expired') expired++;
+    if (u.debt && u.debt.amount > 0) withDebt++;
+    if (st.urgent || (st.s === 'active' && st.days !== null && st.days <= 5)) expiring.push(u);
+    if (bdayThisWeek(u.birthdate)) birthdays.push(u);
+  });
+  expiring.sort((a, b) => daysUntil(a.membership.endDate) - daysUntil(b.membership.endDate));
+
+  const dateLabel = new Date().toLocaleDateString('es-CO', { weekday:'long', day:'numeric', month:'long' });
+
+  v.innerHTML = `
+    <div class="g4 mb-24">
+      <div class="stat-card">
+        <div class="stat-lbl">Miembros Activos</div>
+        <div class="stat-val">${active}</div>
+        <div class="stat-sub">de ${users.length} registrados</div>
+      </div>
+      <div class="stat-card red">
+        <div class="stat-lbl">Membresías Vencidas</div>
+        <div class="stat-val">${expired}</div>
+        <div class="stat-sub">requieren renovación</div>
+      </div>
+      <div class="stat-card orange">
+        <div class="stat-lbl">Con Deuda</div>
+        <div class="stat-val">${withDebt}</div>
+        <div class="stat-sub">saldo pendiente</div>
+      </div>
+      <div class="stat-card blue">
+        <div class="stat-lbl">Asistencias Hoy</div>
+        <div class="stat-val">${todayAtt.length}</div>
+        <div class="stat-sub">${dateLabel}</div>
+      </div>
+    </div>
+
+    <div class="g2 mb-20">
+      <div class="card">
+        <div class="card-title">⚠️ Membresías por Vencer</div>
+        ${expiring.length === 0
+          ? `<div style="text-align:center;padding:20px 0;color:var(--green)">✅ Sin alertas activas</div>`
+          : `<div class="tbl-wrap"><table>
+              <thead><tr><th>Miembro</th><th>Estado</th><th>Vence</th><th></th></tr></thead>
+              <tbody>${expiring.map(u => {
+                const d = daysUntil(u.membership.endDate);
+                return `<tr>
+                  <td><strong>${escH(u.name)}</strong></td>
+                  <td><span class="badge badge-red badge-blink">${d}d</span></td>
+                  <td class="text-sm text-gray">${fDate(u.membership.endDate)}</td>
+                  <td><button class="btn btn-sm btn-outline-green" onclick="navigate('member-detail','${u.id}')">Ver</button></td>
+                </tr>`;
+              }).join('')}</tbody>
+            </table></div>`}
+      </div>
+
+      <div class="card">
+        <div class="card-title">🎂 Cumpleaños esta Semana</div>
+        ${birthdays.length === 0
+          ? `<div style="text-align:center;padding:20px 0;color:var(--gray)">📅 Sin cumpleaños esta semana</div>`
+          : birthdays.map(u => {
+              const b   = new Date(u.birthdate + 'T12:00:00');
+              const now = new Date(); now.setHours(0,0,0,0);
+              const next = new Date(now.getFullYear(), b.getMonth(), b.getDate());
+              if (next < now) next.setFullYear(next.getFullYear() + 1);
+              const dLeft = Math.round((next - now) / 86400000);
+              const age   = getAge(u.birthdate);
+              return `<div class="member-card mb-12" onclick="navigate('member-detail','${u.id}')">
+                <div class="m-avatar">${initials(u.name)}</div>
+                <div class="m-info">
+                  <div class="m-name">${escH(u.name)}</div>
+                  <div class="m-meta">${b.toLocaleDateString('es-CO',{day:'numeric',month:'long'})}${age ? ` — Cumple ${age+1} años` : ''}</div>
+                  <div class="m-meta text-green" style="margin-top:2px">${dLeft === 0 ? '🎉 ¡Hoy es su cumpleaños!' : `en ${dLeft} día${dLeft !== 1 ? 's' : ''}`}</div>
+                </div>
+              </div>`;
+            }).join('')}
+      </div>
+    </div>
+
+    <div class="g2">
+      <div class="card">
+        <div class="card-title">🕐 Asistencias de Hoy</div>
+        ${todayAtt.length === 0
+          ? `<p class="text-gray text-sm">Nadie ha registrado entrada hoy.</p>`
+          : `<div class="tbl-wrap"><table>
+              <thead><tr><th>Miembro</th><th>Hora</th></tr></thead>
+              <tbody>${[...todayAtt].reverse().map(a => {
+                const u = DB.user(a.userId);
+                return `<tr>
+                  <td>${u ? escH(u.name) : '<em class="text-gray">Eliminado</em>'}</td>
+                  <td><span class="text-green fw-600">${a.time}</span></td>
+                </tr>`;
+              }).join('')}</tbody>
+            </table></div>`}
+      </div>
+
+      <div class="card">
+        <div class="card-title">⚡ Acceso Rápido</div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <button class="btn btn-green w-full" onclick="showAddMemberModal()">➕ Registrar nuevo miembro</button>
+          <button class="btn btn-outline w-full" onclick="navigate('members')">👥 Ver todos los miembros</button>
+          <button class="btn btn-outline w-full" onclick="navigate('members','expiring')">⚠️ Membresías por vencer</button>
+          <button class="btn btn-outline w-full" onclick="navigate('members','debt')">💰 Miembros con deuda</button>
+          <button class="btn btn-outline w-full" onclick="navigate('members','expired')">🔴 Membresías vencidas</button>
+        </div>
+      </div>
+    </div>`;
 }
-function renderMembers(v)        { v.innerHTML = `<div class="empty-state"><div class="empty-ico">👥</div><p>Miembros — Próxima parte</p></div>`; }
-function renderMemberDetail(v,p) { v.innerHTML = `<div class="empty-state"><div class="empty-ico">👤</div><p>Detalle — Próxima parte</p></div>`; }
-function renderValuationList(v)  { v.innerHTML = `<div class="empty-state"><div class="empty-ico">📋</div><p>Valoraciones — Próxima parte</p></div>`; }
-function renderValDetail(v,p)    { v.innerHTML = `<div class="empty-state"><div class="empty-ico">📋</div><p>Valoración — Próxima parte</p></div>`; }
-function renderTrainingList(v)   { v.innerHTML = `<div class="empty-state"><div class="empty-ico">💪</div><p>Entrenamientos — Próxima parte</p></div>`; }
-function renderTrainDetail(v,p)  { v.innerHTML = `<div class="empty-state"><div class="empty-ico">💪</div><p>Plan — Próxima parte</p></div>`; }
-function renderNutriList(v)      { v.innerHTML = `<div class="empty-state"><div class="empty-ico">🥗</div><p>Nutrición — Próxima parte</p></div>`; }
-function renderNutriDetail(v,p)  { v.innerHTML = `<div class="empty-state"><div class="empty-ico">🥗</div><p>Plan Nutri — Próxima parte</p></div>`; }
-function renderProgressList(v)   { v.innerHTML = `<div class="empty-state"><div class="empty-ico">📈</div><p>Avances — Próxima parte</p></div>`; }
-function renderProgDetail(v,p)   { v.innerHTML = `<div class="empty-state"><div class="empty-ico">📈</div><p>Progreso — Próxima parte</p></div>`; }
-function renderProfile(v)        { v.innerHTML = `<div class="empty-state"><div class="empty-ico">👤</div><p>Perfil — Próxima parte</p></div>`; }
-function renderMyTraining(v)     { v.innerHTML = `<div class="empty-state"><div class="empty-ico">💪</div><p>Mi Entrenamiento — Próxima parte</p></div>`; }
-function renderMyNutrition(v)    { v.innerHTML = `<div class="empty-state"><div class="empty-ico">🥗</div><p>Mi Nutrición — Próxima parte</p></div>`; }
+
+/* ======================================================
+   MÓDULO 1 — LISTA DE MIEMBROS
+====================================================== */
+function renderMembers(v, filter) {
+  const users = DB.users();
+  v.innerHTML = `
+    <div class="sec-head mb-20">
+      <span class="sec-title">MIEMBROS (${users.length})</span>
+      <button class="btn btn-green" onclick="showAddMemberModal()">➕ Nuevo Miembro</button>
+    </div>
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="mem-search" placeholder="Buscar por nombre, cédula o teléfono..." oninput="filterMembers()">
+      <select id="mem-filter" onchange="filterMembers()">
+        <option value="">Todos</option>
+        <option value="active">Activos</option>
+        <option value="expiring">Por vencer (≤5d)</option>
+        <option value="expired">Vencidos</option>
+        <option value="debt">Con deuda</option>
+        <option value="birthday">🎂 Cumpleaños</option>
+      </select>
+    </div>
+    <div id="members-list"></div>`;
+  if (filter) document.getElementById('mem-filter').value = filter;
+  filterMembers();
+}
+
+function filterMembers() {
+  const search = (document.getElementById('mem-search')?.value || '').toLowerCase().trim();
+  const filter = document.getElementById('mem-filter')?.value || '';
+  const list   = document.getElementById('members-list');
+  if (!list) return;
+
+  let users = DB.users();
+  if (search) {
+    users = users.filter(u =>
+      u.name.toLowerCase().includes(search) ||
+      u.cedula.includes(search) ||
+      (u.phone && u.phone.includes(search)) ||
+      (u.email && u.email.toLowerCase().includes(search))
+    );
+  }
+  if (filter) {
+    users = users.filter(u => {
+      const st = memStatus(u);
+      if (filter === 'active')   return st.s === 'active';
+      if (filter === 'expiring') return st.urgent;
+      if (filter === 'expired')  return st.s === 'expired';
+      if (filter === 'debt')     return u.debt && u.debt.amount > 0;
+      if (filter === 'birthday') return bdayThisWeek(u.birthdate);
+      return true;
+    });
+  }
+
+  if (users.length === 0) {
+    list.innerHTML = `<div class="empty-state"><div class="empty-ico">👥</div><p class="empty-txt">No se encontraron miembros</p><p class="empty-sub">Intenta con otro filtro o búsqueda</p></div>`;
+    return;
+  }
+
+  list.innerHTML = `<div style="display:flex;flex-direction:column;gap:10px">
+    ${users.map(u => {
+      const st   = memStatus(u);
+      const disc = antiquityPct(u.joinDate);
+      const age  = getAge(u.birthdate);
+      const refU = u.referredBy ? DB.user(u.referredBy) : null;
+      const trunk = (u.trunkBox || []).filter(t => !t.used).length;
+      return `<div class="member-card" onclick="navigate('member-detail','${u.id}')">
+        <div class="m-avatar">${initials(u.name)}</div>
+        <div class="m-info">
+          <div class="m-name">${escH(u.name)}</div>
+          <div class="m-meta">CC: ${u.cedula}${u.phone ? ` • ${u.phone}` : ''}${age !== null ? ` • ${age} años` : ''}</div>
+          <div class="m-meta">Ingreso: ${fDate(u.joinDate)}${refU ? ` • Ref: ${escH(refU.name.split(' ')[0])}` : ''}</div>
+          <div class="m-badges">
+            <span class="badge ${st.cls}">${st.label}</span>
+            ${disc > 0 ? `<span class="badge badge-blue">${disc}% antigüedad</span>` : ''}
+            ${u.debt && u.debt.amount > 0 ? `<span class="badge badge-orange">💰 ${formatCOP(u.debt.amount)}</span>` : ''}
+            ${bdayThisWeek(u.birthdate) ? `<span class="badge badge-blue">🎂</span>` : ''}
+            ${trunk > 0 ? `<span class="badge badge-gray">🗃️ ${trunk} baúl</span>` : ''}
+          </div>
+        </div>
+        <div class="m-side">
+          ${st.days !== null && st.days >= 0 ? `<div class="text-sm text-gray">${st.days}d restantes</div>` : ''}
+          <div class="text-xs text-gray mt-8">${fDate(u.membership?.endDate)}</div>
+        </div>
+      </div>`;
+    }).join('')}
+  </div>`;
+}
+
+/* ======================================================
+   MÓDULO 1 — DETALLE DE MIEMBRO
+====================================================== */
+function renderMemberDetail(v, userId) {
+  const u = DB.user(userId);
+  if (!u) { v.innerHTML = `<div class="empty-state"><div class="empty-ico">❌</div><p class="empty-txt">Miembro no encontrado</p></div>`; return; }
+
+  const st   = memStatus(u);
+  const disc = antiquityPct(u.joinDate);
+  const age  = getAge(u.birthdate);
+  const medW = (u.medicalConditions || []).map(c => _medLabel(c));
+
+  v.innerHTML = `
+    <div class="profile-hero">
+      <div class="profile-avatar-lg">${initials(u.name)}</div>
+      <div class="profile-info">
+        <div class="profile-name">${escH(u.name)}</div>
+        <div class="profile-sub">
+          CC: ${u.cedula}${u.phone ? ` • 📞 ${u.phone}` : ''}${u.email ? ` • ✉️ ${escH(u.email)}` : ''}${age !== null ? ` • ${age} años` : ''}${u.gender ? ` • ${u.gender === 'M' ? '♂ Hombre' : '♀ Mujer'}` : ''}
+        </div>
+        <div class="profile-badges">
+          <span class="badge ${st.cls}">${st.label}</span>
+          ${disc > 0 ? `<span class="badge badge-blue">${disc}% antigüedad</span>` : ''}
+          ${u.debt && u.debt.amount > 0 ? `<span class="badge badge-orange">💰 ${formatCOP(u.debt.amount)}</span>` : ''}
+          ${bdayThisWeek(u.birthdate) ? `<span class="badge badge-blue">🎂 Cumpleaños esta semana</span>` : ''}
+          ${medW.length > 0 ? `<span class="badge badge-red">⚕️ ${medW.slice(0,2).join(' · ')}${medW.length > 2 ? '…' : ''}</span>` : ''}
+        </div>
+      </div>
+      <div class="profile-actions">
+        <button class="btn btn-outline-green btn-sm" onclick="showEditMemberModal('${userId}')">✏️ Editar</button>
+        <button class="btn btn-outline btn-sm" onclick="exportUserJSON('${userId}')">⬇️ JSON</button>
+        <button class="btn btn-danger btn-sm" onclick="confirmDeleteMember('${userId}')">🗑️ Eliminar</button>
+      </div>
+    </div>
+
+    <div class="g4 mb-20">
+      <button class="btn btn-outline w-full" onclick="navigate('val-detail','${userId}')">📋 Valoración</button>
+      <button class="btn btn-outline w-full" onclick="navigate('train-detail','${userId}')">💪 Entrenamiento</button>
+      <button class="btn btn-outline w-full" onclick="navigate('nutri-detail','${userId}')">🥗 Nutrición</button>
+      <button class="btn btn-outline w-full" onclick="navigate('prog-detail','${userId}')">📈 Avances</button>
+    </div>
+
+    ${medW.length > 0 ? `<div class="alert alert-danger mb-20"><span class="alert-icon">⚕️</span><div><strong>Condición médica:</strong> ${medW.join(', ')}. ${escH(u.medicalNotes || 'Revisar contraindicaciones.')}</div></div>` : ''}
+
+    <div class="tabs" id="member-tabs">
+      <button class="tab-btn active" data-tab="membresia" onclick="switchMemberTab('membresia')">🎫 Membresía</button>
+      <button class="tab-btn" data-tab="asistencia"  onclick="switchMemberTab('asistencia')">📅 Asistencia</button>
+      <button class="tab-btn" data-tab="personal"    onclick="switchMemberTab('personal')">👤 Info Personal</button>
+    </div>
+    <div id="tab-membresia" class="tab-pane active">${_membershipTab(u)}</div>
+    <div id="tab-asistencia"  class="tab-pane">${_attendanceTab(u)}</div>
+    <div id="tab-personal"    class="tab-pane">${_personalTab(u)}</div>`;
+}
+
+function switchMemberTab(tab) {
+  document.querySelectorAll('#member-tabs .tab-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.tab === tab));
+  ['membresia','asistencia','personal'].forEach(t => {
+    const el = document.getElementById('tab-' + t);
+    if (el) el.classList.toggle('active', t === tab);
+  });
+}
+
+/* ---------- Tab: Membresía ---------- */
+function _membershipTab(u) {
+  const st   = memStatus(u);
+  const disc = antiquityPct(u.joinDate);
+  const dLeft = u.membership?.endDate ? daysUntil(u.membership.endDate) : null;
+  const sinceJoin = u.joinDate ? daysSince(u.joinDate) : 0;
+  const yrs  = Math.floor(sinceJoin / 365);
+  const mos  = Math.floor((sinceJoin % 365) / 30);
+
+  // Progress bar: % del período actual consumido
+  let barPct = 0;
+  if (u.membership?.startDate && u.membership?.endDate) {
+    const total = daysSince(u.membership.startDate) + Math.max(0, dLeft || 0);
+    barPct = total > 0 ? Math.min(100, Math.round(daysSince(u.membership.startDate) / total * 100)) : 100;
+  }
+  const barCls = dLeft !== null && dLeft <= 5 ? 'pbar-red' : dLeft !== null && dLeft <= 15 ? 'pbar-orange' : 'pbar-green';
+
+  const allUsers  = DB.users();
+  const refByUser = u.referredBy ? allUsers.find(x => x.id === u.referredBy) : null;
+  const referrals = allUsers.filter(x => x.referredBy === u.id);
+  const trunk     = (u.trunkBox || []).filter(t => !t.used);
+  const trunkUsed = (u.trunkBox || []).filter(t => t.used);
+
+  return `
+  <div class="g2 mb-20">
+    <!-- Estado membresía -->
+    <div class="card">
+      <div class="flex-b mb-16">
+        <div class="card-title" style="margin-bottom:0">🎫 Estado de Membresía</div>
+        <button class="btn btn-sm btn-outline-green" onclick="showEditMembershipModal('${u.id}')">✏️ Editar</button>
+      </div>
+      <div class="g2 mb-16">
+        <div><div class="text-xs text-gray">TIPO</div><div class="fw-600">${escH(u.membership?.type || '—')}</div></div>
+        <div><div class="text-xs text-gray">ESTADO</div><span class="badge ${st.cls}">${st.label}</span></div>
+        <div><div class="text-xs text-gray">INICIO</div><div class="fw-600">${fDate(u.membership?.startDate)}</div></div>
+        <div><div class="text-xs text-gray">VENCIMIENTO</div><div class="fw-600 ${dLeft !== null && dLeft <= 5 ? 'text-red' : ''}">${fDate(u.membership?.endDate)}</div></div>
+      </div>
+      ${dLeft !== null ? `
+      <div class="mb-12">
+        <div class="flex-b mb-6">
+          <div class="text-xs text-gray">DÍAS RESTANTES</div>
+          <div class="fw-600 ${dLeft <= 5 ? 'text-red' : dLeft <= 15 ? 'text-orange' : 'text-green'}">${dLeft >= 0 ? dLeft + ' días' : 'Vencida'}</div>
+        </div>
+        <div class="pbar"><div class="pbar-fill ${barCls}" style="width:${100-barPct}%"></div></div>
+      </div>` : ''}
+      ${dLeft !== null && dLeft <= 5 && dLeft >= 0
+        ? `<div class="alert alert-danger mb-0"><span class="alert-icon">⚠️</span><span>Vence en <strong>${dLeft}d</strong>. ${trunk.length > 0 ? trunk.length + ' membresía(s) disponible(s) en baúl.' : ''}</span></div>`
+        : st.s === 'expired' ? `<div class="alert alert-danger mb-0"><span class="alert-icon">🔴</span><span>Vencida hace ${Math.abs(dLeft || 0)}d. ${trunk.length > 0 ? `${trunk.length} membresía(s) en baúl.` : ''}</span></div>` : ''}
+    </div>
+
+    <!-- Antigüedad y descuento -->
+    <div class="card">
+      <div class="card-title">⏳ Antigüedad</div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div><div class="text-xs text-gray">FECHA INGRESO</div><div class="fw-600">${fDate(u.joinDate)}</div></div>
+        <div><div class="text-xs text-gray">TIEMPO EN EL GYM</div>
+          <div class="fw-600">${yrs > 0 ? yrs + ' año' + (yrs>1?'s':'') + ' ' : ''}${mos > 0 ? mos + ' mes' + (mos>1?'es':'') : ''}${yrs===0 && mos===0 ? 'Menos de 1 mes' : ''}</div>
+        </div>
+        ${disc > 0
+          ? `<div><div class="text-xs text-gray">DESCUENTO ANTIGÜEDAD</div>
+              <div class="font-title text-green" style="font-size:32px">${disc}%</div>
+              <div class="text-xs text-gray">${disc===5?'≥1 año':disc===10?'≥2 años':'≥3 años'}</div></div>`
+          : `<div class="alert alert-info mb-0"><span class="alert-icon">ℹ️</span><span>Descuento: 5% al año, 10% a 2 años, 15% a 3 años</span></div>`}
+        ${u.referralCount > 0 ? `<div><div class="text-xs text-gray">PUNTOS REFERIDOS</div><div class="font-title text-green" style="font-size:24px">${u.referralPoints || 0} pts</div></div>` : ''}
+      </div>
+    </div>
+  </div>
+
+  <!-- Caja Baúl -->
+  <div class="card mb-20">
+    <div class="flex-b mb-16">
+      <div class="card-title" style="margin-bottom:0">🗃️ Caja Baúl — Membresías Prepagadas</div>
+      <button class="btn btn-sm btn-outline-green" onclick="showAddTrunkBoxModal('${u.id}')">➕ Agregar</button>
+    </div>
+    ${trunk.length === 0 && trunkUsed.length === 0
+      ? `<p class="text-gray text-sm">Sin membresías guardadas en el baúl.</p>`
+      : `
+      ${trunk.length > 0 ? `
+      <div class="mb-16">
+        <div class="text-xs text-gray mb-8">DISPONIBLES (${trunk.length})</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          ${trunk.map(t => `
+          <div style="background:var(--bg-card2);border-radius:8px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between">
+            <div><div class="fw-600">${escH(t.type)}</div><div class="text-xs text-gray">Guardada: ${fDate(t.addedDate)} • ${t.months} mes${t.months>1?'es':''}</div></div>
+            <button class="btn btn-sm btn-green" onclick="useTrunkItem('${u.id}','${t.id}')">✅ Usar ahora</button>
+          </div>`).join('')}
+        </div>
+      </div>` : ''}
+      ${trunkUsed.length > 0 ? `
+      <div>
+        <div class="text-xs text-gray mb-8">USADAS (${trunkUsed.length})</div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          ${trunkUsed.map(t => `
+          <div style="background:var(--bg-card2);border-radius:8px;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;opacity:.5">
+            <div class="fw-600 text-gray">${escH(t.type)} <span class="badge badge-gray">Usada</span></div>
+            <div class="text-xs text-gray">${fDate(t.addedDate)}</div>
+          </div>`).join('')}
+        </div>
+      </div>` : ''}`}
+  </div>
+
+  <!-- Deuda -->
+  <div class="card mb-20">
+    <div class="flex-b mb-12">
+      <div class="card-title" style="margin-bottom:0">💰 Saldo Pendiente</div>
+      <button class="btn btn-sm btn-outline" onclick="showEditDebtModal('${u.id}')">✏️ Editar</button>
+    </div>
+    ${u.debt && u.debt.amount > 0
+      ? `<div class="alert alert-warn mb-0"><span class="alert-icon">⚠️</span>
+          <div><div class="fw-600">Deuda: <span class="text-orange">${formatCOP(u.debt.amount)}</span></div>
+          ${u.debt.description ? `<div class="text-sm mt-8">${escH(u.debt.description)}</div>` : ''}</div></div>`
+      : `<p class="text-green text-sm">✅ Sin deudas pendientes</p>`}
+  </div>
+
+  <!-- Referidos -->
+  <div class="card">
+    <div class="card-title">🤝 Sistema de Referidos</div>
+    <div class="g2">
+      <div>
+        <div class="text-xs text-gray mb-8">REFERIDO POR</div>
+        ${refByUser
+          ? `<div class="member-card" onclick="navigate('member-detail','${refByUser.id}')">
+              <div class="m-avatar" style="width:36px;height:36px;font-size:14px">${initials(refByUser.name)}</div>
+              <div class="m-info"><div class="m-name text-sm">${escH(refByUser.name)}</div></div>
+            </div>`
+          : `<p class="text-gray text-sm">Sin referido registrado</p>`}
+      </div>
+      <div>
+        <div class="text-xs text-gray mb-8">MIEMBROS QUE REFIRIÓ (${referrals.length})</div>
+        ${referrals.length === 0
+          ? `<p class="text-gray text-sm">No ha referido a nadie aún</p>`
+          : `<div style="display:flex;flex-direction:column;gap:6px">
+              ${referrals.map(r => `
+              <div class="member-card" onclick="navigate('member-detail','${r.id}')" style="padding:10px 14px">
+                <div class="m-avatar" style="width:32px;height:32px;font-size:13px">${initials(r.name)}</div>
+                <div class="m-info"><div class="m-name text-sm">${escH(r.name)}</div></div>
+              </div>`).join('')}
+            </div>
+            <div class="mt-12"><div class="text-xs text-gray">PUNTOS ACUMULADOS</div>
+            <div class="font-title text-green" style="font-size:26px">${u.referralPoints || 0} pts</div></div>`}
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ---------- Tab: Asistencia ---------- */
+function _attendanceTab(u) {
+  const att      = DB.userAtt(u.id);
+  const todayStr = today();
+  const todayRec = att.find(a => a.date === todayStr);
+  const sorted   = [...att].sort((a, b) => b.date.localeCompare(a.date));
+  const now      = new Date();
+
+  const thisMonthAtt = att.filter(a => {
+    const d = new Date(a.date + 'T12:00:00');
+    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+  });
+  const mon = new Date(now); mon.setDate(now.getDate() - now.getDay() + 1); mon.setHours(0,0,0,0);
+  const thisWeekAtt  = att.filter(a => new Date(a.date + 'T12:00:00') >= mon);
+
+  return `
+  <div style="display:flex;align-items:flex-start;gap:20px;margin-bottom:24px;flex-wrap:wrap">
+    <div class="g3 flex-1 gap-16">
+      <div class="stat-card" style="padding:16px">
+        <div class="stat-lbl">Total</div>
+        <div class="stat-val" style="font-size:28px">${att.length}</div>
+      </div>
+      <div class="stat-card" style="padding:16px">
+        <div class="stat-lbl">Este mes</div>
+        <div class="stat-val" style="font-size:28px">${thisMonthAtt.length}</div>
+      </div>
+      <div class="stat-card blue" style="padding:16px">
+        <div class="stat-lbl">Esta semana</div>
+        <div class="stat-val" style="font-size:28px;color:var(--blue)">${thisWeekAtt.length}</div>
+      </div>
+    </div>
+    <div>
+      ${todayRec
+        ? `<div class="alert alert-success mb-0"><span class="alert-icon">✅</span>
+            <div><div class="fw-600">Entrada registrada hoy</div><div class="text-sm">${todayRec.time}</div></div></div>`
+        : `<button class="btn btn-green" onclick="registerAttendance('${u.id}')">⏰ Registrar Entrada Hoy</button>`}
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📅 Historial de Asistencias</div>
+    ${sorted.length === 0
+      ? `<p class="text-gray text-sm">Sin asistencias registradas.</p>`
+      : `<div class="tbl-wrap"><table>
+          <thead><tr><th>Fecha</th><th>Hora</th><th>Día</th></tr></thead>
+          <tbody>${sorted.slice(0, 60).map(a => {
+            const d = new Date(a.date + 'T12:00:00');
+            const isToday = a.date === todayStr;
+            return `<tr${isToday ? ' style="background:var(--green-dim2)"' : ''}>
+              <td>${fDate(a.date)}${isToday ? ' <span class="badge badge-green">Hoy</span>' : ''}</td>
+              <td class="text-green fw-600">${a.time}</td>
+              <td class="text-gray text-sm">${d.toLocaleDateString('es-CO',{weekday:'long'})}</td>
+            </tr>`;
+          }).join('')}</tbody>
+        </table></div>
+        ${sorted.length > 60 ? `<p class="text-gray text-sm mt-8">Últimas 60 de ${sorted.length} asistencias.</p>` : ''}`}
+  </div>`;
+}
+
+/* ---------- Tab: Info Personal ---------- */
+function _personalTab(u) {
+  const OBJ_MAP = { lose_weight:'Bajar de peso', gain_muscle:'Ganar masa muscular',
+    maintenance:'Mantenimiento', resistance:'Mejorar resistencia',
+    rehabilitation:'Rehabilitación', sports_performance:'Rendimiento deportivo' };
+  const ACT_MAP = { sedentary:'Sedentario', low:'Poco activo', moderate:'Moderado',
+    active:'Activo', very_active:'Muy activo' };
+  const EQP_MAP = { gym_only:'Solo gym', home_gym:'Casa + gym', home_only:'Solo casa' };
+
+  const last   = u.physicalHistory?.length > 0 ? u.physicalHistory[u.physicalHistory.length - 1] : null;
+  const imcVal = last ? calcIMC(last.weight, last.height) : null;
+
+  return `
+  <div class="g2 mb-20">
+    <div class="card">
+      <div class="card-title">👤 Datos Personales</div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        ${[
+          ['Nombre completo', u.name],
+          ['Cédula', u.cedula],
+          ['Teléfono', u.phone || '—'],
+          ['Email', u.email || '—'],
+          ['Fecha nacimiento', u.birthdate ? `${fDate(u.birthdate)} (${getAge(u.birthdate)} años)` : '—'],
+          ['Género', u.gender === 'M' ? '♂ Hombre' : u.gender === 'F' ? '♀ Mujer' : '—'],
+          ['Ocupación', u.occupation || '—'],
+          ['Horas trabajo/día', u.workHoursPerDay ? u.workHoursPerDay + 'h' : '—'],
+          ['Horas sueño promedio', u.sleepHoursAvg ? u.sleepHoursAvg + 'h' : '—'],
+          ['Nivel actividad previa', ACT_MAP[u.activityLevel] || '—'],
+        ].map(([l,val]) => `<div class="flex-b">
+          <div class="text-xs text-gray">${l.toUpperCase()}</div>
+          <div class="fw-600 text-sm">${escH(String(val))}</div>
+        </div>`).join('')}
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🎯 Objetivos</div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        ${[
+          ['Objetivo principal', OBJ_MAP[u.objectives?.primary] || '—'],
+          ['Objetivo secundario', u.objectives?.secondary || '—'],
+          ['Días/semana disponibles', u.objectives?.daysPerWeek ? u.objectives.daysPerWeek + ' días' : '—'],
+          ['Duración sesión deseada', u.objectives?.sessionDuration ? u.objectives.sessionDuration + ' min' : '—'],
+          ['Equipo disponible', EQP_MAP[u.objectives?.equipment] || '—'],
+        ].map(([l,val]) => `<div class="flex-b">
+          <div class="text-xs text-gray">${l.toUpperCase()}</div>
+          <div class="fw-600 text-sm">${escH(String(val))}</div>
+        </div>`).join('')}
+      </div>
+      ${last ? `
+      <hr class="sep">
+      <div class="card-title" style="font-size:15px">⚖️ Última medición (${fDate(last.date)})</div>
+      <div class="g2">
+        <div class="tc"><div class="text-xs text-gray">PESO</div><div class="font-title text-green" style="font-size:28px">${last.weight} kg</div></div>
+        <div class="tc"><div class="text-xs text-gray">IMC</div><div class="font-title" style="font-size:28px">${imcVal}</div><div class="text-xs text-gray">${imcCat(imcVal)}</div></div>
+        <div class="tc"><div class="text-xs text-gray">% GRASA</div><div class="font-title" style="font-size:24px">${last.bodyFat}%</div></div>
+        <div class="tc"><div class="text-xs text-gray">% MÚSCULO</div><div class="font-title text-green" style="font-size:24px">${last.muscleMass}%</div></div>
+      </div>` : ''}
+    </div>
+  </div>
+
+  ${u.medicalConditions && u.medicalConditions.length > 0 ? `
+  <div class="card">
+    <div class="card-title">⚕️ Condición Médica</div>
+    <div class="g2">
+      <div>
+        <div class="text-xs text-gray mb-8">CONDICIONES</div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px">${u.medicalConditions.map(c => `<span class="badge badge-red">${_medLabel(c)}</span>`).join('')}</div>
+        ${u.medicalNotes ? `<div class="mt-12"><div class="text-xs text-gray">NOTAS</div><div class="text-sm mt-4">${escH(u.medicalNotes)}</div></div>` : ''}
+      </div>
+      <div>
+        ${u.medications ? `<div><div class="text-xs text-gray">MEDICAMENTOS</div><div class="text-sm mt-4">${escH(u.medications)}</div></div>` : ''}
+        ${u.hasSurgeries ? `<div class="mt-12"><div class="text-xs text-gray">CIRUGÍAS</div><div class="text-sm mt-4">${escH(u.surgeriesDesc || '—')}</div></div>` : ''}
+      </div>
+    </div>
+  </div>` : ''}`;
+}
+
+function _medLabel(code) {
+  const M = { hipertension:'Hipertensión', diabetes:'Diabetes', heart:'Problemas cardíacos',
+    joint_injury:'Lesión articular', scoliosis:'Escoliosis', osteoporosis:'Osteoporosis',
+    pregnancy:'Embarazo', cardiac:'Cardíaco' };
+  return M[code] || code;
+}
+
+/* ======================================================
+   MÓDULO 1 — CRUD MIEMBROS
+====================================================== */
+function showAddMemberModal()    { showModal(_memberFormHTML(null), 'modal-md'); }
+function showEditMemberModal(id) { const u = DB.user(id); if (u) showModal(_memberFormHTML(u), 'modal-md'); }
+
+function _memberFormHTML(u) {
+  const isNew = !u;
+  const allU  = DB.users();
+  const refOpts = allU.filter(x => !u || x.id !== u.id)
+    .map(x => `<option value="${x.id}" ${u?.referredBy === x.id ? 'selected' : ''}>${escH(x.name)}</option>`).join('');
+  const MED = [['hipertension','Hipertensión'],['diabetes','Diabetes'],['heart','Problemas cardíacos'],
+    ['joint_injury','Lesión articular'],['scoliosis','Escoliosis/Columna'],['osteoporosis','Osteoporosis'],['pregnancy','Embarazo']];
+  const OBJS = [['lose_weight','Bajar de peso'],['gain_muscle','Ganar masa muscular'],
+    ['resistance','Mejorar resistencia'],['rehabilitation','Rehabilitación'],
+    ['maintenance','Mantenimiento'],['sports_performance','Rendimiento deportivo']];
+
+  return `
+  <div class="modal-head">
+    <span class="modal-title">${isNew ? '➕ Nuevo Miembro' : '✏️ Editar Miembro'}</span>
+    <button class="modal-close" onclick="closeModal()">×</button>
+  </div>
+  <div class="modal-body">
+    <input type="hidden" id="fm-id" value="${u?.id || ''}">
+
+    <div class="fsec">
+      <div class="fsec-title">👤 Datos Personales</div>
+      <div class="frow frow-2">
+        <div class="field"><label>Nombre completo *</label><input id="fm-name" value="${escH(u?.name||'')}" placeholder="Nombres y apellidos"></div>
+        <div class="field"><label>Cédula *</label><input id="fm-cedula" value="${escH(u?.cedula||'')}" placeholder="Número de cédula"></div>
+      </div>
+      <div class="frow frow-2">
+        <div class="field"><label>Teléfono</label><input id="fm-phone" type="tel" value="${escH(u?.phone||'')}" placeholder="3xxxxxxxxx"></div>
+        <div class="field"><label>Email</label><input id="fm-email" type="email" value="${escH(u?.email||'')}" placeholder="correo@ejemplo.com"></div>
+      </div>
+      <div class="frow frow-3">
+        <div class="field"><label>Fecha nacimiento</label><input id="fm-bdate" type="date" value="${u?.birthdate||''}"></div>
+        <div class="field"><label>Género</label><select id="fm-gender">
+          <option value="">—</option>
+          <option value="M" ${u?.gender==='M'?'selected':''}>Hombre</option>
+          <option value="F" ${u?.gender==='F'?'selected':''}>Mujer</option>
+        </select></div>
+        <div class="field"><label>Fecha de ingreso *</label><input id="fm-joindate" type="date" value="${u?.joinDate||today()}"></div>
+      </div>
+      <div class="frow frow-2">
+        <div class="field"><label>Ocupación</label><input id="fm-occupation" value="${escH(u?.occupation||'')}" placeholder="Ej: Ingeniero..."></div>
+        <div class="field"><label>Referido por</label><select id="fm-refby">
+          <option value="">Sin referido</option>${refOpts}
+        </select></div>
+      </div>
+    </div>
+
+    <div class="fsec">
+      <div class="fsec-title">🎫 Membresía</div>
+      <div class="frow frow-3">
+        <div class="field"><label>Tipo</label><select id="fm-mtype">
+          ${['Mensual','Trimestral','Semestral','Anual'].map(t => `<option ${(u?.membership?.type||'Mensual')===t?'selected':''}>${t}</option>`).join('')}
+        </select></div>
+        <div class="field"><label>Fecha inicio</label><input id="fm-mstart" type="date" value="${u?.membership?.startDate||today()}"></div>
+        <div class="field"><label>Fecha vencimiento</label><input id="fm-mend" type="date" value="${u?.membership?.endDate||''}"></div>
+      </div>
+      <div class="frow frow-2">
+        <div class="field"><label>Estado</label><select id="fm-mstatus">
+          <option value="active"    ${(u?.membership?.status||'active')==='active'?'selected':''}>Activa</option>
+          <option value="suspended" ${u?.membership?.status==='suspended'?'selected':''}>Suspendida</option>
+          <option value="expired"   ${u?.membership?.status==='expired'?'selected':''}>Vencida</option>
+        </select></div>
+        <div class="field"><label>Deuda (COP)</label><input id="fm-debt" type="number" value="${u?.debt?.amount||0}" min="0"></div>
+      </div>
+      <div class="field"><label>Descripción deuda</label><input id="fm-debt-desc" value="${escH(u?.debt?.description||'')}" placeholder="Ej: Mensualidad pendiente"></div>
+    </div>
+
+    <div class="fsec">
+      <div class="fsec-title">🎯 Objetivos</div>
+      <div class="frow frow-2">
+        <div class="field"><label>Objetivo principal</label><select id="fm-obj">
+          ${OBJS.map(([v,l]) => `<option value="${v}" ${u?.objectives?.primary===v?'selected':''}>${l}</option>`).join('')}
+        </select></div>
+        <div class="field"><label>Nivel de actividad previo</label><select id="fm-activity">
+          ${[['sedentary','Sedentario'],['low','Poco activo'],['moderate','Moderado'],['active','Activo'],['very_active','Muy activo']]
+            .map(([v,l]) => `<option value="${v}" ${(u?.activityLevel||'moderate')===v?'selected':''}>${l}</option>`).join('')}
+        </select></div>
+      </div>
+      <div class="frow frow-3">
+        <div class="field"><label>Días/semana</label><select id="fm-days">
+          ${[2,3,4,5,6].map(n=>`<option value="${n}" ${u?.objectives?.daysPerWeek==n?'selected':''}>${n} días</option>`).join('')}
+        </select></div>
+        <div class="field"><label>Duración sesión</label><select id="fm-duration">
+          ${[45,60,90,120].map(n=>`<option value="${n}" ${u?.objectives?.sessionDuration==n?'selected':''}>${n} min</option>`).join('')}
+        </select></div>
+        <div class="field"><label>Equipo</label><select id="fm-equip">
+          <option value="gym_only" ${(u?.objectives?.equipment||'gym_only')==='gym_only'?'selected':''}>Solo gym</option>
+          <option value="home_gym" ${u?.objectives?.equipment==='home_gym'?'selected':''}>Casa + gym</option>
+          <option value="home_only" ${u?.objectives?.equipment==='home_only'?'selected':''}>Solo casa</option>
+        </select></div>
+      </div>
+    </div>
+
+    <div class="fsec">
+      <div class="fsec-title">⚕️ Condición Médica</div>
+      <div class="check-group mb-12">
+        ${MED.map(([v,l]) => `<label class="check-item"><input type="checkbox" value="${v}" class="med-chk" ${u?.medicalConditions?.includes(v)?'checked':''}><label>${l}</label></label>`).join('')}
+      </div>
+      <div class="frow frow-2">
+        <div class="field"><label>Notas médicas</label><textarea id="fm-mednotes" placeholder="Describe condición...">${escH(u?.medicalNotes||'')}</textarea></div>
+        <div class="field"><label>Medicamentos actuales</label><textarea id="fm-meds" placeholder="Lista de medicamentos...">${escH(u?.medications||'')}</textarea></div>
+      </div>
+      <div class="frow frow-2">
+        <div class="field"><label>¿Ha tenido cirugías?</label><select id="fm-surgery">
+          <option value="false" ${!u?.hasSurgeries?'selected':''}>No</option>
+          <option value="true"  ${u?.hasSurgeries?'selected':''}>Sí</option>
+        </select></div>
+        <div class="field"><label>Descripción de cirugías</label><input id="fm-surgerydesc" value="${escH(u?.surgeriesDesc||'')}" placeholder="Tipo y fecha"></div>
+      </div>
+    </div>
+  </div>
+  <div class="modal-foot">
+    <button class="btn btn-outline" onclick="closeModal()">Cancelar</button>
+    <button class="btn btn-green" onclick="saveMemberForm(${isNew})">💾 ${isNew?'Registrar Miembro':'Guardar Cambios'}</button>
+  </div>`;
+}
+
+function saveMemberForm(isNew) {
+  const name     = document.getElementById('fm-name').value.trim();
+  const cedula   = document.getElementById('fm-cedula').value.trim();
+  const joinDate = document.getElementById('fm-joindate').value;
+  if (!name)    { toast('El nombre es obligatorio', 'err'); return; }
+  if (!cedula)  { toast('La cédula es obligatoria', 'err'); return; }
+  if (!joinDate){ toast('La fecha de ingreso es obligatoria', 'err'); return; }
+
+  const existingId = document.getElementById('fm-id').value;
+  const dupCheck   = DB.users().find(u => u.cedula === cedula && u.id !== existingId);
+  if (dupCheck)  { toast('Ya existe un miembro con esa cédula', 'err'); return; }
+
+  const prevUser = existingId ? DB.user(existingId) : null;
+  const med      = Array.from(document.querySelectorAll('.med-chk:checked')).map(c => c.value);
+  const refBy    = document.getElementById('fm-refby').value || null;
+
+  const saved = {
+    id:           existingId || uid(),
+    name, cedula,
+    phone:        document.getElementById('fm-phone').value.trim(),
+    email:        document.getElementById('fm-email').value.trim(),
+    birthdate:    document.getElementById('fm-bdate').value || null,
+    gender:       document.getElementById('fm-gender').value,
+    occupation:   document.getElementById('fm-occupation').value.trim(),
+    workHoursPerDay: prevUser?.workHoursPerDay || 8,
+    sleepHoursAvg:   prevUser?.sleepHoursAvg   || 7,
+    activityLevel: document.getElementById('fm-activity').value,
+    joinDate,
+    membership: {
+      status:    document.getElementById('fm-mstatus').value,
+      type:      document.getElementById('fm-mtype').value,
+      startDate: document.getElementById('fm-mstart').value,
+      endDate:   document.getElementById('fm-mend').value
+    },
+    trunkBox:       prevUser?.trunkBox       || [],
+    debt:           { amount: parseFloat(document.getElementById('fm-debt').value)||0,
+                      description: document.getElementById('fm-debt-desc').value.trim() },
+    referredBy:     refBy,
+    referralPoints: prevUser?.referralPoints || 0,
+    referralCount:  prevUser?.referralCount  || 0,
+    medicalConditions: med,
+    medicalNotes:   document.getElementById('fm-mednotes').value.trim(),
+    medications:    document.getElementById('fm-meds').value.trim(),
+    hasSurgeries:   document.getElementById('fm-surgery').value === 'true',
+    surgeriesDesc:  document.getElementById('fm-surgerydesc').value.trim(),
+    objectives: {
+      primary:         document.getElementById('fm-obj').value,
+      secondary:       prevUser?.objectives?.secondary || '',
+      daysPerWeek:     parseInt(document.getElementById('fm-days').value) || 3,
+      sessionDuration: parseInt(document.getElementById('fm-duration').value) || 60,
+      equipment:       document.getElementById('fm-equip').value
+    },
+    physicalHistory: prevUser?.physicalHistory || []
+  };
+
+  // Si nuevo y tiene referido → sumar puntos al referidor
+  if (isNew && refBy) {
+    const ref = DB.user(refBy);
+    if (ref) {
+      ref.referralPoints = (ref.referralPoints || 0) + 50;
+      ref.referralCount  = (ref.referralCount  || 0) + 1;
+      DB.saveUser(ref);
+    }
+  }
+
+  DB.saveUser(saved);
+  closeModal();
+  toast(isNew ? '✅ Miembro registrado' : '✅ Cambios guardados', 'ok');
+  navigate('member-detail', saved.id);
+}
+
+function confirmDeleteMember(id) {
+  const u = DB.user(id);
+  if (!u) return;
+  confirmDlg(`¿Eliminar a <strong>${escH(u.name)}</strong>? Esta acción no se puede deshacer. Se eliminarán también sus planes y registros.`, () => {
+    DB.userPlans(id).forEach(p => DB.delPlan(p.id));
+    DB.userNutris(id).forEach(n => DB.delNutri(n.id));
+    DB.delUser(id);
+    toast('Miembro eliminado', 'wrn');
+    navigate('members');
+  }, 'Eliminar Miembro');
+}
+
+/* ======================================================
+   MÓDULO 1 — MEMBRESÍA, BAÚL, DEUDA
+====================================================== */
+function showEditMembershipModal(userId) {
+  const u = DB.user(userId); if (!u) return;
+  showModal(`
+  <div class="modal-head">
+    <span class="modal-title">🎫 Editar Membresía</span>
+    <button class="modal-close" onclick="closeModal()">×</button>
+  </div>
+  <div class="modal-body">
+    <div class="frow frow-2">
+      <div class="field"><label>Tipo</label><select id="em-type">
+        ${['Mensual','Trimestral','Semestral','Anual'].map(t=>`<option ${(u.membership?.type||'Mensual')===t?'selected':''}>${t}</option>`).join('')}
+      </select></div>
+      <div class="field"><label>Estado</label><select id="em-status">
+        <option value="active"    ${u.membership?.status==='active'?'selected':''}>Activa</option>
+        <option value="suspended" ${u.membership?.status==='suspended'?'selected':''}>Suspendida</option>
+        <option value="expired"   ${u.membership?.status==='expired'?'selected':''}>Vencida</option>
+      </select></div>
+    </div>
+    <div class="frow frow-2">
+      <div class="field"><label>Fecha inicio</label><input id="em-start" type="date" value="${u.membership?.startDate||today()}"></div>
+      <div class="field"><label>Fecha vencimiento</label><input id="em-end" type="date" value="${u.membership?.endDate||''}"></div>
+    </div>
+  </div>
+  <div class="modal-foot">
+    <button class="btn btn-outline" onclick="closeModal()">Cancelar</button>
+    <button class="btn btn-green" onclick="saveMembershipForm('${userId}')">💾 Guardar</button>
+  </div>`);
+}
+
+function saveMembershipForm(userId) {
+  const u = DB.user(userId); if (!u) return;
+  u.membership = { ...u.membership,
+    type:      document.getElementById('em-type').value,
+    status:    document.getElementById('em-status').value,
+    startDate: document.getElementById('em-start').value,
+    endDate:   document.getElementById('em-end').value
+  };
+  DB.saveUser(u); closeModal();
+  toast('Membresía actualizada ✅', 'ok');
+  navigate('member-detail', userId);
+}
+
+function showAddTrunkBoxModal(userId) {
+  showModal(`
+  <div class="modal-head">
+    <span class="modal-title">🗃️ Agregar a Caja Baúl</span>
+    <button class="modal-close" onclick="closeModal()">×</button>
+  </div>
+  <div class="modal-body">
+    <div class="frow frow-2">
+      <div class="field"><label>Tipo de membresía</label><select id="tb-type">
+        ${['Mensual','Trimestral','Semestral','Anual'].map(t=>`<option>${t}</option>`).join('')}
+      </select></div>
+      <div class="field"><label>Meses que cubre</label><select id="tb-months">
+        <option value="1">1 mes</option><option value="3">3 meses</option>
+        <option value="6">6 meses</option><option value="12">12 meses</option>
+      </select></div>
+    </div>
+  </div>
+  <div class="modal-foot">
+    <button class="btn btn-outline" onclick="closeModal()">Cancelar</button>
+    <button class="btn btn-green" onclick="saveTrunkBox('${userId}')">➕ Agregar al Baúl</button>
+  </div>`);
+}
+
+function saveTrunkBox(userId) {
+  const u = DB.user(userId); if (!u) return;
+  if (!u.trunkBox) u.trunkBox = [];
+  u.trunkBox.push({ id:uid(), type:document.getElementById('tb-type').value,
+    months:parseInt(document.getElementById('tb-months').value)||1, addedDate:today(), used:false });
+  DB.saveUser(u); closeModal();
+  toast('Membresía agregada al baúl ✅', 'ok');
+  navigate('member-detail', userId);
+}
+
+function useTrunkItem(userId, tbId) {
+  const u = DB.user(userId); if (!u) return;
+  const item = u.trunkBox?.find(t => t.id === tbId); if (!item) return;
+  confirmDlg(`¿Activar la membresía <strong>${escH(item.type)}</strong> (${item.months} mes${item.months>1?'es':''}) del baúl?`, () => {
+    const startDate = today();
+    const end = new Date(startDate + 'T12:00:00');
+    end.setMonth(end.getMonth() + item.months);
+    const endDate = end.toISOString().slice(0, 10);
+    u.membership = { ...u.membership, status:'active', type:item.type, startDate, endDate };
+    item.used = true;
+    DB.saveUser(u);
+    toast(`Membresía activa hasta ${fDate(endDate)} ✅`, 'ok');
+    navigate('member-detail', userId);
+  }, 'Usar Membresía del Baúl');
+}
+
+function showEditDebtModal(userId) {
+  const u = DB.user(userId); if (!u) return;
+  showModal(`
+  <div class="modal-head">
+    <span class="modal-title">💰 Saldo Pendiente</span>
+    <button class="modal-close" onclick="closeModal()">×</button>
+  </div>
+  <div class="modal-body">
+    <div class="field mb-16"><label>Monto (COP)</label><input id="dt-amt" type="number" value="${u.debt?.amount||0}" min="0"></div>
+    <div class="field"><label>Descripción</label><textarea id="dt-desc" placeholder="Ej: Mensualidad enero pendiente">${escH(u.debt?.description||'')}</textarea></div>
+  </div>
+  <div class="modal-foot">
+    <button class="btn btn-outline" onclick="closeModal()">Cancelar</button>
+    <button class="btn btn-green" onclick="saveDebtForm('${userId}')">💾 Guardar</button>
+  </div>`);
+}
+
+function saveDebtForm(userId) {
+  const u = DB.user(userId); if (!u) return;
+  u.debt = { amount:parseFloat(document.getElementById('dt-amt').value)||0,
+              description:document.getElementById('dt-desc').value.trim() };
+  DB.saveUser(u); closeModal();
+  toast('Saldo actualizado ✅', 'ok');
+  navigate('member-detail', userId);
+}
+
+/* ======================================================
+   MÓDULO 1 — ASISTENCIA Y EXPORT
+====================================================== */
+function registerAttendance(userId) {
+  const todayStr = today();
+  if (DB.att().find(a => a.userId === userId && a.date === todayStr)) {
+    toast('Ya registró entrada hoy', 'wrn'); return;
+  }
+  DB.addAtt({ id:uid(), userId, date:todayStr, time:nowTime() });
+  toast(`Entrada registrada — ${nowTime()} ✅`, 'ok');
+  navigate('member-detail', userId);
+  setTimeout(() => switchMemberTab('asistencia'), 50);
+}
+
+function exportUserJSON(userId) {
+  const u = DB.user(userId); if (!u) return;
+  const data = {
+    usuario: u,
+    planes_entrenamiento: DB.userPlans(userId),
+    planes_nutricion:     DB.userNutris(userId),
+    asistencias:          DB.userAtt(userId)
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type:'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `gympro_${u.cedula}_${today()}.json`;
+  a.click();
+  toast('JSON exportado ✅', 'ok');
+}
+
+/* ======================================================
+   VISTAS PLACEHOLDER — próximas partes
+====================================================== */
+function renderValuationList(v)  { v.innerHTML = `<div class="empty-state"><div class="empty-ico">📋</div><p class="empty-txt">Módulo Valoraciones</p><p class="empty-sub">Disponible en la siguiente parte</p></div>`; }
+function renderValDetail(v,p)    { v.innerHTML = `<div class="empty-state"><div class="empty-ico">📋</div><p class="empty-txt">Valoración Física</p><p class="empty-sub">Disponible en la siguiente parte</p></div>`; }
+function renderTrainingList(v)   { v.innerHTML = `<div class="empty-state"><div class="empty-ico">💪</div><p class="empty-txt">Módulo Entrenamientos</p><p class="empty-sub">Disponible en la siguiente parte</p></div>`; }
+function renderTrainDetail(v,p)  { v.innerHTML = `<div class="empty-state"><div class="empty-ico">💪</div><p class="empty-txt">Plan de Entrenamiento</p><p class="empty-sub">Disponible en la siguiente parte</p></div>`; }
+function renderNutriList(v)      { v.innerHTML = `<div class="empty-state"><div class="empty-ico">🥗</div><p class="empty-txt">Módulo Nutrición</p><p class="empty-sub">Disponible en la siguiente parte</p></div>`; }
+function renderNutriDetail(v,p)  { v.innerHTML = `<div class="empty-state"><div class="empty-ico">🥗</div><p class="empty-txt">Plan de Nutrición</p><p class="empty-sub">Disponible en la siguiente parte</p></div>`; }
+function renderProgressList(v)   { v.innerHTML = `<div class="empty-state"><div class="empty-ico">📈</div><p class="empty-txt">Módulo Avances</p><p class="empty-sub">Disponible en la siguiente parte</p></div>`; }
+function renderProgDetail(v,p)   { v.innerHTML = `<div class="empty-state"><div class="empty-ico">📈</div><p class="empty-txt">Seguimiento</p><p class="empty-sub">Disponible en la siguiente parte</p></div>`; }
+function renderProfile(v)        { v.innerHTML = `<div class="empty-state"><div class="empty-ico">👤</div><p class="empty-txt">Mi Perfil</p><p class="empty-sub">Disponible en la siguiente parte</p></div>`; }
+function renderMyTraining(v)     { v.innerHTML = `<div class="empty-state"><div class="empty-ico">💪</div><p class="empty-txt">Mi Entrenamiento</p><p class="empty-sub">Disponible en la siguiente parte</p></div>`; }
+function renderMyNutrition(v)    { v.innerHTML = `<div class="empty-state"><div class="empty-ico">🥗</div><p class="empty-txt">Mi Nutrición</p><p class="empty-sub">Disponible en la siguiente parte</p></div>`; }
 
 /* ======================================================
    DATOS DEMO
