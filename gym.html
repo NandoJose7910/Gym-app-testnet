@@ -1286,6 +1286,103 @@ tbody td {
   font-size: .9rem;
 }
 .alert-warn { background: rgba(255,136,0,.12); border: 1px solid rgba(255,136,0,.3); color: var(--orange); }
+
+/* ======================================================
+   MÓDULO 4 — NUTRICIÓN
+====================================================== */
+/* Bloque de stats TMB/TDEE */
+.nutri-auto-block { margin-bottom: 16px; }
+.nutri-stats-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.nutri-stat-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: var(--bg-card2);
+  border-radius: var(--radius);
+  padding: 10px 16px;
+  min-width: 90px;
+  flex: 1;
+}
+.nutri-stat-highlight { border: 1px solid var(--green); background: var(--green-dim); }
+.nutri-stat-lbl  { font-size: .7rem; color: var(--text-dim); text-align:center; }
+.nutri-stat-val  { font-size: 1.3rem; font-weight: 700; color: var(--white); }
+.nutri-stat-unit { font-size: .7rem; color: var(--text-dim); }
+
+/* Barras de macros */
+.macro-bars { display: flex; flex-direction: column; gap: 8px; }
+.macro-bar-row { display: flex; align-items: center; gap: 10px; }
+.macro-bar-lbl  { width: 120px; font-size: .8rem; color: var(--text-dim); flex-shrink: 0; }
+.macro-bar-track { flex: 1; background: var(--bg-card3); border-radius: 6px; height: 10px; overflow: hidden; }
+.macro-bar-fill { height: 100%; border-radius: 6px; transition: width .4s; }
+.mbf-pro  { background: var(--green); }
+.mbf-carb { background: var(--blue); }
+.mbf-fat  { background: var(--orange); }
+.macro-bar-val { font-size: .8rem; width: 110px; text-align: right; flex-shrink:0; }
+
+/* Preview macro en modal */
+.nutri-macro-preview {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 4px 0 16px;
+}
+.nmp-item {
+  flex: 1;
+  min-width: 80px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 10px;
+  border-radius: var(--radius);
+  font-size: .8rem;
+}
+.nmp-item span { color: var(--text-dim); font-size: .72rem; }
+.nmp-item b    { font-size: 1.1rem; }
+.nmp-item small{ color: var(--text-dim); font-size: .7rem; }
+.nmp-pro  { background: rgba(0,255,102,.10); border: 1px solid rgba(0,255,102,.2); }
+.nmp-carb { background: rgba(68,136,255,.10); border: 1px solid rgba(68,136,255,.2); }
+.nmp-fat  { background: rgba(255,136,0,.10);  border: 1px solid rgba(255,136,0,.2); }
+.nmp-cal  { background: var(--bg-card2); border: 1px solid var(--border); }
+
+/* Sección de comida */
+.meal-section-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--bg-card2);
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+}
+.meal-type-icon { font-size: 1.1rem; }
+
+/* Sección de comida en formulario */
+.meal-form-sec { border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 10px; overflow: hidden; }
+.meal-form-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: var(--bg-card2);
+  cursor: pointer;
+  flex-wrap: wrap;
+}
+.meal-form-name { font-weight: 700; flex: 1; min-width: 110px; }
+.meal-toggle { display: flex; align-items: center; gap: 6px; font-size: .8rem; cursor: pointer; }
+
+/* Notas especiales */
+.nutri-notes-box {
+  background: var(--bg-card2);
+  border-left: 3px solid var(--green);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  padding: 12px 16px;
+  margin: 12px 0;
+}
+.nutri-notes-box strong { font-size: .85rem; color: var(--green); display: block; margin-bottom: 4px; }
+.nutri-notes-box p { margin: 0; font-size: .85rem; color: var(--text-dim); }
 </style>
 </head>
 <body>
@@ -3725,8 +3822,573 @@ function deletePlanConfirm(planId, userId) {
 }
 
 /* ---------- Vista del miembro: Mi Entrenamiento ---------- */
-function renderNutriList(v)      { v.innerHTML = `<div class="empty-state"><div class="empty-ico">🥗</div><p class="empty-txt">Módulo Nutrición</p><p class="empty-sub">Disponible en la siguiente parte</p></div>`; }
-function renderNutriDetail(v,p)  { v.innerHTML = `<div class="empty-state"><div class="empty-ico">🥗</div><p class="empty-txt">Plan de Nutrición</p><p class="empty-sub">Disponible en la siguiente parte</p></div>`; }
+/* ======================================================
+   MÓDULO 4 — PLAN DE NUTRICIÓN
+====================================================== */
+
+const MEAL_TYPES = ['Desayuno','Media mañana','Almuerzo','Merienda','Cena','Pre-entreno','Post-entreno'];
+
+/* ---------- Lista de miembros con estado de plan ---------- */
+function renderNutriList(v) {
+  const users  = DB.users();
+  const nutris = DB.nutris();
+  v.innerHTML = `
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Planes de Nutrición</h1>
+    <p class="page-sub">${users.length} miembro${users.length!==1?'s':''}</p>
+  </div>
+  <input id="nl-search" class="search-box" placeholder="Buscar miembro..." oninput="filterNutriList()" style="max-width:260px">
+</div>
+<div class="card" style="padding:0;overflow:hidden">
+  <table class="data-table" id="nl-table">
+    <thead><tr>
+      <th>Miembro</th><th>Plan activo</th><th>Calorías objetivo</th><th>Proteína / Carbs / Grasa</th><th>Acción</th>
+    </tr></thead>
+    <tbody id="nl-tbody">
+      ${users.map(u => {
+        const active = nutris.find(n => n.userId===u.id && n.isActive);
+        const cnt    = nutris.filter(n => n.userId===u.id).length;
+        return `<tr data-name="${escH(u.name.toLowerCase())}">
+          <td>
+            <div style="display:flex;align-items:center;gap:10px">
+              <div class="avatar-sm">${u.name.charAt(0)}</div>
+              <div>
+                <div style="font-weight:600">${escH(u.name)}</div>
+                <div style="font-size:.75rem;color:var(--text-dim)">${escH(u.cedula)}</div>
+              </div>
+            </div>
+          </td>
+          <td>${active
+            ? `<span class="badge badge-ok">${escH(active.name)}</span>${cnt>1?`<span style="font-size:.7rem;color:var(--text-dim);margin-left:6px">(${cnt} total)</span>`:''}`
+            : `<span class="badge badge-dim">Sin plan activo</span>`}</td>
+          <td>${active ? `<strong style="color:var(--green)">${active.calories} kcal</strong>` : '—'}</td>
+          <td>${active
+            ? `<span style="font-size:.82rem">P: <b>${active.protein}g</b> · C: <b>${active.carbs}g</b> · G: <b>${active.fat}g</b></span>`
+            : '—'}</td>
+          <td><button class="btn btn-sm btn-outline" onclick="navigate('nutri-detail','${u.id}')">Ver planes</button></td>
+        </tr>`;
+      }).join('')}
+    </tbody>
+  </table>
+</div>`;
+}
+
+function filterNutriList() {
+  const q = document.getElementById('nl-search').value.toLowerCase();
+  document.querySelectorAll('#nl-tbody tr').forEach(tr => {
+    tr.style.display = tr.dataset.name.includes(q) ? '' : 'none';
+  });
+}
+
+/* ---------- Detalle: todos los planes de un usuario ---------- */
+function renderNutriDetail(v, userId) {
+  const u = DB.user(userId);
+  if (!u) { v.innerHTML='<p>Usuario no encontrado</p>'; return; }
+  const plans = DB.nutris().filter(n => n.userId===userId);
+  const med   = u.medical || {};
+  const obj   = u.objectives || {};
+  const hist  = (u.physicalHistory||[]);
+  const last  = hist.length ? hist[hist.length-1] : null;
+
+  // Cálculos automáticos si hay datos físicos
+  let autoBlock = '';
+  if (last && u.dob) {
+    const age  = Math.floor((new Date()-new Date(u.dob+'T00:00:00'))/31557600000);
+    const tmb  = calcTMB(last.weight, last.height, age, u.gender||'M');
+    const tdee = tmb ? calcTDEE(tmb, obj.activityLevel||'moderate') : null;
+    const mac  = tdee ? targetMacros(tdee, obj.objective||'maintenance') : null;
+    autoBlock = tmb ? `
+<div class="card nutri-auto-block">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px">
+    <div>
+      <h4 style="margin:0 0 4px;color:var(--green)">Valores calculados automáticamente</h4>
+      <p style="font-size:.8rem;color:var(--text-dim);margin:0">Basado en datos físicos (${fDate(last.date)}) · Fórmula Mifflin-St Jeor</p>
+    </div>
+    ${S.role==='admin'?`<button class="btn btn-sm btn-primary" onclick="showCreateNutriModal('${userId}')">+ Nuevo plan</button>`:''}
+  </div>
+  <div class="nutri-stats-row" style="margin-top:14px">
+    <div class="nutri-stat-box">
+      <span class="nutri-stat-lbl">TMB</span>
+      <span class="nutri-stat-val">${tmb}</span>
+      <span class="nutri-stat-unit">kcal/día</span>
+    </div>
+    <div class="nutri-stat-box">
+      <span class="nutri-stat-lbl">TDEE</span>
+      <span class="nutri-stat-val">${tdee}</span>
+      <span class="nutri-stat-unit">kcal/día</span>
+    </div>
+    ${mac ? `
+    <div class="nutri-stat-box nutri-stat-highlight">
+      <span class="nutri-stat-lbl">Objetivo (${_objLabel(obj.objective||'maintenance')})</span>
+      <span class="nutri-stat-val">${mac.calories}</span>
+      <span class="nutri-stat-unit">kcal/día</span>
+    </div>
+    <div class="nutri-stat-box">
+      <span class="nutri-stat-lbl">Proteína</span>
+      <span class="nutri-stat-val">${mac.protein}g</span>
+      <span class="nutri-stat-unit">${Math.round(mac.protein*4/mac.calories*100)}%</span>
+    </div>
+    <div class="nutri-stat-box">
+      <span class="nutri-stat-lbl">Carbohidratos</span>
+      <span class="nutri-stat-val">${mac.carbs}g</span>
+      <span class="nutri-stat-unit">${Math.round(mac.carbs*4/mac.calories*100)}%</span>
+    </div>
+    <div class="nutri-stat-box">
+      <span class="nutri-stat-lbl">Grasas</span>
+      <span class="nutri-stat-val">${mac.fat}g</span>
+      <span class="nutri-stat-unit">${Math.round(mac.fat*9/mac.calories*100)}%</span>
+    </div>` : ''}
+  </div>
+</div>` : '';
+  }
+
+  const hasCond = med.conditions && med.conditions.length && !med.conditions.includes('none');
+  v.innerHTML = `
+<div class="page-header">
+  <div style="display:flex;align-items:center;gap:12px">
+    <button class="btn btn-sm btn-outline" onclick="navigate('nutrition')">← Volver</button>
+    <div>
+      <h1 class="page-title">Nutrición — ${escH(u.name)}</h1>
+      <p class="page-sub">${plans.length} plan${plans.length!==1?'es':''} registrado${plans.length!==1?'s':''}</p>
+    </div>
+  </div>
+  ${S.role==='admin'&&!autoBlock?`<button class="btn btn-primary" onclick="showCreateNutriModal('${userId}')">+ Nuevo plan</button>`:''}
+</div>
+
+${hasCond ? `<div class="alert-banner alert-warn">
+  <strong>⚠ Condición médica:</strong> ${med.conditions.map(c=>_condLabel(c)).join(', ')} — Considera restricciones dietéticas específicas.
+  ${med.notes?`<br><em>${escH(med.notes)}</em>`:''}
+</div>` : ''}
+
+${autoBlock}
+
+${plans.length===0 ? `
+<div class="empty-state">
+  <div class="empty-ico">🥗</div>
+  <p class="empty-txt">Sin planes de nutrición</p>
+  ${S.role==='admin'?`<button class="btn btn-primary" onclick="showCreateNutriModal('${userId}')">Crear primer plan</button>`:''}
+</div>` : plans.sort((a,b)=>b.isActive-a.isActive).map(p=>_nutriPlanCardHTML(p,u)).join('')}
+
+<div id="nutri-modal-root"></div>`;
+}
+
+function _objLabel(o) {
+  const M={ lose_weight:'Pérdida de peso', gain_muscle:'Ganancia muscular', maintenance:'Mantenimiento',
+    resistance:'Resistencia', rehabilitation:'Rehabilitación', sports_performance:'Rendimiento deportivo' };
+  return M[o]||o;
+}
+
+/* ---------- Tarjeta de plan (sólo lectura) ---------- */
+function _nutriPlanCardHTML(plan, u) {
+  const totalPro  = plan.meals.reduce((s,m)=>s+m.items.reduce((ss,i)=>ss+i.protein,0),0);
+  const totalCarb = plan.meals.reduce((s,m)=>s+m.items.reduce((ss,i)=>ss+i.carbs,0),0);
+  const totalFat  = plan.meals.reduce((s,m)=>s+m.items.reduce((ss,i)=>ss+i.fat,0),0);
+  const totalCal  = plan.meals.reduce((s,m)=>s+m.items.reduce((ss,i)=>ss+i.calories,0),0);
+  const pPct = totalCal>0?Math.round(totalPro*4/totalCal*100):0;
+  const cPct = totalCal>0?Math.round(totalCarb*4/totalCal*100):0;
+  const fPct = totalCal>0?Math.round(totalFat*9/totalCal*100):0;
+  const activeMeals = plan.meals.filter(m=>m.active&&m.items.length>0);
+
+  return `
+<div class="card plan-card ${plan.isActive?'plan-card--active':''}" id="npc-${plan.id}">
+  <div class="plan-card-header" onclick="togglePlanCard('npc-${plan.id}')">
+    <div>
+      <span class="plan-card-title">${escH(plan.name)}</span>
+      ${plan.isActive?`<span class="badge badge-ok" style="margin-left:8px">Activo</span>`:`<span class="badge badge-dim" style="margin-left:8px">Inactivo</span>`}
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;flex-wrap:wrap">
+      <span style="font-size:.8rem;color:var(--green);font-weight:700">${plan.calories} kcal</span>
+      <span style="font-size:.8rem;color:var(--text-dim)">P:${plan.protein}g · C:${plan.carbs}g · G:${plan.fat}g</span>
+      ${S.role==='admin'?`
+        <button class="btn btn-sm btn-outline" onclick="event.stopPropagation();showEditNutriModal('${plan.id}','${u.id}')">Editar</button>
+        ${!plan.isActive?`<button class="btn btn-sm btn-primary" onclick="event.stopPropagation();setNutriActive('${plan.id}','${u.id}')">Activar</button>`:''}
+        <button class="btn btn-sm btn-danger" onclick="event.stopPropagation();deleteNutriConfirm('${plan.id}','${u.id}')">Eliminar</button>`:''}
+      <span class="plan-card-chevron" id="nchev-${plan.id}">▼</span>
+    </div>
+  </div>
+  <div class="plan-card-body" id="npcb-${plan.id}" style="display:none">
+    <p style="font-size:.8rem;color:var(--text-dim);margin-bottom:14px">Creado: ${fDate(plan.createdAt)}</p>
+
+    <!-- Barras de macros -->
+    <div class="macro-bars">
+      <div class="macro-bar-row">
+        <span class="macro-bar-lbl">Proteína</span>
+        <div class="macro-bar-track"><div class="macro-bar-fill mbf-pro" style="width:${pPct}%"></div></div>
+        <span class="macro-bar-val">${totalPro}g (${pPct}%)</span>
+      </div>
+      <div class="macro-bar-row">
+        <span class="macro-bar-lbl">Carbohidratos</span>
+        <div class="macro-bar-track"><div class="macro-bar-fill mbf-carb" style="width:${cPct}%"></div></div>
+        <span class="macro-bar-val">${totalCarb}g (${cPct}%)</span>
+      </div>
+      <div class="macro-bar-row">
+        <span class="macro-bar-lbl">Grasas</span>
+        <div class="macro-bar-track"><div class="macro-bar-fill mbf-fat" style="width:${fPct}%"></div></div>
+        <span class="macro-bar-val">${totalFat}g (${fPct}%)</span>
+      </div>
+      <div class="macro-bar-row">
+        <span class="macro-bar-lbl">Total real</span>
+        <div style="flex:1"></div>
+        <span class="macro-bar-val" style="color:var(--green);font-weight:700">${totalCal} kcal</span>
+      </div>
+    </div>
+
+    <!-- Comidas -->
+    ${activeMeals.length===0?'<p style="color:var(--text-dim)">Sin comidas definidas</p>':
+      activeMeals.map(meal=>`
+      <div style="margin-bottom:14px">
+        <div class="meal-section-header">
+          <span class="meal-type-icon">${_mealIcon(meal.type)}</span>
+          <strong>${escH(meal.type)}</strong>
+          <span style="font-size:.78rem;color:var(--text-dim);margin-left:auto">
+            ${meal.items.reduce((s,i)=>s+i.protein,0)}P · ${meal.items.reduce((s,i)=>s+i.carbs,0)}C · ${meal.items.reduce((s,i)=>s+i.fat,0)}G · <b style="color:var(--green)">${meal.items.reduce((s,i)=>s+i.calories,0)} kcal</b>
+          </span>
+        </div>
+        <table class="data-table" style="margin-top:6px">
+          <thead><tr><th>Alimento</th><th>Cantidad</th><th>Prot(g)</th><th>Carbs(g)</th><th>Grasas(g)</th><th>Kcal</th><th>Notas</th></tr></thead>
+          <tbody>
+            ${meal.items.map(it=>`<tr>
+              <td>${escH(it.food)}</td>
+              <td style="color:var(--text-dim)">${escH(it.qty)}</td>
+              <td>${it.protein}</td><td>${it.carbs}</td><td>${it.fat}</td>
+              <td style="color:var(--green);font-weight:600">${it.calories}</td>
+              <td style="font-size:.78rem;color:var(--text-dim)">${escH(it.notes||'')}</td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>`).join('')}
+
+    ${plan.specialNotes?`
+    <div class="nutri-notes-box">
+      <strong>Indicaciones especiales</strong>
+      <p>${escH(plan.specialNotes)}</p>
+    </div>`:''}
+
+    ${plan.supplements&&plan.supplements.length?`
+    <div style="margin-top:12px">
+      <strong style="font-size:.85rem">Suplementación</strong>
+      <table class="data-table" style="margin-top:6px">
+        <thead><tr><th>Suplemento</th><th>Dosis</th><th>Horario</th></tr></thead>
+        <tbody>
+          ${plan.supplements.map(s=>`<tr>
+            <td>${escH(s.name)}</td>
+            <td>${escH(s.dose)}</td>
+            <td style="color:var(--text-dim)">${escH(s.schedule)}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>`:'' }
+  </div>
+</div>`;
+}
+
+function _mealIcon(type) {
+  const M={ 'Desayuno':'🌅','Media mañana':'🍎','Almuerzo':'🍽️','Merienda':'🥤','Cena':'🌙','Pre-entreno':'⚡','Post-entreno':'💪' };
+  return M[type]||'🥗';
+}
+
+/* ---------- togglePlanCard reutilizado --- pasa id completo ---------- */
+// togglePlanCard ya existe en Módulo 3 pero acepta cualquier id de elemento
+
+/* ---------- Modal crear / editar plan ---------- */
+function showCreateNutriModal(userId) {
+  const u   = DB.user(userId);
+  const obj = u ? (u.objectives||{}) : {};
+  const hist= u ? (u.physicalHistory||[]) : [];
+  const last= hist.length ? hist[hist.length-1] : null;
+  let autoCalories=0, autoProtein=0, autoCarbs=0, autoFat=0;
+  if (last && u.dob) {
+    const age  = Math.floor((new Date()-new Date(u.dob+'T00:00:00'))/31557600000);
+    const tmb  = calcTMB(last.weight, last.height, age, u.gender||'M');
+    if (tmb) {
+      const tdee = calcTDEE(tmb, obj.activityLevel||'moderate');
+      const mac  = targetMacros(tdee, obj.objective||'maintenance');
+      autoCalories=mac.calories; autoProtein=mac.protein; autoCarbs=mac.carbs; autoFat=mac.fat;
+    }
+  }
+  document.getElementById('nutri-modal-root').innerHTML = _buildNutriFormHTML(userId, null, autoCalories, autoProtein, autoCarbs, autoFat);
+}
+
+function showEditNutriModal(planId, userId) {
+  const plan = DB.nutris().find(n=>n.id===planId);
+  if (!plan) return;
+  document.getElementById('nutri-modal-root').innerHTML = _buildNutriFormHTML(userId, plan, 0,0,0,0);
+}
+
+function _buildNutriFormHTML(userId, plan, autoCal, autoPro, autoCarb, autoFat) {
+  const isEdit = !!plan;
+  const meals  = isEdit ? plan.meals : MEAL_TYPES.map(t=>({ type:t, active:t==='Desayuno'||t==='Almuerzo'||t==='Cena', items:[] }));
+  const supps  = isEdit ? (plan.supplements||[]) : [];
+  const cal    = isEdit ? plan.calories : autoCal;
+  const pro    = isEdit ? plan.protein  : autoPro;
+  const carb   = isEdit ? plan.carbs    : autoCarb;
+  const fat    = isEdit ? plan.fat      : autoFat;
+
+  return `
+<div class="modal-overlay" id="nutri-modal" onclick="if(event.target.id==='nutri-modal')closeNutriModal()">
+  <div class="modal-box" style="max-width:920px;max-height:92vh;overflow-y:auto">
+    <div class="modal-header">
+      <h3>${isEdit?'Editar plan de nutrición':'Nuevo plan de nutrición'}</h3>
+      <button class="modal-close" onclick="closeNutriModal()">×</button>
+    </div>
+    <div class="modal-body">
+
+      <!-- Nombre y macros objetivo -->
+      <div class="form-row">
+        <div class="field">
+          <label>Nombre del plan *</label>
+          <input id="nf-name" value="${escH(plan?plan.name:'')}" placeholder="Ej: Plan Déficit Calórico">
+        </div>
+      </div>
+      <div class="form-row" style="align-items:flex-end">
+        <div class="field" style="max-width:130px">
+          <label>Calorías objetivo</label>
+          <input id="nf-cal" type="number" min="800" max="6000" value="${cal||''}" placeholder="kcal">
+        </div>
+        <div class="field" style="max-width:120px">
+          <label>Proteína (g)</label>
+          <input id="nf-pro" type="number" min="0" max="600" value="${pro||''}" placeholder="g">
+        </div>
+        <div class="field" style="max-width:120px">
+          <label>Carbohidratos (g)</label>
+          <input id="nf-carb" type="number" min="0" max="1000" value="${carb||''}" placeholder="g">
+        </div>
+        <div class="field" style="max-width:120px">
+          <label>Grasas (g)</label>
+          <input id="nf-fat" type="number" min="0" max="400" value="${fat||''}" placeholder="g">
+        </div>
+      </div>
+
+      ${cal>0?`<div class="nutri-macro-preview">
+        <div class="nmp-item nmp-pro"><span>Proteína</span><b>${pro}g</b><small>${cal?Math.round(pro*4/cal*100):0}%</small></div>
+        <div class="nmp-item nmp-carb"><span>Carbs</span><b>${carb}g</b><small>${cal?Math.round(carb*4/cal*100):0}%</small></div>
+        <div class="nmp-item nmp-fat"><span>Grasas</span><b>${fat}g</b><small>${cal?Math.round(fat*9/cal*100):0}%</small></div>
+        <div class="nmp-item nmp-cal"><span>Total obj.</span><b>${cal} kcal</b><small>objetivo</small></div>
+      </div>`:''}
+
+      <!-- Comidas -->
+      <h4 style="margin:20px 0 10px;color:var(--green)">Plan de comidas</h4>
+      <div id="nf-meals">
+        ${meals.map((meal,mi)=>_mealSectionFormHTML(meal,mi)).join('')}
+      </div>
+
+      <!-- Indicaciones especiales -->
+      <h4 style="margin:20px 0 8px;color:var(--green)">Indicaciones especiales</h4>
+      <div class="field">
+        <textarea id="nf-notes" rows="3" placeholder="Hidratación, restricciones, recomendaciones generales...">${escH(plan?plan.specialNotes||'':'')}</textarea>
+      </div>
+
+      <!-- Suplementación -->
+      <h4 style="margin:20px 0 8px;color:var(--green)">Suplementación</h4>
+      <div id="nf-supps">
+        <table class="data-table" id="supp-table">
+          <thead><tr><th>Suplemento</th><th>Dosis</th><th>Horario / instrucciones</th><th></th></tr></thead>
+          <tbody id="supp-tbody">
+            ${supps.map((s,si)=>_suppRowHTML(s,si)).join('')}
+          </tbody>
+        </table>
+        <button class="btn btn-sm btn-outline" style="margin-top:8px" onclick="addSuppRow()">+ Suplemento</button>
+      </div>
+
+    </div>
+    <div class="modal-footer">
+      <div id="nf-grand-total" style="font-size:.85rem;color:var(--text-dim)"></div>
+      <button class="btn btn-outline" onclick="closeNutriModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveNutriForm('${userId}','${isEdit?plan.id:''}')">
+        ${isEdit?'Guardar cambios':'Crear plan'}
+      </button>
+    </div>
+  </div>
+</div>`;
+}
+
+function _mealSectionFormHTML(meal, mi) {
+  const active = meal.active;
+  return `
+<div class="meal-form-sec" id="mfs-${mi}">
+  <div class="meal-form-header" onclick="toggleMealActive(${mi})">
+    <span class="meal-type-icon">${_mealIcon(meal.type)}</span>
+    <span class="meal-form-name">${escH(meal.type)}</span>
+    <label class="meal-toggle" onclick="event.stopPropagation()">
+      <input type="checkbox" id="mfs-active-${mi}" ${active?'checked':''} onchange="toggleMealActive(${mi})">
+      <span>${active?'Activo':'Inactivo'}</span>
+    </label>
+    <span style="margin-left:auto;font-size:.8rem;color:var(--text-dim)" id="mfs-total-${mi}"></span>
+  </div>
+  <div id="mfs-body-${mi}" style="${active?'':'display:none'}">
+    <div style="overflow-x:auto;padding:8px 14px 14px">
+      <table class="data-table ex-table" id="mft-${mi}">
+        <thead><tr>
+          <th>Alimento</th><th style="width:100px">Cantidad</th>
+          <th style="width:80px">Prot (g)</th><th style="width:80px">Carbs (g)</th>
+          <th style="width:80px">Grasas (g)</th><th style="width:80px">Kcal</th>
+          <th>Notas</th><th style="width:36px"></th>
+        </tr></thead>
+        <tbody id="mftb-${mi}">
+          ${(meal.items||[]).map((it,ii)=>_mealItemRowHTML(it,mi,ii)).join('')}
+        </tbody>
+      </table>
+      <button class="btn btn-sm btn-outline" style="margin-top:6px" onclick="addMealItem(${mi})">+ Alimento</button>
+    </div>
+  </div>
+</div>`;
+}
+
+function _mealItemRowHTML(it, mi, ii) {
+  return `<tr>
+    <td><input class="mi-food" value="${escH(it?it.food:'')}" placeholder="Nombre alimento" style="min-width:140px" oninput="updateMealTotals(${mi})"></td>
+    <td><input class="mi-qty" value="${escH(it?it.qty:'')}" placeholder="100g" style="width:90px" oninput="updateMealTotals(${mi})"></td>
+    <td><input class="mi-pro" type="number" min="0" step="0.1" value="${it?it.protein:''}" placeholder="0" style="width:70px" oninput="updateMealTotals(${mi});autoCalcKcal(this)"></td>
+    <td><input class="mi-carb" type="number" min="0" step="0.1" value="${it?it.carbs:''}" placeholder="0" style="width:70px" oninput="updateMealTotals(${mi});autoCalcKcal(this)"></td>
+    <td><input class="mi-fat" type="number" min="0" step="0.1" value="${it?it.fat:''}" placeholder="0" style="width:70px" oninput="updateMealTotals(${mi});autoCalcKcal(this)"></td>
+    <td><input class="mi-kcal" type="number" min="0" step="1" value="${it?it.calories:''}" placeholder="0" style="width:70px" oninput="updateMealTotals(${mi})"></td>
+    <td><input class="mi-notes" value="${escH(it?it.notes||'':'')}" placeholder="Opcional" style="min-width:90px"></td>
+    <td><button class="btn btn-sm btn-danger" onclick="removeMealItem(this,${mi})" style="padding:2px 8px">✕</button></td>
+  </tr>`;
+}
+
+function autoCalcKcal(inp) {
+  const row  = inp.closest('tr');
+  const pro  = parseFloat(row.querySelector('.mi-pro').value)||0;
+  const carb = parseFloat(row.querySelector('.mi-carb').value)||0;
+  const fat  = parseFloat(row.querySelector('.mi-fat').value)||0;
+  const kcal = Math.round(pro*4 + carb*4 + fat*9);
+  row.querySelector('.mi-kcal').value = kcal || '';
+}
+
+function updateMealTotals(mi) {
+  const tbody = document.getElementById('mftb-'+mi);
+  if (!tbody) return;
+  let pro=0, carb=0, fat=0, cal=0;
+  tbody.querySelectorAll('tr').forEach(tr => {
+    pro  += parseFloat(tr.querySelector('.mi-pro')?.value)||0;
+    carb += parseFloat(tr.querySelector('.mi-carb')?.value)||0;
+    fat  += parseFloat(tr.querySelector('.mi-fat')?.value)||0;
+    cal  += parseFloat(tr.querySelector('.mi-kcal')?.value)||0;
+  });
+  const el = document.getElementById('mfs-total-'+mi);
+  if (el) el.textContent = `P:${Math.round(pro)}g · C:${Math.round(carb)}g · G:${Math.round(fat)}g · ${Math.round(cal)} kcal`;
+  _updateGrandTotal();
+}
+
+function _updateGrandTotal() {
+  let total=0;
+  MEAL_TYPES.forEach((_,mi)=>{
+    const tbody = document.getElementById('mftb-'+mi);
+    if (!tbody) return;
+    tbody.querySelectorAll('.mi-kcal').forEach(inp => { total += parseFloat(inp.value)||0; });
+  });
+  const el = document.getElementById('nf-grand-total');
+  if (el) el.textContent = total>0 ? `Total real del plan: ${Math.round(total)} kcal` : '';
+}
+
+function addMealItem(mi) {
+  const tbody = document.getElementById('mftb-'+mi);
+  tbody.insertAdjacentHTML('beforeend', _mealItemRowHTML(null, mi, tbody.querySelectorAll('tr').length));
+}
+
+function removeMealItem(btn, mi) {
+  btn.closest('tr').remove();
+  updateMealTotals(mi);
+}
+
+function toggleMealActive(mi) {
+  const cb   = document.getElementById('mfs-active-'+mi);
+  const body = document.getElementById('mfs-body-'+mi);
+  const lbl  = cb.parentElement.querySelector('span');
+  const isNowActive = cb.checked;
+  body.style.display = isNowActive ? '' : 'none';
+  if (lbl) lbl.textContent = isNowActive ? 'Activo' : 'Inactivo';
+}
+
+function _suppRowHTML(s, si) {
+  return `<tr>
+    <td><input class="supp-name" value="${escH(s?s.name:'')}" placeholder="Nombre" style="min-width:140px"></td>
+    <td><input class="supp-dose" value="${escH(s?s.dose:'')}" placeholder="Dosis" style="width:100px"></td>
+    <td><input class="supp-sch" value="${escH(s?s.schedule:'')}" placeholder="Horario / instrucciones" style="min-width:160px"></td>
+    <td><button class="btn btn-sm btn-danger" onclick="removeSuppRow(this)" style="padding:2px 8px">✕</button></td>
+  </tr>`;
+}
+
+function addSuppRow() {
+  document.getElementById('supp-tbody').insertAdjacentHTML('beforeend', _suppRowHTML(null, 0));
+}
+
+function removeSuppRow(btn) { btn.closest('tr').remove(); }
+
+function _getMealItems(mi) {
+  const tbody = document.getElementById('mftb-'+mi);
+  if (!tbody) return [];
+  return Array.from(tbody.querySelectorAll('tr')).map(tr=>({
+    food:     tr.querySelector('.mi-food').value.trim(),
+    qty:      tr.querySelector('.mi-qty').value.trim(),
+    protein:  Math.round((parseFloat(tr.querySelector('.mi-pro').value)||0)*10)/10,
+    carbs:    Math.round((parseFloat(tr.querySelector('.mi-carb').value)||0)*10)/10,
+    fat:      Math.round((parseFloat(tr.querySelector('.mi-fat').value)||0)*10)/10,
+    calories: Math.round(parseFloat(tr.querySelector('.mi-kcal').value)||0),
+    notes:    tr.querySelector('.mi-notes').value.trim()
+  })).filter(it=>it.food);
+}
+
+function saveNutriForm(userId, planId) {
+  const name = document.getElementById('nf-name').value.trim();
+  if (!name) { toast('Ingresa un nombre para el plan','warn'); return; }
+  const calories = parseInt(document.getElementById('nf-cal').value)||0;
+  const protein  = parseInt(document.getElementById('nf-pro').value)||0;
+  const carbs    = parseInt(document.getElementById('nf-carb').value)||0;
+  const fat      = parseInt(document.getElementById('nf-fat').value)||0;
+  const notes    = document.getElementById('nf-notes').value.trim();
+
+  const meals = MEAL_TYPES.map((type,mi)=>({
+    type,
+    active: document.getElementById('mfs-active-'+mi)?.checked||false,
+    items:  _getMealItems(mi)
+  }));
+
+  const supplements = Array.from(document.querySelectorAll('#supp-tbody tr')).map(tr=>({
+    name:     tr.querySelector('.supp-name').value.trim(),
+    dose:     tr.querySelector('.supp-dose').value.trim(),
+    schedule: tr.querySelector('.supp-sch').value.trim()
+  })).filter(s=>s.name);
+
+  const nutris = DB.nutris();
+  if (planId) {
+    const idx = nutris.findIndex(n=>n.id===planId);
+    if (idx>=0) { nutris[idx]={...nutris[idx], name, calories, protein, carbs, fat, meals, supplements, specialNotes:notes}; }
+    DB.setNutris(nutris);
+    toast('Plan actualizado ✅','ok');
+  } else {
+    const newPlan = {
+      id: uid(), userId, name, createdAt: new Date().toISOString().slice(0,10),
+      isActive: nutris.filter(n=>n.userId===userId).length===0,
+      calories, protein, carbs, fat, meals, supplements, specialNotes: notes
+    };
+    nutris.push(newPlan);
+    DB.setNutris(nutris);
+    toast('Plan de nutrición creado ✅','ok');
+  }
+  closeNutriModal();
+  navigate('nutri-detail', userId);
+}
+
+function closeNutriModal() {
+  const el = document.getElementById('nutri-modal');
+  if (el) el.remove();
+}
+
+function setNutriActive(planId, userId) {
+  DB.setNutris(DB.nutris().map(n=>n.userId===userId?{...n,isActive:n.id===planId}:n));
+  toast('Plan activado ✅','ok');
+  navigate('nutri-detail', userId);
+}
+
+function deleteNutriConfirm(planId, userId) {
+  if (!confirm('¿Eliminar este plan de nutrición?')) return;
+  DB.setNutris(DB.nutris().filter(n=>n.id!==planId));
+  toast('Plan eliminado','ok');
+  navigate('nutri-detail', userId);
+}
 function renderProgressList(v)   { v.innerHTML = `<div class="empty-state"><div class="empty-ico">📈</div><p class="empty-txt">Módulo Avances</p><p class="empty-sub">Disponible en la siguiente parte</p></div>`; }
 function renderProgDetail(v,p)   { v.innerHTML = `<div class="empty-state"><div class="empty-ico">📈</div><p class="empty-txt">Seguimiento</p><p class="empty-sub">Disponible en la siguiente parte</p></div>`; }
 function renderProfile(v)        { v.innerHTML = `<div class="empty-state"><div class="empty-ico">👤</div><p class="empty-txt">Mi Perfil</p><p class="empty-sub">Disponible en la siguiente parte</p></div>`; }
@@ -3844,7 +4506,118 @@ function toggleExDone(cb, key, row) {
   const el   = document.getElementById('today-progress-txt');
   if (el) el.textContent = done + ' / ' + rows.length + ' ejercicios completados';
 }
-function renderMyNutrition(v)    { v.innerHTML = `<div class="empty-state"><div class="empty-ico">🥗</div><p class="empty-txt">Mi Nutrición</p><p class="empty-sub">Disponible en la siguiente parte</p></div>`; }
+/* ---------- Vista del miembro: Mi Nutrición ---------- */
+function renderMyNutrition(v) {
+  const u    = DB.user(S.uid);
+  if (!u) { v.innerHTML='<p>Usuario no encontrado</p>'; return; }
+  const plan = DB.activeNutri(S.uid);
+  const obj  = u.objectives||{};
+  const hist = u.physicalHistory||[];
+  const last = hist.length ? hist[hist.length-1] : null;
+
+  let macroBlock = '';
+  if (last && u.dob) {
+    const age  = Math.floor((new Date()-new Date(u.dob+'T00:00:00'))/31557600000);
+    const tmb  = calcTMB(last.weight, last.height, age, u.gender||'M');
+    if (tmb) {
+      const tdee = calcTDEE(tmb, obj.activityLevel||'moderate');
+      const mac  = targetMacros(tdee, obj.objective||'maintenance');
+      macroBlock = `<div class="card" style="margin-bottom:16px">
+        <h4 style="margin:0 0 10px;color:var(--green)">Mis valores nutricionales</h4>
+        <div class="nutri-stats-row">
+          <div class="nutri-stat-box"><span class="nutri-stat-lbl">TMB</span><span class="nutri-stat-val">${tmb}</span><span class="nutri-stat-unit">kcal/día</span></div>
+          <div class="nutri-stat-box"><span class="nutri-stat-lbl">TDEE</span><span class="nutri-stat-val">${tdee}</span><span class="nutri-stat-unit">kcal/día</span></div>
+          <div class="nutri-stat-box nutri-stat-highlight"><span class="nutri-stat-lbl">Objetivo</span><span class="nutri-stat-val">${mac.calories}</span><span class="nutri-stat-unit">kcal/día</span></div>
+          <div class="nutri-stat-box"><span class="nutri-stat-lbl">Proteína</span><span class="nutri-stat-val">${mac.protein}g</span><span class="nutri-stat-unit">${Math.round(mac.protein*4/mac.calories*100)}%</span></div>
+          <div class="nutri-stat-box"><span class="nutri-stat-lbl">Carbs</span><span class="nutri-stat-val">${mac.carbs}g</span><span class="nutri-stat-unit">${Math.round(mac.carbs*4/mac.calories*100)}%</span></div>
+          <div class="nutri-stat-box"><span class="nutri-stat-lbl">Grasas</span><span class="nutri-stat-val">${mac.fat}g</span><span class="nutri-stat-unit">${Math.round(mac.fat*9/mac.calories*100)}%</span></div>
+        </div>
+      </div>`;
+    }
+  }
+
+  v.innerHTML = `
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Mi Nutrición</h1>
+    <p class="page-sub">${plan ? escH(plan.name) : 'Sin plan activo'}</p>
+  </div>
+</div>
+${macroBlock}
+${!plan ? `
+<div class="empty-state">
+  <div class="empty-ico">🥗</div>
+  <p class="empty-txt">Sin plan de nutrición activo</p>
+  <p class="empty-sub">Habla con tu nutricionista o entrenador para que te asignen un plan</p>
+</div>` : `
+
+<!-- Resumen de macros del plan -->
+<div class="card" style="margin-bottom:16px">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+    <h4 style="margin:0">${escH(plan.name)}</h4>
+    <span style="color:var(--green);font-weight:700;font-size:1.1rem">${plan.calories} kcal objetivo</span>
+  </div>
+  <div class="macro-bars">
+    ${(()=>{
+      const totalPro  = plan.meals.reduce((s,m)=>s+m.items.reduce((ss,i)=>ss+i.protein,0),0);
+      const totalCarb = plan.meals.reduce((s,m)=>s+m.items.reduce((ss,i)=>ss+i.carbs,0),0);
+      const totalFat  = plan.meals.reduce((s,m)=>s+m.items.reduce((ss,i)=>ss+i.fat,0),0);
+      const totalCal  = plan.meals.reduce((s,m)=>s+m.items.reduce((ss,i)=>ss+i.calories,0),0);
+      const pPct = totalCal>0?Math.round(totalPro*4/totalCal*100):0;
+      const cPct = totalCal>0?Math.round(totalCarb*4/totalCal*100):0;
+      const fPct = totalCal>0?Math.round(totalFat*9/totalCal*100):0;
+      return `<div class="macro-bar-row"><span class="macro-bar-lbl">Proteína</span><div class="macro-bar-track"><div class="macro-bar-fill mbf-pro" style="width:${pPct}%"></div></div><span class="macro-bar-val">${totalPro}g (${pPct}%)</span></div>
+      <div class="macro-bar-row"><span class="macro-bar-lbl">Carbohidratos</span><div class="macro-bar-track"><div class="macro-bar-fill mbf-carb" style="width:${cPct}%"></div></div><span class="macro-bar-val">${totalCarb}g (${cPct}%)</span></div>
+      <div class="macro-bar-row"><span class="macro-bar-lbl">Grasas</span><div class="macro-bar-track"><div class="macro-bar-fill mbf-fat" style="width:${fPct}%"></div></div><span class="macro-bar-val">${totalFat}g (${fPct}%)</span></div>
+      <div class="macro-bar-row"><span class="macro-bar-lbl">Total real</span><div style="flex:1"></div><span class="macro-bar-val" style="color:var(--green);font-weight:700">${totalCal} kcal</span></div>`;
+    })()}
+  </div>
+</div>
+
+<!-- Comidas del día -->
+${plan.meals.filter(m=>m.active&&m.items.length>0).map((meal,mi)=>`
+<div class="card" style="margin-bottom:12px;padding:0;overflow:hidden">
+  <div class="meal-section-header" style="padding:12px 16px;cursor:default">
+    <span class="meal-type-icon">${_mealIcon(meal.type)}</span>
+    <strong>${escH(meal.type)}</strong>
+    <span style="font-size:.78rem;color:var(--text-dim);margin-left:auto">
+      P:${meal.items.reduce((s,i)=>s+i.protein,0)}g · C:${meal.items.reduce((s,i)=>s+i.carbs,0)}g · G:${meal.items.reduce((s,i)=>s+i.fat,0)}g · <b style="color:var(--green)">${meal.items.reduce((s,i)=>s+i.calories,0)} kcal</b>
+    </span>
+  </div>
+  <div style="padding:0 16px 14px">
+    <ul style="list-style:none;margin:0;padding:0">
+      ${meal.items.map(it=>`<li style="padding:6px 0;border-bottom:1px solid var(--border);display:flex;gap:10px;align-items:flex-start">
+        <div style="flex:1">
+          <span style="font-weight:600">${escH(it.food)}</span>
+          <span style="color:var(--text-dim);margin-left:8px;font-size:.82rem">${escH(it.qty)}</span>
+          ${it.notes?`<span style="color:var(--green);font-size:.78rem;margin-left:6px">${escH(it.notes)}</span>`:''}
+        </div>
+        <div style="font-size:.78rem;color:var(--text-dim);text-align:right;white-space:nowrap">
+          P:${it.protein}g · C:${it.carbs}g · G:${it.fat}g<br>
+          <b style="color:var(--green)">${it.calories} kcal</b>
+        </div>
+      </li>`).join('')}
+    </ul>
+  </div>
+</div>`).join('')}
+
+${plan.specialNotes?`<div class="nutri-notes-box"><strong>Indicaciones especiales</strong><p>${escH(plan.specialNotes)}</p></div>`:''}
+
+${plan.supplements&&plan.supplements.length?`
+<div class="card" style="margin-top:12px">
+  <h4 style="margin:0 0 10px;color:var(--green)">Suplementación</h4>
+  <table class="data-table">
+    <thead><tr><th>Suplemento</th><th>Dosis</th><th>Horario</th></tr></thead>
+    <tbody>
+      ${plan.supplements.map(s=>`<tr>
+        <td>${escH(s.name)}</td>
+        <td style="color:var(--green)">${escH(s.dose)}</td>
+        <td style="color:var(--text-dim)">${escH(s.schedule)}</td>
+      </tr>`).join('')}
+    </tbody>
+  </table>
+</div>`:''}`}`;
+}
 
 /* ======================================================
    DATOS DEMO
