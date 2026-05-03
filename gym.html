@@ -1383,6 +1383,71 @@ tbody td {
 }
 .nutri-notes-box strong { font-size: .85rem; color: var(--green); display: block; margin-bottom: 4px; }
 .nutri-notes-box p { margin: 0; font-size: .85rem; color: var(--text-dim); }
+
+/* ======================================================
+   MÓDULO 5 — AVANCES Y GRÁFICOS
+====================================================== */
+/* Tarjetas delta */
+.prog-delta-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 10px;
+  margin-bottom: 4px;
+}
+@media (max-width:1100px) { .prog-delta-grid { grid-template-columns: repeat(3,1fr); } }
+@media (max-width:600px)  { .prog-delta-grid { grid-template-columns: repeat(2,1fr); } }
+
+.delta-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 12px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.delta-icon    { font-size: 1.5rem; line-height: 1; }
+.delta-label   { font-size: .72rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: .04em; }
+.delta-current { font-size: 1.4rem; font-weight: 700; color: var(--white); }
+.delta-change  { font-size: .82rem; font-weight: 700; }
+.delta-first   { font-size: .72rem; color: var(--text-dim); }
+.delta-good    { color: var(--green); }
+.delta-bad     { color: var(--red); }
+.delta-neutral { color: var(--text-dim); }
+
+/* Gráficos */
+.chart-card  { padding: 14px 16px; }
+.chart-title { margin: 0 0 12px; font-size: .9rem; color: var(--text-dim); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+.chart-wrap  { position: relative; height: 220px; }
+
+/* Colores de texto utilitarios */
+.text-green { color: var(--green) !important; }
+.text-red   { color: var(--red)   !important; }
+
+/* Perfil del miembro */
+.profile-hero-card { margin-bottom: 0; }
+.profile-avatar {
+  width: 72px; height: 72px;
+  background: var(--green);
+  color: #000;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 2rem; font-weight: 700;
+  flex-shrink: 0;
+}
+.stat-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  text-align: center;
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+}
+.stat-icon { font-size: 1.4rem; }
+.stat-val  { font-size: 1.6rem; font-weight: 700; color: var(--green); }
+.stat-lbl  { font-size: .75rem; color: var(--text-dim); }
 </style>
 </head>
 <body>
@@ -4389,9 +4454,547 @@ function deleteNutriConfirm(planId, userId) {
   toast('Plan eliminado','ok');
   navigate('nutri-detail', userId);
 }
-function renderProgressList(v)   { v.innerHTML = `<div class="empty-state"><div class="empty-ico">📈</div><p class="empty-txt">Módulo Avances</p><p class="empty-sub">Disponible en la siguiente parte</p></div>`; }
-function renderProgDetail(v,p)   { v.innerHTML = `<div class="empty-state"><div class="empty-ico">📈</div><p class="empty-txt">Seguimiento</p><p class="empty-sub">Disponible en la siguiente parte</p></div>`; }
-function renderProfile(v)        { v.innerHTML = `<div class="empty-state"><div class="empty-ico">👤</div><p class="empty-txt">Mi Perfil</p><p class="empty-sub">Disponible en la siguiente parte</p></div>`; }
+/* ======================================================
+   MÓDULO 5 — SEGUIMIENTO Y AVANCES
+====================================================== */
+
+/* ---------- Lista admin de avances ---------- */
+function renderProgressList(v) {
+  const users = DB.users();
+  v.innerHTML = `
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Seguimiento y Avances</h1>
+    <p class="page-sub">${users.length} miembro${users.length!==1?'s':''}</p>
+  </div>
+  <input id="pg-search" class="search-box" placeholder="Buscar miembro..." oninput="filterProgList()" style="max-width:260px">
+</div>
+<div class="card" style="padding:0;overflow:hidden">
+  <table class="data-table" id="pg-table">
+    <thead><tr>
+      <th>Miembro</th><th>Mediciones</th><th>Última medición</th>
+      <th>Peso actual</th><th>Δ Peso total</th><th>% Grasa actual</th><th>Acción</th>
+    </tr></thead>
+    <tbody id="pg-tbody">
+      ${users.map(u => {
+        const hist = u.physicalHistory||[];
+        const first = hist[0], last = hist[hist.length-1];
+        const dw = first&&last ? (last.weight-first.weight).toFixed(1) : null;
+        const dwClass = dw===null?'':parseFloat(dw)<0?'text-green':'text-red';
+        return `<tr data-name="${escH(u.name.toLowerCase())}">
+          <td>
+            <div style="display:flex;align-items:center;gap:10px">
+              <div class="avatar-sm">${u.name.charAt(0)}</div>
+              <div>
+                <div style="font-weight:600">${escH(u.name)}</div>
+                <div style="font-size:.75rem;color:var(--text-dim)">${escH(u.cedula)}</div>
+              </div>
+            </div>
+          </td>
+          <td>${hist.length>0?`<span class="badge badge-ok">${hist.length} med.</span>`:`<span class="badge badge-dim">Sin datos</span>`}</td>
+          <td>${last?fDate(last.date):'—'}</td>
+          <td>${last?`<b>${last.weight} kg</b>`:'—'}</td>
+          <td>${dw!==null?`<span class="${dwClass}" style="font-weight:700">${parseFloat(dw)>0?'+':''}${dw} kg</span>`:'—'}</td>
+          <td>${last&&last.bodyFat?`${last.bodyFat}%`:'—'}</td>
+          <td><button class="btn btn-sm btn-outline" onclick="navigate('prog-detail','${u.id}')">Ver avances</button></td>
+        </tr>`;
+      }).join('')}
+    </tbody>
+  </table>
+</div>`;
+}
+
+function filterProgList() {
+  const q = document.getElementById('pg-search').value.toLowerCase();
+  document.querySelectorAll('#pg-tbody tr').forEach(tr => {
+    tr.style.display = tr.dataset.name.includes(q)?'':'none';
+  });
+}
+
+/* ---------- Detalle de avances de un usuario ---------- */
+function renderProgDetail(v, userId) {
+  const u    = DB.user(userId);
+  if (!u) { v.innerHTML='<p>Usuario no encontrado</p>'; return; }
+  const hist = u.physicalHistory||[];
+  const isAdmin = S.role==='admin';
+  const backView = isAdmin ? 'progress' : null;
+
+  if (hist.length === 0) {
+    v.innerHTML = `
+<div class="page-header">
+  <div style="display:flex;align-items:center;gap:12px">
+    ${isAdmin?`<button class="btn btn-sm btn-outline" onclick="navigate('progress')">← Volver</button>`:''}
+    <h1 class="page-title">Avances — ${escH(u.name)}</h1>
+  </div>
+</div>
+<div class="empty-state">
+  <div class="empty-ico">📈</div>
+  <p class="empty-txt">Sin mediciones registradas</p>
+  <p class="empty-sub">Registra la primera medición en la sección Valoración</p>
+  ${isAdmin?`<button class="btn btn-primary" onclick="navigate('val-detail','${userId}')">Ir a Valoración</button>`:''}
+</div>`;
+    return;
+  }
+
+  const first = hist[0];
+  const last  = hist[hist.length-1];
+
+  v.innerHTML = `
+<div class="page-header">
+  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+    ${isAdmin?`<button class="btn btn-sm btn-outline" onclick="navigate('progress')">← Volver</button>`:''}
+    <div>
+      <h1 class="page-title">${isAdmin?`Avances — ${escH(u.name)}`:'Mis Avances'}</h1>
+      <p class="page-sub">${hist.length} medición${hist.length!==1?'es':''} · ${fDate(first.date)} → ${fDate(last.date)}</p>
+    </div>
+  </div>
+  <button class="btn btn-outline" onclick="exportProgressCSV('${userId}')">⬇ Exportar CSV</button>
+</div>
+
+<!-- Tarjetas delta -->
+<div class="prog-delta-grid">
+  ${_deltaCard('Peso','⚖️', first.weight, last.weight,'kg',true)}
+  ${_deltaCard('% Grasa','🔥', first.bodyFat, last.bodyFat,'%',true)}
+  ${_deltaCard('% Músculo','💪', first.muscleMass, last.muscleMass,'%',false)}
+  ${_deltaCard('Cintura','📏', first.measures?.waist, last.measures?.waist,'cm',true)}
+  ${_deltaCard('Brazo D','💪', first.measures?.rArm, last.measures?.rArm,'cm',false)}
+  ${_deltaCard('Muslo D','🦵', first.measures?.rThigh, last.measures?.rThigh,'cm',false)}
+</div>
+
+<!-- Gráficos -->
+<div class="g2" style="margin-top:18px">
+  <div class="card chart-card">
+    <h4 class="chart-title">Evolución de Peso</h4>
+    <div class="chart-wrap"><canvas id="chart-weight"></canvas></div>
+  </div>
+  <div class="card chart-card">
+    <h4 class="chart-title">% Grasa vs % Músculo</h4>
+    <div class="chart-wrap"><canvas id="chart-composition"></canvas></div>
+  </div>
+</div>
+<div class="g2" style="margin-top:14px">
+  <div class="card chart-card">
+    <h4 class="chart-title">Medidas: Primera vs Última</h4>
+    <div class="chart-wrap" style="height:260px"><canvas id="chart-measures"></canvas></div>
+  </div>
+  <div class="card chart-card">
+    <h4 class="chart-title">Asistencias por semana (últimas 12)</h4>
+    <div class="chart-wrap"><canvas id="chart-attendance"></canvas></div>
+  </div>
+</div>
+
+<!-- Historial tabla -->
+<div class="card" style="margin-top:18px;padding:0;overflow:hidden">
+  <div style="padding:14px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+    <strong>Historial de mediciones</strong>
+    <span style="font-size:.8rem;color:var(--text-dim)">${hist.length} registros</span>
+  </div>
+  <div style="overflow-x:auto">
+    <table class="data-table">
+      <thead><tr>
+        <th>Fecha</th><th>Peso(kg)</th><th>%Grasa</th><th>%Músculo</th>
+        <th>Cintura</th><th>Cadera</th><th>Brazo D</th><th>Muslo D</th><th>FC Reposo</th>
+      </tr></thead>
+      <tbody>
+        ${[...hist].reverse().map(h=>`<tr>
+          <td>${fDate(h.date)}</td>
+          <td><b>${h.weight}</b></td>
+          <td>${h.bodyFat??'—'}%</td>
+          <td>${h.muscleMass??'—'}%</td>
+          <td>${h.measures?.waist??'—'} cm</td>
+          <td>${h.measures?.hip??'—'} cm</td>
+          <td>${h.measures?.rArm??'—'} cm</td>
+          <td>${h.measures?.rThigh??'—'} cm</td>
+          <td>${h.restHR??'—'} bpm</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+  </div>
+</div>`;
+
+  // Dibujar gráficos tras render del DOM
+  setTimeout(() => {
+    _drawWeightChart(userId);
+    _drawCompositionChart(userId);
+    _drawMeasuresChart(userId);
+    _drawAttendanceChart(userId);
+  }, 60);
+}
+
+/* ---------- Tarjeta delta ---------- */
+function _deltaCard(label, icon, firstVal, lastVal, unit, lowerIsBetter) {
+  if (firstVal == null || lastVal == null) {
+    return `<div class="delta-card"><div class="delta-icon">${icon}</div>
+      <div class="delta-label">${label}</div>
+      <div class="delta-current">—</div>
+      <div class="delta-change" style="color:var(--text-dim)">Sin datos</div></div>`;
+  }
+  const delta = Math.round((lastVal - firstVal)*10)/10;
+  const improved = lowerIsBetter ? delta < 0 : delta > 0;
+  const neutral  = delta === 0;
+  const sign     = delta > 0 ? '+' : '';
+  const cls      = neutral ? 'delta-neutral' : improved ? 'delta-good' : 'delta-bad';
+  return `<div class="delta-card">
+    <div class="delta-icon">${icon}</div>
+    <div class="delta-label">${label}</div>
+    <div class="delta-current">${lastVal}${unit}</div>
+    <div class="delta-change ${cls}">${sign}${delta}${unit} total</div>
+    <div class="delta-first">Inicio: ${firstVal}${unit}</div>
+  </div>`;
+}
+
+/* ---------- Export CSV ---------- */
+function exportProgressCSV(userId) {
+  const u    = DB.user(userId);
+  if (!u) return;
+  const hist = u.physicalHistory||[];
+  if (!hist.length) { toast('Sin datos para exportar','warn'); return; }
+  const headers = ['Fecha','Peso(kg)','%Grasa','%Músculo','Cintura(cm)','Cadera(cm)',
+    'Pecho(cm)','Brazo D(cm)','Brazo I(cm)','Muslo D(cm)','Muslo I(cm)','FC Reposo(bpm)'];
+  const rows = hist.map(h=>[
+    h.date, h.weight, h.bodyFat??'', h.muscleMass??'',
+    h.measures?.waist??'', h.measures?.hip??'', h.measures?.chest??'',
+    h.measures?.rArm??'', h.measures?.lArm??'',
+    h.measures?.rThigh??'', h.measures?.lThigh??'',
+    h.restHR??''
+  ]);
+  const csv = [headers, ...rows].map(r=>r.join(',')).join('\n');
+  const blob = new Blob(['﻿'+csv], {type:'text/csv;charset=utf-8;'});
+  const a    = document.createElement('a');
+  a.href     = URL.createObjectURL(blob);
+  a.download = `avances_${u.cedula}_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  toast('CSV exportado ✅','ok');
+}
+
+/* ---------- Helpers de gráficos ---------- */
+const _chartDefaults = {
+  color: '#888',
+  gridColor: 'rgba(255,255,255,0.06)',
+  tooltipBg: '#1e1e1e',
+  tooltipBorder: 'rgba(0,255,102,.4)'
+};
+
+function _scaleOpts() {
+  return {
+    x: { ticks:{color:'#888'}, grid:{color:_chartDefaults.gridColor} },
+    y: { ticks:{color:'#888'}, grid:{color:_chartDefaults.gridColor} }
+  };
+}
+
+function _tooltipPlugin(unitSuffix) {
+  return {
+    backgroundColor: _chartDefaults.tooltipBg,
+    borderColor: _chartDefaults.tooltipBorder,
+    borderWidth: 1,
+    titleColor: '#00FF66',
+    bodyColor: '#ccc',
+    callbacks: {
+      label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y}${unitSuffix}`
+    }
+  };
+}
+
+function _mkChart(canvasId, type, data, options) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  const chart = new Chart(canvas, { type, data, options });
+  S.charts[canvasId] = chart;
+}
+
+/* ---------- Gráfico 1: Peso ---------- */
+function _drawWeightChart(userId) {
+  const u    = DB.user(userId);
+  const hist = u?.physicalHistory||[];
+  if (!hist.length) return;
+  _mkChart('chart-weight','line',{
+    labels: hist.map(h=>fDate(h.date)),
+    datasets:[{
+      label:'Peso (kg)',
+      data: hist.map(h=>h.weight),
+      borderColor:'#00FF66',
+      backgroundColor:'rgba(0,255,102,.08)',
+      fill:true,
+      tension:.35,
+      pointBackgroundColor:'#00FF66',
+      pointRadius:4,
+      pointHoverRadius:6
+    }]
+  },{
+    responsive:true,
+    maintainAspectRatio:false,
+    plugins:{
+      legend:{labels:{color:'#aaa'}},
+      tooltip:{
+        backgroundColor:_chartDefaults.tooltipBg,
+        borderColor:_chartDefaults.tooltipBorder,
+        borderWidth:1,
+        titleColor:'#00FF66',
+        bodyColor:'#ccc',
+        callbacks:{ label: ctx=>` ${ctx.parsed.y} kg` }
+      }
+    },
+    scales:_scaleOpts()
+  });
+}
+
+/* ---------- Gráfico 2: % Grasa vs % Músculo ---------- */
+function _drawCompositionChart(userId) {
+  const u    = DB.user(userId);
+  const hist = u?.physicalHistory||[];
+  if (!hist.length) return;
+  _mkChart('chart-composition','line',{
+    labels: hist.map(h=>fDate(h.date)),
+    datasets:[
+      {
+        label:'% Grasa',
+        data: hist.map(h=>h.bodyFat??null),
+        borderColor:'#ff8800',
+        backgroundColor:'rgba(255,136,0,.08)',
+        fill:false, tension:.35,
+        pointBackgroundColor:'#ff8800', pointRadius:4, pointHoverRadius:6
+      },
+      {
+        label:'% Músculo',
+        data: hist.map(h=>h.muscleMass??null),
+        borderColor:'#00FF66',
+        backgroundColor:'rgba(0,255,102,.08)',
+        fill:false, tension:.35,
+        pointBackgroundColor:'#00FF66', pointRadius:4, pointHoverRadius:6
+      }
+    ]
+  },{
+    responsive:true,
+    maintainAspectRatio:false,
+    plugins:{
+      legend:{labels:{color:'#aaa'}},
+      tooltip:{
+        backgroundColor:_chartDefaults.tooltipBg,
+        borderColor:_chartDefaults.tooltipBorder,
+        borderWidth:1,
+        titleColor:'#ccc',
+        bodyColor:'#ccc',
+        callbacks:{ label: ctx=>` ${ctx.dataset.label}: ${ctx.parsed.y}%` }
+      }
+    },
+    scales:_scaleOpts()
+  });
+}
+
+/* ---------- Gráfico 3: Medidas primera vs última ---------- */
+function _drawMeasuresChart(userId) {
+  const u    = DB.user(userId);
+  const hist = u?.physicalHistory||[];
+  if (hist.length < 1) return;
+  const first = hist[0];
+  const last  = hist[hist.length-1];
+  const mKeys = [
+    ['waist','Cintura'],['hip','Cadera'],['chest','Pecho'],
+    ['rArm','Brazo D'],['lArm','Brazo I'],['rThigh','Muslo D'],['lThigh','Muslo I']
+  ];
+  const labels = mKeys.map(k=>k[1]);
+  const firstVals = mKeys.map(k=>first.measures?.[k[0]]??null);
+  const lastVals  = mKeys.map(k=>last.measures?.[k[0]]??null);
+
+  _mkChart('chart-measures','bar',{
+    labels,
+    datasets:[
+      {
+        label: `Primera (${fDate(first.date)})`,
+        data: firstVals,
+        backgroundColor:'rgba(68,136,255,.55)',
+        borderColor:'#4488ff',
+        borderWidth:1, borderRadius:4
+      },
+      {
+        label: `Última (${fDate(last.date)})`,
+        data: lastVals,
+        backgroundColor:'rgba(0,255,102,.55)',
+        borderColor:'#00FF66',
+        borderWidth:1, borderRadius:4
+      }
+    ]
+  },{
+    indexAxis:'y',
+    responsive:true,
+    maintainAspectRatio:false,
+    plugins:{
+      legend:{labels:{color:'#aaa'}},
+      tooltip:{
+        backgroundColor:_chartDefaults.tooltipBg,
+        borderColor:_chartDefaults.tooltipBorder,
+        borderWidth:1,
+        titleColor:'#ccc',
+        bodyColor:'#ccc',
+        callbacks:{ label: ctx=>` ${ctx.dataset.label}: ${ctx.parsed.x} cm` }
+      }
+    },
+    scales:{
+      x:{ ticks:{color:'#888'}, grid:{color:_chartDefaults.gridColor} },
+      y:{ ticks:{color:'#aaa'}, grid:{color:'transparent'} }
+    }
+  });
+}
+
+/* ---------- Gráfico 4: Asistencias por semana ---------- */
+function _drawAttendanceChart(userId) {
+  const att = DB.userAtt(userId);
+
+  // Construir últimas 12 semanas
+  const weeks = [];
+  const now   = new Date();
+  for (let i=11; i>=0; i--) {
+    const d = new Date(now);
+    d.setDate(d.getDate() - d.getDay() + 1 - i*7); // lunes de la semana
+    const start = d.toISOString().slice(0,10);
+    const d2 = new Date(d); d2.setDate(d.getDate()+6);
+    const end = d2.toISOString().slice(0,10);
+    const label = d.toLocaleDateString('es-CO',{day:'2-digit',month:'short'});
+    const count = att.filter(a=>a.date>=start&&a.date<=end).length;
+    weeks.push({ label, count });
+  }
+
+  _mkChart('chart-attendance','bar',{
+    labels: weeks.map(w=>w.label),
+    datasets:[{
+      label:'Sesiones',
+      data: weeks.map(w=>w.count),
+      backgroundColor: weeks.map(w=>w.count>=4?'rgba(0,255,102,.7)':w.count>=2?'rgba(68,136,255,.7)':'rgba(255,136,0,.5)'),
+      borderColor: weeks.map(w=>w.count>=4?'#00FF66':w.count>=2?'#4488ff':'#ff8800'),
+      borderWidth:1, borderRadius:4
+    }]
+  },{
+    responsive:true,
+    maintainAspectRatio:false,
+    plugins:{
+      legend:{labels:{color:'#aaa'}},
+      tooltip:{
+        backgroundColor:_chartDefaults.tooltipBg,
+        borderColor:_chartDefaults.tooltipBorder,
+        borderWidth:1,
+        titleColor:'#00FF66',
+        bodyColor:'#ccc',
+        callbacks:{ label: ctx=>` ${ctx.parsed.y} sesión${ctx.parsed.y!==1?'es':''}` }
+      }
+    },
+    scales:{
+      x:{ ticks:{color:'#888',maxRotation:45}, grid:{color:'transparent'} },
+      y:{ ticks:{color:'#888',stepSize:1}, grid:{color:_chartDefaults.gridColor},
+          min:0, suggestedMax:6 }
+    }
+  });
+}
+
+/* ---------- Perfil del miembro ---------- */
+function renderProfile(v) {
+  if (S.role !== 'member') { v.innerHTML=''; return; }
+  const u    = DB.user(S.uid);
+  if (!u) { v.innerHTML='<p>Usuario no encontrado</p>'; return; }
+  const stat  = memStatus(u);
+  const hist  = u.physicalHistory||[];
+  const last  = hist.length ? hist[hist.length-1] : null;
+  const obj   = u.objectives||{};
+  const med   = u.medical||{};
+  const age   = u.dob ? Math.floor((new Date()-new Date(u.dob+'T00:00:00'))/31557600000) : null;
+  const imc   = last ? calcIMC(last.weight, last.height) : null;
+  const imcLbl= imc  ? imcLabel(imc) : null;
+  const objLabels={ lose_weight:'Pérdida de peso', gain_muscle:'Ganancia muscular',
+    maintenance:'Mantenimiento', resistance:'Resistencia',
+    rehabilitation:'Rehabilitación', sports_performance:'Rendimiento deportivo' };
+
+  v.innerHTML = `
+<div class="page-header">
+  <h1 class="page-title">Mi Perfil</h1>
+</div>
+
+<!-- Hero perfil -->
+<div class="card profile-hero-card">
+  <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap">
+    <div class="profile-avatar">${u.name.charAt(0)}</div>
+    <div style="flex:1;min-width:200px">
+      <h2 style="margin:0 0 4px">${escH(u.name)}</h2>
+      <p style="margin:0;color:var(--text-dim);font-size:.9rem">CC: ${escH(u.cedula)}</p>
+      ${u.email?`<p style="margin:2px 0 0;color:var(--text-dim);font-size:.85rem">${escH(u.email)}</p>`:''}
+      ${u.phone?`<p style="margin:2px 0 0;color:var(--text-dim);font-size:.85rem">${escH(u.phone)}</p>`:''}
+      <p style="margin:6px 0 0;font-size:.82rem;color:var(--text-dim)">Miembro desde ${fDate(u.joinDate)}</p>
+    </div>
+    <div>
+      <span class="badge badge-${stat.cls}" style="font-size:.9rem;padding:6px 14px">${stat.label}</span>
+      ${stat.urgent?`<p style="font-size:.78rem;color:var(--red);margin:4px 0 0;text-align:center">${stat.days} días restantes</p>`:''}
+    </div>
+  </div>
+</div>
+
+<!-- Stats físicos -->
+${last ? `
+<div class="g4" style="margin-top:16px">
+  <div class="stat-card">
+    <div class="stat-icon">⚖️</div>
+    <div class="stat-val">${last.weight}</div>
+    <div class="stat-lbl">kg — Peso actual</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon">📊</div>
+    <div class="stat-val">${imc?.toFixed(1)}</div>
+    <div class="stat-lbl">IMC — ${imcLbl}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon">🔥</div>
+    <div class="stat-val">${last.bodyFat??'—'}%</div>
+    <div class="stat-lbl">Grasa corporal</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon">💪</div>
+    <div class="stat-val">${last.muscleMass??'—'}%</div>
+    <div class="stat-lbl">Masa muscular</div>
+  </div>
+</div>
+<p style="font-size:.75rem;color:var(--text-dim);text-align:right;margin:4px 0">Última medición: ${fDate(last.date)}</p>` :
+'<div class="card" style="text-align:center;padding:20px;color:var(--text-dim)">Sin mediciones físicas registradas aún</div>'}
+
+<!-- Objetivo y actividad -->
+<div class="g2" style="margin-top:16px">
+  <div class="card">
+    <h4 style="margin:0 0 10px;color:var(--green)">Objetivo principal</h4>
+    <p style="font-size:1rem;font-weight:700;margin:0">${objLabels[obj.objective||obj.primary]||'No definido'}</p>
+    ${obj.secondary||obj.daysPerWeek?`
+    <p style="color:var(--text-dim);font-size:.85rem;margin:6px 0 0">${escH(obj.secondary||'')}</p>
+    <p style="color:var(--text-dim);font-size:.82rem;margin:4px 0 0">${obj.daysPerWeek?`${obj.daysPerWeek} días/semana`:''} ${obj.sessionDuration?`· ${obj.sessionDuration} min/sesión`:''}</p>`:''}
+  </div>
+  <div class="card">
+    <h4 style="margin:0 0 10px;color:var(--green)">Datos personales</h4>
+    <div style="display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:.85rem">
+      ${age?`<span style="color:var(--text-dim)">Edad</span><span>${age} años</span>`:''}
+      ${u.gender?`<span style="color:var(--text-dim)">Género</span><span>${u.gender==='M'?'Masculino':'Femenino'}</span>`:''}
+      ${last?.height?`<span style="color:var(--text-dim)">Estatura</span><span>${last.height} cm</span>`:''}
+      ${u.occupation?`<span style="color:var(--text-dim)">Ocupación</span><span>${escH(u.occupation)}</span>`:''}
+    </div>
+  </div>
+</div>
+
+${(med.conditions?.length&&!med.conditions.includes('none'))?`
+<div class="alert-banner alert-warn" style="margin-top:12px">
+  <strong>Condición médica registrada:</strong> ${med.conditions.map(c=>_condLabel(c)).join(', ')}
+  ${med.notes?`<br><em style="font-size:.82rem">${escH(med.notes)}</em>`:''}
+</div>`:''}
+
+<!-- Accesos rápidos -->
+<div class="g3" style="margin-top:20px">
+  <button class="btn btn-outline" style="padding:18px;font-size:1rem" onclick="navigate('my-training')">
+    <div style="font-size:1.8rem">💪</div>
+    <div>Mi Entrenamiento</div>
+  </button>
+  <button class="btn btn-outline" style="padding:18px;font-size:1rem" onclick="navigate('my-nutrition')">
+    <div style="font-size:1.8rem">🥗</div>
+    <div>Mi Nutrición</div>
+  </button>
+  <button class="btn btn-outline" style="padding:18px;font-size:1rem" onclick="navigate('my-progress')">
+    <div style="font-size:1.8rem">📈</div>
+    <div>Mis Avances</div>
+  </button>
+</div>`;
+}
 function renderMyTraining(v) {
   const u = DB.user(S.uid);
   if (!u) { v.innerHTML='<p>Usuario no encontrado</p>'; return; }
