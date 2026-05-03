@@ -1537,6 +1537,12 @@ tbody td {
       Admin: <strong>admin</strong> / <strong>GymPro2024</strong><br>
       Miembros: ingresa con tu cédula
     </div>
+
+    <!-- Botón de recuperación de emergencia -->
+    <button onclick="emergencyReset()"
+      style="margin-top:14px;width:100%;padding:10px;background:#1a0000;border:1px solid #ff4444;color:#ff6666;border-radius:8px;cursor:pointer;font-size:.8rem;font-weight:600;letter-spacing:.05em">
+      ⚠ RESET Y ENTRAR COMO ADMIN (emergencia)
+    </button>
   </div>
 </div>
 
@@ -1867,11 +1873,16 @@ function setRole(role) {
 
 function doLogin() {
   const role = S._role || 'admin';
+  console.log('[GymApp doLogin] role:', role,
+    '| users in DB:', DB.users().length,
+    '| adminPass:', DB.adminPass(),
+    '| gp_init:', localStorage.getItem('gp_init'));
   document.getElementById('login-error').style.display = 'none';
 
   if (role === 'admin') {
     const user = document.getElementById('inp-user').value.trim();
     const pass = document.getElementById('inp-pass').value;
+    console.log('[GymApp doLogin] admin attempt — user:', user, '| pass match:', pass === DB.adminPass());
     if (user === 'admin' && pass === DB.adminPass()) {
       S.role = 'admin'; S.uid = null;
       launchApp();
@@ -1881,6 +1892,7 @@ function doLogin() {
   } else {
     const ced = document.getElementById('inp-cedula').value.trim();
     const u   = DB.users().find(x => x.cedula === ced);
+    console.log('[GymApp doLogin] member attempt — cedula:', ced, '| found:', !!u);
     if (u) {
       S.role = 'member'; S.uid = u.id;
       launchApp();
@@ -1888,6 +1900,43 @@ function doLogin() {
       document.getElementById('login-error').style.display = 'block';
     }
   }
+}
+
+function emergencyReset() {
+  console.log('[GymApp] Emergency reset iniciado…');
+  try { localStorage.clear(); } catch(e) {}
+  try {
+    const hist = {
+      u01:[
+        {date:'2024-01-10',weight:82,height:178,bodyFat:22,muscleMass:42,measures:{chest:100,waist:88,hip:98,rArm:34,lArm:33,rThigh:58,lThigh:57},restHR:72},
+        {date:'2024-06-10',weight:78,height:178,bodyFat:18,muscleMass:44.5,measures:{chest:102,waist:83,hip:96,rArm:36,lArm:35,rThigh:60,lThigh:59},restHR:68},
+        {date:'2025-06-10',weight:75,height:178,bodyFat:15,muscleMass:47,measures:{chest:104,waist:80,hip:95,rArm:38,lArm:37,rThigh:62,lThigh:61},restHR:65},
+        {date:'2026-01-10',weight:74,height:178,bodyFat:14,muscleMass:48,measures:{chest:105,waist:79,hip:94,rArm:38.5,lArm:37.5,rThigh:63,lThigh:62},restHR:64}
+      ],
+      u02:[
+        {date:'2023-06-15',weight:72,height:163,bodyFat:32,muscleMass:28,measures:{chest:92,waist:78,hip:102,rArm:30,lArm:30,rThigh:56,lThigh:55},restHR:80},
+        {date:'2024-01-15',weight:68,height:163,bodyFat:27,muscleMass:30,measures:{chest:90,waist:73,hip:98,rArm:29,lArm:29,rThigh:54,lThigh:53},restHR:76},
+        {date:'2025-04-10',weight:63,height:163,bodyFat:22,muscleMass:32,measures:{chest:88,waist:68,hip:95,rArm:28,lArm:28,rThigh:51,lThigh:50},restHR:71}
+      ],
+      u03:[
+        {date:'2023-01-05',weight:95,height:175,bodyFat:30,muscleMass:36,measures:{chest:108,waist:100,hip:108,rArm:36,lArm:36,rThigh:62,lThigh:62},restHR:85},
+        {date:'2024-03-10',weight:88,height:175,bodyFat:25,muscleMass:38,measures:{chest:104,waist:92,hip:102,rArm:35,lArm:35,rThigh:59,lThigh:59},restHR:79},
+        {date:'2025-01-15',weight:85,height:175,bodyFat:23,muscleMass:39,measures:{chest:103,waist:89,hip:100,rArm:36,lArm:35,rThigh:58,lThigh:58},restHR:76}
+      ]
+    };
+    const demoUsers = DEMO_USERS.map(u => Object.assign({}, u, {physicalHistory: hist[u.id] || []}));
+    DB.setUsers(demoUsers);
+    DB.setPlans(DEMO_PLANS);
+    DB.setNutris(DEMO_NUTRI);
+    DB.setAtt([]);
+    DB.setInit();
+    DB.setAdminPass('GymPro2024');
+    console.log('[GymApp] Reset completado. Usuarios:', DB.users().length, '| adminPass:', DB.adminPass());
+  } catch(e) {
+    console.error('[GymApp] Error en reset:', e);
+  }
+  S.role = 'admin'; S.uid = null;
+  launchApp();
 }
 
 function launchApp() {
@@ -6184,5 +6233,6 @@ function initApp() {
 
 // Arrancar al cargar
 document.addEventListener('DOMContentLoaded', initApp);
+</script>
 </body>
 </html>
