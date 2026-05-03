@@ -4748,25 +4748,18 @@ function renderProgDetail(v, userId) {
   </div>
 </div>`;
 
-  // Dibujar gráficos: reintenta hasta que el canvas tenga altura real
-  let _chartTries = 0;
-  const _doCharts = () => {
+  // Dibujar gráficos con 500ms de espera para garantizar que el canvas esté visible
+  setTimeout(() => {
     const c = document.getElementById('chart-weight');
-    if (!c) return; // navegó a otra vista
-    const parentH = c.parentElement ? c.parentElement.getBoundingClientRect().height : 0;
-    if (parentH < 10 && _chartTries < 12) {
-      _chartTries++;
-      requestAnimationFrame(_doCharts);
-      return;
-    }
-    const histLen = DB.user(userId)?.physicalHistory?.length ?? 0;
-    console.log('[GymApp Charts] userId:', userId, '| registros:', histLen, '| altura canvas:', Math.round(parentH), 'px | intentos:', _chartTries);
+    if (!c) return; // el usuario navegó a otra vista antes del timeout
+    const u2 = DB.user(userId);
+    const histLen = u2?.physicalHistory?.length ?? 0;
+    console.log('[GymApp Charts] userId:', userId, '| registros:', histLen, '| canvas en DOM:', !!c);
     _drawWeightChart(userId);
     _drawCompositionChart(userId);
     _drawMeasuresChart(userId);
     _drawAttendanceChart(userId);
-  };
-  requestAnimationFrame(() => requestAnimationFrame(_doCharts));
+  }, 500);
 }
 
 /* ---------- Tarjeta delta ---------- */
@@ -6085,42 +6078,73 @@ const DEMO_ATT = (() => {
    INICIALIZACIÓN
 ====================================================== */
 function initApp() {
-  const DATA_VER = '5';
+  // Carga inicial: si localStorage está vacío, inserta todos los datos demo
   if (!DB.isInit()) {
     DB.setUsers(DEMO_USERS);
     DB.setPlans(DEMO_PLANS);
     DB.setNutris(DEMO_NUTRI);
     DB.setAtt(DEMO_ATT);
     DB.setInit();
-    localStorage.setItem('gp_ver', DATA_VER);
-  } else if (localStorage.getItem('gp_ver') !== DATA_VER) {
-    // Migración: sincroniza datos demo (physicalHistory, planes, nutri) sin borrar datos de usuario
-    let users = DB.users();
-    DEMO_USERS.forEach(demo => {
-      const idx = users.findIndex(u => u.id === demo.id);
-      if (idx >= 0) {
-        // Siempre actualiza physicalHistory de demo users si está vacío o es menor al demo
-        if (!users[idx].physicalHistory || users[idx].physicalHistory.length < demo.physicalHistory.length) {
-          users[idx].physicalHistory = demo.physicalHistory;
-        }
-      } else {
-        users.push(demo);
-      }
-    });
-    DB.setUsers(users);
-    let plans = DB.plans();
-    DEMO_PLANS.forEach(p => { if (!plans.find(x => x.id === p.id)) plans.push(p); });
-    DB.setPlans(plans);
-    let nutris = DB.nutris();
-    DEMO_NUTRI.forEach(n => { if (!nutris.find(x => x.id === n.id)) nutris.push(n); });
-    DB.setNutris(nutris);
-    localStorage.setItem('gp_ver', DATA_VER);
   }
+
+  // Garantía absoluta: physicalHistory hardcodeado directamente aquí.
+  // Se aplica siempre, independiente del estado de localStorage,
+  // para asegurar que los gráficos tengan datos desde el primer arranque.
+  const PHIST_DEMO = {
+    u01: [
+      {date:'2024-01-10',weight:82,height:178,bodyFat:22,muscleMass:42,
+       measures:{chest:100,waist:88,hip:98,rArm:34,lArm:33,rThigh:58,lThigh:57},restHR:72},
+      {date:'2024-03-10',weight:80,height:178,bodyFat:20,muscleMass:43,
+       measures:{chest:101,waist:86,hip:97,rArm:35,lArm:34,rThigh:59,lThigh:58},restHR:70},
+      {date:'2024-06-10',weight:78,height:178,bodyFat:18,muscleMass:44.5,
+       measures:{chest:102,waist:83,hip:96,rArm:36,lArm:35,rThigh:60,lThigh:59},restHR:68},
+      {date:'2025-01-15',weight:76.5,height:178,bodyFat:16,muscleMass:46,
+       measures:{chest:103,waist:81,hip:95,rArm:37,lArm:36,rThigh:61,lThigh:60},restHR:66},
+      {date:'2025-06-10',weight:75,height:178,bodyFat:15,muscleMass:47,
+       measures:{chest:104,waist:80,hip:95,rArm:38,lArm:37,rThigh:62,lThigh:61},restHR:65},
+      {date:'2026-01-10',weight:74,height:178,bodyFat:14,muscleMass:48,
+       measures:{chest:105,waist:79,hip:94,rArm:38.5,lArm:37.5,rThigh:63,lThigh:62},restHR:64}
+    ],
+    u02: [
+      {date:'2023-06-15',weight:72,height:163,bodyFat:32,muscleMass:28,
+       measures:{chest:92,waist:78,hip:102,rArm:30,lArm:30,rThigh:56,lThigh:55},restHR:80},
+      {date:'2024-01-15',weight:68,height:163,bodyFat:27,muscleMass:30,
+       measures:{chest:90,waist:73,hip:98,rArm:29,lArm:29,rThigh:54,lThigh:53},restHR:76},
+      {date:'2024-09-10',weight:65,height:163,bodyFat:24,muscleMass:31.5,
+       measures:{chest:89,waist:70,hip:96,rArm:28.5,lArm:28.5,rThigh:52,lThigh:51},restHR:73},
+      {date:'2025-04-10',weight:63,height:163,bodyFat:22,muscleMass:32,
+       measures:{chest:88,waist:68,hip:95,rArm:28,lArm:28,rThigh:51,lThigh:50},restHR:71}
+    ],
+    u03: [
+      {date:'2023-01-05',weight:95,height:175,bodyFat:30,muscleMass:36,
+       measures:{chest:108,waist:100,hip:108,rArm:36,lArm:36,rThigh:62,lThigh:62},restHR:85},
+      {date:'2023-07-05',weight:91,height:175,bodyFat:27,muscleMass:37,
+       measures:{chest:106,waist:96,hip:105,rArm:35,lArm:35,rThigh:60,lThigh:60},restHR:82},
+      {date:'2024-03-10',weight:88,height:175,bodyFat:25,muscleMass:38,
+       measures:{chest:104,waist:92,hip:102,rArm:35,lArm:35,rThigh:59,lThigh:59},restHR:79},
+      {date:'2025-01-15',weight:85,height:175,bodyFat:23,muscleMass:39,
+       measures:{chest:103,waist:89,hip:100,rArm:36,lArm:35,rThigh:58,lThigh:58},restHR:76}
+    ]
+  };
+
+  const users = DB.users();
+  let dirty = false;
+  Object.keys(PHIST_DEMO).forEach(id => {
+    const idx = users.findIndex(u => u.id === id);
+    if (idx >= 0) {
+      const stored = users[idx].physicalHistory;
+      if (!stored || stored.length < PHIST_DEMO[id].length) {
+        users[idx].physicalHistory = PHIST_DEMO[id];
+        dirty = true;
+      }
+    }
+  });
+  if (dirty) DB.setUsers(users);
+
   setRole('admin');
 }
 
 // Arrancar al cargar
 document.addEventListener('DOMContentLoaded', initApp);
-</script>
 </body>
 </html>
