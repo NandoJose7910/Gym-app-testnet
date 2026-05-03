@@ -6078,18 +6078,7 @@ const DEMO_ATT = (() => {
    INICIALIZACIÓN
 ====================================================== */
 function initApp() {
-  // Carga inicial: si localStorage está vacío, inserta todos los datos demo
-  if (!DB.isInit()) {
-    DB.setUsers(DEMO_USERS);
-    DB.setPlans(DEMO_PLANS);
-    DB.setNutris(DEMO_NUTRI);
-    DB.setAtt(DEMO_ATT);
-    DB.setInit();
-  }
-
-  // Garantía absoluta: physicalHistory hardcodeado directamente aquí.
-  // Se aplica siempre, independiente del estado de localStorage,
-  // para asegurar que los gráficos tengan datos desde el primer arranque.
+  /* ── Datos físicos garantizados para usuarios demo ── */
   const PHIST_DEMO = {
     u01: [
       {date:'2024-01-10',weight:82,height:178,bodyFat:22,muscleMass:42,
@@ -6127,19 +6116,68 @@ function initApp() {
     ]
   };
 
-  const users = DB.users();
-  let dirty = false;
-  Object.keys(PHIST_DEMO).forEach(id => {
-    const idx = users.findIndex(u => u.id === id);
-    if (idx >= 0) {
-      const stored = users[idx].physicalHistory;
-      if (!stored || stored.length < PHIST_DEMO[id].length) {
-        users[idx].physicalHistory = PHIST_DEMO[id];
-        dirty = true;
-      }
+  try {
+    /* ── PASO 1: Carga de datos demo ──────────────────────────────────────────
+       Condición doble: !isInit() O lista de usuarios vacía.
+       Esto cubre el caso en que gp_init está seteado pero gp_users fue
+       borrado independientemente (p.ej. localStorage.clear() con gp_init residual). */
+    const needsLoad = !DB.isInit() || DB.users().length === 0;
+    if (needsLoad) {
+      /* Asegura physicalHistory en DEMO_USERS antes de guardar */
+      const demoWithHist = DEMO_USERS.map(u => {
+        if (PHIST_DEMO[u.id] && (!u.physicalHistory || u.physicalHistory.length < PHIST_DEMO[u.id].length)) {
+          return Object.assign({}, u, { physicalHistory: PHIST_DEMO[u.id] });
+        }
+        return u;
+      });
+      DB.setUsers(demoWithHist);
+      DB.setPlans(DEMO_PLANS);
+      DB.setNutris(DEMO_NUTRI);
+      try { DB.setAtt(DEMO_ATT); } catch(e) { DB.setAtt([]); } // DEMO_ATT es voluminoso
+      DB.setInit();
     }
-  });
-  if (dirty) DB.setUsers(users);
+
+    /* ── PASO 2: Credenciales admin ───────────────────────────────────────────
+       Escribe explícitamente en localStorage para no depender del fallback JS. */
+    if (!localStorage.getItem('gp_apass')) {
+      DB.setAdminPass('GymPro2024');
+    }
+
+    /* ── PASO 3: Garantía physicalHistory (idempotente) ───────────────────── */
+    const users = DB.users();
+    let dirty = false;
+    Object.keys(PHIST_DEMO).forEach(id => {
+      const idx = users.findIndex(u => u.id === id);
+      if (idx >= 0) {
+        const stored = users[idx].physicalHistory;
+        if (!stored || stored.length < PHIST_DEMO[id].length) {
+          users[idx].physicalHistory = PHIST_DEMO[id];
+          dirty = true;
+        }
+      }
+    });
+    if (dirty) DB.setUsers(users);
+
+  } catch (err) {
+    /* ── FALLBACK DE EMERGENCIA ───────────────────────────────────────────────
+       Si algo falló durante la init, resetea todo desde cero para garantizar
+       que siempre haya credenciales válidas. */
+    console.error('[GymApp] Error en initApp, reseteo de emergencia:', err);
+    try {
+      localStorage.clear();
+      const demoSafe = DEMO_USERS.map(u =>
+        Object.assign({}, u, { physicalHistory: PHIST_DEMO[u.id] || [] })
+      );
+      DB.setUsers(demoSafe);
+      DB.setPlans(DEMO_PLANS);
+      DB.setNutris(DEMO_NUTRI);
+      DB.setAtt([]);
+      DB.setInit();
+      DB.setAdminPass('GymPro2024');
+    } catch(e2) {
+      console.error('[GymApp] Fallback también falló:', e2);
+    }
+  }
 
   setRole('admin');
 }
