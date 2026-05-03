@@ -992,7 +992,7 @@ tbody td {
 /* ======================================================
    CHARTS
 ====================================================== */
-.chart-wrap { position:relative; height:240px; width:100%; }
+.chart-wrap { position:relative; height:250px; width:100%; overflow:hidden; }
 .chart-wrap.tall { height:300px; }
 
 /* ======================================================
@@ -1420,7 +1420,7 @@ tbody td {
 /* Gráficos */
 .chart-card  { padding: 14px 16px; }
 .chart-title { margin: 0 0 12px; font-size: .9rem; color: var(--text-dim); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
-.chart-wrap  { position: relative; height: 220px; }
+.chart-wrap  { position: relative; height: 250px; overflow: hidden; }
 
 /* Colores de texto utilitarios */
 .text-green { color: var(--green) !important; }
@@ -4701,21 +4701,21 @@ function renderProgDetail(v, userId) {
 <div class="g2" style="margin-top:18px">
   <div class="card chart-card">
     <h4 class="chart-title">Evolución de Peso</h4>
-    <div class="chart-wrap"><canvas id="chart-weight" style="display:block;width:100%;height:100%"></canvas></div>
+    <div class="chart-wrap"><canvas id="chart-weight"></canvas></div>
   </div>
   <div class="card chart-card">
     <h4 class="chart-title">% Grasa vs % Músculo</h4>
-    <div class="chart-wrap"><canvas id="chart-composition" style="display:block;width:100%;height:100%"></canvas></div>
+    <div class="chart-wrap"><canvas id="chart-composition"></canvas></div>
   </div>
 </div>
 <div class="g2" style="margin-top:14px">
   <div class="card chart-card">
     <h4 class="chart-title">Medidas: Primera vs Última</h4>
-    <div class="chart-wrap" style="height:260px"><canvas id="chart-measures" style="display:block;width:100%;height:100%"></canvas></div>
+    <div class="chart-wrap tall"><canvas id="chart-measures"></canvas></div>
   </div>
   <div class="card chart-card">
     <h4 class="chart-title">Asistencias por semana (últimas 12)</h4>
-    <div class="chart-wrap"><canvas id="chart-attendance" style="display:block;width:100%;height:100%"></canvas></div>
+    <div class="chart-wrap"><canvas id="chart-attendance"></canvas></div>
   </div>
 </div>
 
@@ -4748,15 +4748,23 @@ function renderProgDetail(v, userId) {
   </div>
 </div>`;
 
-  // Dibujar gráficos tras render del DOM (doble rAF + fallback)
+  // Dibujar gráficos: reintenta hasta que el canvas tenga altura real
+  let _chartTries = 0;
   const _doCharts = () => {
     const c = document.getElementById('chart-weight');
-    if (c && c.offsetParent !== null) {
-      _drawWeightChart(userId);
-      _drawCompositionChart(userId);
-      _drawMeasuresChart(userId);
-      _drawAttendanceChart(userId);
+    if (!c) return; // navegó a otra vista
+    const parentH = c.parentElement ? c.parentElement.getBoundingClientRect().height : 0;
+    if (parentH < 10 && _chartTries < 12) {
+      _chartTries++;
+      requestAnimationFrame(_doCharts);
+      return;
     }
+    const histLen = DB.user(userId)?.physicalHistory?.length ?? 0;
+    console.log('[GymApp Charts] userId:', userId, '| registros:', histLen, '| altura canvas:', Math.round(parentH), 'px | intentos:', _chartTries);
+    _drawWeightChart(userId);
+    _drawCompositionChart(userId);
+    _drawMeasuresChart(userId);
+    _drawAttendanceChart(userId);
   };
   requestAnimationFrame(() => requestAnimationFrame(_doCharts));
 }
@@ -4839,6 +4847,10 @@ function _tooltipPlugin(unitSuffix) {
 function _mkChart(canvasId, type, data, options) {
   const canvas = document.getElementById(canvasId);
   if (!canvas) return;
+  // Chart.js 4: destroy any existing instance on this canvas element
+  const existing = Chart.getChart(canvas);
+  if (existing) existing.destroy();
+  if (S.charts[canvasId]) { try { S.charts[canvasId].destroy(); } catch(e){} }
   const chart = new Chart(canvas, { type, data, options });
   S.charts[canvasId] = chart;
 }
@@ -6073,7 +6085,7 @@ const DEMO_ATT = (() => {
    INICIALIZACIÓN
 ====================================================== */
 function initApp() {
-  const DATA_VER = '4';
+  const DATA_VER = '5';
   if (!DB.isInit()) {
     DB.setUsers(DEMO_USERS);
     DB.setPlans(DEMO_PLANS);
@@ -6082,14 +6094,16 @@ function initApp() {
     DB.setInit();
     localStorage.setItem('gp_ver', DATA_VER);
   } else if (localStorage.getItem('gp_ver') !== DATA_VER) {
-    // Migración: asegurar que usuarios demo tengan physicalHistory y planes completos
+    // Migración: sincroniza datos demo (physicalHistory, planes, nutri) sin borrar datos de usuario
     let users = DB.users();
-    ['u01','u02','u03'].forEach(id => {
-      const demo = DEMO_USERS.find(u => u.id === id);
-      const idx  = users.findIndex(u => u.id === id);
-      if (demo && idx >= 0 && (!users[idx].physicalHistory || !users[idx].physicalHistory.length)) {
-        users[idx].physicalHistory = demo.physicalHistory;
-      } else if (demo && idx < 0) {
+    DEMO_USERS.forEach(demo => {
+      const idx = users.findIndex(u => u.id === demo.id);
+      if (idx >= 0) {
+        // Siempre actualiza physicalHistory de demo users si está vacío o es menor al demo
+        if (!users[idx].physicalHistory || users[idx].physicalHistory.length < demo.physicalHistory.length) {
+          users[idx].physicalHistory = demo.physicalHistory;
+        }
+      } else {
         users.push(demo);
       }
     });
