@@ -1207,6 +1207,85 @@ tbody td {
   .g2 { grid-template-columns:1fr; }
   .delta-grid { grid-template-columns:1fr 1fr; }
 }
+
+/* ======================================================
+   MÓDULO 3 — ENTRENAMIENTO
+====================================================== */
+.plan-card {
+  margin-bottom: 14px;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+.plan-card--active {
+  border-color: var(--green);
+}
+.plan-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  cursor: pointer;
+  background: var(--bg-card);
+  transition: background .15s;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.plan-card-header:hover { background: var(--bg-card2); }
+.plan-card-title { font-size: 1rem; font-weight: 700; }
+.plan-card-body  { padding: 0 16px 16px; background: var(--bg-card); }
+.plan-card-chevron { color: var(--text-dim); font-size: .75rem; }
+
+.day-section { border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 8px; overflow: hidden; }
+.day-sec-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  cursor: pointer;
+  background: var(--bg-card2);
+  transition: background .15s;
+}
+.day-sec-header:hover { background: var(--bg-card3); }
+.day-sec-today { border-left: 3px solid var(--green); }
+
+.day-type-badge { font-size: .72rem; font-weight: 700; padding: 2px 8px; border-radius: 4px; }
+.dtb-train  { background: rgba(0,255,102,.15); color: var(--green); }
+.dtb-active { background: rgba(68,136,255,.15); color: var(--blue); }
+.dtb-rest   { background: rgba(255,255,255,.08); color: var(--text-dim); }
+
+/* Formulario de plan */
+.day-form-sec { border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 12px; overflow: hidden; }
+.day-form-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: var(--bg-card2);
+  flex-wrap: wrap;
+}
+.day-form-name { font-weight: 700; min-width: 90px; }
+.day-form-sec > div[id^="dfs-ex-"] { padding: 10px 14px 14px; }
+.ex-table input, .ex-table select { background: var(--bg-card3); border: 1px solid var(--border); border-radius: 4px; color: var(--white); padding: 4px 6px; font-size: .8rem; }
+.ex-table input:focus, .ex-table select:focus { outline: none; border-color: var(--green); }
+
+/* Mi entrenamiento — checkboxes */
+.ex-check-row {
+  padding: 12px 14px;
+  border-radius: var(--radius);
+  background: var(--bg-card2);
+  margin-bottom: 8px;
+  transition: opacity .2s;
+}
+.ex-done { opacity: .5; text-decoration: line-through; }
+
+.alert-banner {
+  padding: 12px 16px;
+  border-radius: var(--radius);
+  margin-bottom: 16px;
+  font-size: .9rem;
+}
+.alert-warn { background: rgba(255,136,0,.12); border: 1px solid rgba(255,136,0,.3); color: var(--orange); }
 </style>
 </head>
 <body>
@@ -3259,14 +3338,512 @@ function saveObjectivesForm(userId) {
   toast('Objetivos guardados ✅', 'ok');
   navigate('val-detail', userId);
 }
-function renderTrainingList(v)   { v.innerHTML = `<div class="empty-state"><div class="empty-ico">💪</div><p class="empty-txt">Módulo Entrenamientos</p><p class="empty-sub">Disponible en la siguiente parte</p></div>`; }
-function renderTrainDetail(v,p)  { v.innerHTML = `<div class="empty-state"><div class="empty-ico">💪</div><p class="empty-txt">Plan de Entrenamiento</p><p class="empty-sub">Disponible en la siguiente parte</p></div>`; }
+/* ======================================================
+   MÓDULO 3 — PLAN DE ENTRENAMIENTO
+====================================================== */
+
+/* ---------- Lista de miembros con estado de plan ---------- */
+function renderTrainingList(v) {
+  const users = DB.users();
+  const plans  = DB.plans();
+  v.innerHTML = `
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Planes de Entrenamiento</h1>
+    <p class="page-sub">${users.length} miembro${users.length!==1?'s':''}</p>
+  </div>
+  <input id="tl-search" class="search-box" placeholder="Buscar miembro..." oninput="filterTrainList()" style="max-width:260px">
+</div>
+<div class="card" style="padding:0;overflow:hidden">
+  <table class="data-table" id="tl-table">
+    <thead><tr>
+      <th>Miembro</th><th>Plan activo</th><th>Semanas</th><th>Días/semana</th><th>Acción</th>
+    </tr></thead>
+    <tbody id="tl-tbody">
+      ${users.map(u => {
+        const active = plans.find(p => p.userId===u.id && p.isActive);
+        const cnt    = plans.filter(p => p.userId===u.id).length;
+        const trainingDays = active ? active.days.filter(d=>d.type==='training').length : 0;
+        return `<tr data-name="${escH(u.name.toLowerCase())}">
+          <td>
+            <div style="display:flex;align-items:center;gap:10px">
+              <div class="avatar-sm">${u.name.charAt(0)}</div>
+              <div>
+                <div style="font-weight:600">${escH(u.name)}</div>
+                <div style="font-size:.75rem;color:var(--text-dim)">${escH(u.cedula)}</div>
+              </div>
+            </div>
+          </td>
+          <td>${active
+            ? `<span class="badge badge-ok">${escH(active.name)}</span>`
+            : `<span class="badge badge-dim">Sin plan activo</span>`}
+            ${cnt>1?`<span style="font-size:.7rem;color:var(--text-dim);margin-left:6px">(${cnt} total)</span>`:''}
+          </td>
+          <td>${active ? active.durationWeeks : '—'}</td>
+          <td>${active ? trainingDays : '—'}</td>
+          <td>
+            <button class="btn btn-sm btn-outline" onclick="navigate('train-detail','${u.id}')">Ver planes</button>
+          </td>
+        </tr>`;
+      }).join('')}
+    </tbody>
+  </table>
+</div>`;
+}
+
+function filterTrainList() {
+  const q = document.getElementById('tl-search').value.toLowerCase();
+  document.querySelectorAll('#tl-tbody tr').forEach(tr => {
+    tr.style.display = tr.dataset.name.includes(q) ? '' : 'none';
+  });
+}
+
+/* ---------- Detalle: todos los planes de un usuario ---------- */
+function renderTrainDetail(v, userId) {
+  const u     = DB.user(userId);
+  if (!u) { v.innerHTML='<p>Usuario no encontrado</p>'; return; }
+  const plans = DB.plans().filter(p => p.userId===userId);
+  const med   = u.medical || {};
+  const hasCond = med.conditions && med.conditions.length && !med.conditions.includes('none');
+
+  v.innerHTML = `
+<div class="page-header">
+  <div style="display:flex;align-items:center;gap:12px">
+    <button class="btn btn-sm btn-outline" onclick="navigate('training')">← Volver</button>
+    <div>
+      <h1 class="page-title">Planes — ${escH(u.name)}</h1>
+      <p class="page-sub">${plans.length} plan${plans.length!==1?'es':''} registrado${plans.length!==1?'s':''}</p>
+    </div>
+  </div>
+  ${S.role==='admin'?`<button class="btn btn-primary" onclick="showCreatePlanModal('${userId}')">+ Nuevo plan</button>`:''}
+</div>
+
+${hasCond ? `
+<div class="alert-banner alert-warn">
+  <strong>⚠ Condición médica:</strong> ${med.conditions.map(c=>_condLabel(c)).join(', ')} — Considera restricciones en el plan.
+  ${med.notes?`<br><em>${escH(med.notes)}</em>`:''}
+</div>` : ''}
+
+${plans.length===0 ? `
+<div class="empty-state">
+  <div class="empty-ico">💪</div>
+  <p class="empty-txt">Sin planes de entrenamiento</p>
+  ${S.role==='admin'?`<button class="btn btn-primary" onclick="showCreatePlanModal('${userId}')">Crear primer plan</button>`:''}
+</div>` : plans.sort((a,b)=>b.isActive-a.isActive).map(p=>_planCardHTML(p, userId)).join('')}
+
+<div id="train-modal-root"></div>`;
+}
+
+function _condLabel(c) {
+  const MAP = { hypertension:'Hipertensión', diabetes:'Diabetes', heart_disease:'Cardiopatía',
+    asthma:'Asma', joint_injury:'Lesión articular', back_pain:'Dolor lumbar',
+    osteoporosis:'Osteoporosis', pregnancy:'Embarazo', obesity:'Obesidad', none:'Ninguna' };
+  return MAP[c] || c;
+}
+
+/* ---------- Tarjeta de plan (sólo lectura) ---------- */
+function _planCardHTML(plan, userId) {
+  const trainingDays = plan.days.filter(d=>d.type==='training').length;
+  const restDays     = plan.days.filter(d=>d.type==='rest').length;
+  return `
+<div class="card plan-card ${plan.isActive?'plan-card--active':''}" id="pc-${plan.id}">
+  <div class="plan-card-header" onclick="togglePlanCard('${plan.id}')">
+    <div>
+      <span class="plan-card-title">${escH(plan.name)}</span>
+      ${plan.isActive?`<span class="badge badge-ok" style="margin-left:8px">Activo</span>`:`<span class="badge badge-dim" style="margin-left:8px">Inactivo</span>`}
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;flex-shrink:0">
+      <span style="font-size:.8rem;color:var(--text-dim)">${plan.durationWeeks} sem · ${trainingDays}d entren · ${restDays}d desc</span>
+      ${S.role==='admin'?`
+        <button class="btn btn-sm btn-outline" onclick="event.stopPropagation();showEditPlanModal('${plan.id}','${userId}')">Editar</button>
+        ${!plan.isActive?`<button class="btn btn-sm btn-primary" onclick="event.stopPropagation();setPlanActive('${plan.id}','${userId}')">Activar</button>`:''}
+        <button class="btn btn-sm btn-danger" onclick="event.stopPropagation();deletePlanConfirm('${plan.id}','${userId}')">Eliminar</button>`:''}
+      <span class="plan-card-chevron" id="chev-${plan.id}">▼</span>
+    </div>
+  </div>
+  <div class="plan-card-body" id="pcb-${plan.id}" style="display:none">
+    <p style="font-size:.8rem;color:var(--text-dim);margin-bottom:12px">
+      Creado: ${fDate(plan.createdAt)} · Duración: ${plan.durationWeeks} semanas
+    </p>
+    ${plan.days.map((day,i) => `
+    <div class="day-section" id="day-sec-${plan.id}-${i}">
+      <div class="day-sec-header" onclick="toggleDayCard('${plan.id}-${i}')">
+        <span>${escH(day.dayName)}</span>
+        <span class="day-type-badge ${day.type==='training'?'dtb-train':day.restType==='active'?'dtb-active':'dtb-rest'}">
+          ${day.type==='training'?'Entrenamiento':day.restType==='active'?'Descanso activo':'Descanso total'}
+        </span>
+        <span class="plan-card-chevron" id="daychev-${plan.id}-${i}" style="margin-left:auto">▼</span>
+      </div>
+      <div id="daybody-${plan.id}-${i}" style="display:none">
+        ${day.type==='training' && day.exercises && day.exercises.length ? `
+        <div style="overflow-x:auto;margin-top:10px">
+          <table class="data-table">
+            <thead><tr>
+              <th>#</th><th>Ejercicio</th><th>Grupo muscular</th>
+              <th>Series</th><th>Reps</th><th>Peso (kg)</th><th>Descanso (s)</th><th>Notas</th>
+            </tr></thead>
+            <tbody>
+              ${day.exercises.map((ex,ei)=>`<tr>
+                <td>${ei+1}</td>
+                <td>${escH(ex.name)}</td>
+                <td><span class="badge badge-dim">${escH(ex.muscle)}</span></td>
+                <td>${ex.sets}</td><td>${escH(String(ex.reps))}</td>
+                <td>${ex.weight>0?ex.weight+'kg':'—'}</td>
+                <td>${ex.rest}s</td>
+                <td style="color:var(--text-dim);font-size:.8rem">${escH(ex.notes||'')}</td>
+              </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>` : day.type==='training' ? `<p style="color:var(--text-dim);padding:10px 0">Sin ejercicios registrados</p>` :
+        `<p style="color:var(--text-dim);padding:10px 0">${day.restType==='active'?'Actividad ligera (caminata, yoga, stretching)':'Recuperación completa'}</p>`}
+      </div>
+    </div>`).join('')}
+  </div>
+</div>`;
+}
+
+function togglePlanCard(planId) {
+  const body  = document.getElementById('pcb-'+planId);
+  const chev  = document.getElementById('chev-'+planId);
+  if (!body) return;
+  const open = body.style.display !== 'none';
+  body.style.display = open ? 'none' : 'block';
+  if (chev) chev.textContent = open ? '▼' : '▲';
+}
+
+function toggleDayCard(key) {
+  const body = document.getElementById('daybody-'+key);
+  const chev = document.getElementById('daychev-'+key);
+  if (!body) return;
+  const open = body.style.display !== 'none';
+  body.style.display = open ? 'none' : 'block';
+  if (chev) chev.textContent = open ? '▼' : '▲';
+}
+
+/* ---------- Modal crear / editar plan ---------- */
+function showCreatePlanModal(userId) {
+  document.getElementById('train-modal-root').innerHTML = _buildPlanFormHTML(userId, null);
+}
+
+function showEditPlanModal(planId, userId) {
+  const plan = DB.plans().find(p=>p.id===planId);
+  if (!plan) return;
+  document.getElementById('train-modal-root').innerHTML = _buildPlanFormHTML(userId, plan);
+}
+
+const DAY_NAMES = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
+
+function _buildPlanFormHTML(userId, plan) {
+  const isEdit = !!plan;
+  const days = plan ? plan.days : DAY_NAMES.map(n=>({ dayName:n, type:'rest', restType:'total', exercises:[] }));
+
+  return `
+<div class="modal-overlay" id="train-modal" onclick="if(event.target.id==='train-modal')closePlanModal()">
+  <div class="modal-box" style="max-width:860px;max-height:90vh;overflow-y:auto">
+    <div class="modal-header">
+      <h3>${isEdit?'Editar plan':'Nuevo plan de entrenamiento'}</h3>
+      <button class="modal-close" onclick="closePlanModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="field">
+          <label>Nombre del plan *</label>
+          <input id="pf-name" value="${escH(plan?plan.name:'')}" placeholder="Ej: Hipertrofia 4 días">
+        </div>
+        <div class="field" style="max-width:140px">
+          <label>Duración (semanas)</label>
+          <input id="pf-weeks" type="number" min="1" max="52" value="${plan?plan.durationWeeks:8}">
+        </div>
+      </div>
+
+      <h4 style="margin:18px 0 10px;color:var(--green)">Días de la semana</h4>
+      <div id="pf-days">
+        ${days.map((day,i)=>_dayFormSection(day,i)).join('')}
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closePlanModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="savePlanForm('${userId}','${isEdit?plan.id:''}')">
+        ${isEdit?'Guardar cambios':'Crear plan'}
+      </button>
+    </div>
+  </div>
+</div>`;
+}
+
+function _dayFormSection(day, i) {
+  const isTraining = day.type === 'training';
+  return `
+<div class="day-form-sec" id="dfs-${i}">
+  <div class="day-form-header">
+    <span class="day-form-name">${escH(day.dayName)}</span>
+    <select id="dfs-type-${i}" onchange="toggleDayType(${i})" style="width:180px">
+      <option value="training" ${isTraining?'selected':''}>Entrenamiento</option>
+      <option value="rest_active" ${!isTraining&&day.restType==='active'?'selected':''}>Descanso activo</option>
+      <option value="rest_total" ${!isTraining&&day.restType==='total'?'selected':''}>Descanso total</option>
+    </select>
+  </div>
+  <div id="dfs-ex-${i}" style="display:${isTraining?'block':'none'}">
+    <div style="overflow-x:auto">
+      <table class="data-table ex-table" id="ext-${i}">
+        <thead><tr>
+          <th style="width:32px">#</th>
+          <th>Ejercicio</th>
+          <th>Grupo muscular</th>
+          <th style="width:70px">Series</th>
+          <th style="width:90px">Reps</th>
+          <th style="width:90px">Peso (kg)</th>
+          <th style="width:90px">Desc (s)</th>
+          <th>Notas</th>
+          <th style="width:36px"></th>
+        </tr></thead>
+        <tbody id="extb-${i}">
+          ${(day.exercises||[]).map((ex,n)=>_exRowInner(ex,n)).join('')}
+        </tbody>
+      </table>
+    </div>
+    <button class="btn btn-sm btn-outline" style="margin-top:6px" onclick="addExRow(${i})">+ Ejercicio</button>
+  </div>
+</div>`;
+}
+
+function _exRowInner(ex, n) {
+  const muscles = ['Pecho','Espalda','Hombros','Bíceps','Tríceps','Antebrazos',
+    'Abdomen','Cuádriceps','Isquiotibiales','Glúteos','Pantorrillas','Cuerpo completo','Cardio'];
+  return `<tr>
+    <td class="ex-num">${n+1}</td>
+    <td><input class="ex-name" value="${escH(ex?ex.name:'')}" placeholder="Nombre ejercicio" style="min-width:150px"></td>
+    <td>
+      <select class="ex-muscle">
+        ${muscles.map(m=>`<option ${(ex&&ex.muscle===m)?'selected':''}>${m}</option>`).join('')}
+      </select>
+    </td>
+    <td><input class="ex-sets" type="number" min="1" max="20" value="${ex?ex.sets:3}" style="width:60px"></td>
+    <td><input class="ex-reps" value="${escH(ex?String(ex.reps):'8-12')}" style="width:80px"></td>
+    <td><input class="ex-weight" type="number" min="0" step="0.5" value="${ex?ex.weight:0}" style="width:80px"></td>
+    <td><input class="ex-rest" type="number" min="10" max="600" value="${ex?ex.rest:60}" style="width:80px"></td>
+    <td><input class="ex-notes" value="${escH(ex?ex.notes:'')}" placeholder="Opcional" style="min-width:100px"></td>
+    <td><button class="btn btn-sm btn-danger" onclick="removeExRow(this)" style="padding:2px 8px">✕</button></td>
+  </tr>`;
+}
+
+function toggleDayType(i) {
+  const val = document.getElementById('dfs-type-'+i).value;
+  document.getElementById('dfs-ex-'+i).style.display = val==='training' ? 'block' : 'none';
+}
+
+function addExRow(i) {
+  const tbody = document.getElementById('extb-'+i);
+  const n     = tbody.querySelectorAll('tr').length;
+  tbody.insertAdjacentHTML('beforeend', _exRowInner(null, n));
+  _renumberRows(tbody);
+}
+
+function removeExRow(btn) {
+  const tr    = btn.closest('tr');
+  const tbody = tr.closest('tbody');
+  tr.remove();
+  _renumberRows(tbody);
+}
+
+function _renumberRows(tbody) {
+  tbody.querySelectorAll('tr').forEach((tr,i) => {
+    const cell = tr.querySelector('.ex-num');
+    if (cell) cell.textContent = i+1;
+  });
+}
+
+function _getExercises(dayIdx) {
+  const tbody = document.getElementById('extb-'+dayIdx);
+  if (!tbody) return [];
+  return Array.from(tbody.querySelectorAll('tr')).map((tr,n) => ({
+    num:    n+1,
+    name:   tr.querySelector('.ex-name').value.trim(),
+    muscle: tr.querySelector('.ex-muscle').value,
+    sets:   parseInt(tr.querySelector('.ex-sets').value)||3,
+    reps:   tr.querySelector('.ex-reps').value.trim()||'8-12',
+    weight: parseFloat(tr.querySelector('.ex-weight').value)||0,
+    rest:   parseInt(tr.querySelector('.ex-rest').value)||60,
+    notes:  tr.querySelector('.ex-notes').value.trim()
+  })).filter(ex=>ex.name);
+}
+
+function savePlanForm(userId, planId) {
+  const name  = document.getElementById('pf-name').value.trim();
+  const weeks = parseInt(document.getElementById('pf-weeks').value)||8;
+  if (!name) { toast('Ingresa un nombre para el plan','warn'); return; }
+
+  const days = DAY_NAMES.map((_, i) => {
+    const typeVal = document.getElementById('dfs-type-'+i).value;
+    if (typeVal === 'training') {
+      return { dayName: DAY_NAMES[i], type:'training', restType:null, exercises: _getExercises(i) };
+    } else {
+      return { dayName: DAY_NAMES[i], type:'rest', restType: typeVal==='rest_active'?'active':'total', exercises:[] };
+    }
+  });
+
+  const plans = DB.plans();
+  if (planId) {
+    const idx = plans.findIndex(p=>p.id===planId);
+    if (idx>=0) {
+      plans[idx] = { ...plans[idx], name, durationWeeks:weeks, days };
+      DB.setPlans(plans);
+      toast('Plan actualizado ✅','ok');
+    }
+  } else {
+    const newPlan = {
+      id: uid(), userId, name, durationWeeks: weeks,
+      createdAt: new Date().toISOString().slice(0,10),
+      isActive: plans.filter(p=>p.userId===userId).length===0,
+      days
+    };
+    plans.push(newPlan);
+    DB.setPlans(plans);
+    toast('Plan creado ✅','ok');
+  }
+  closePlanModal();
+  navigate('train-detail', userId);
+}
+
+function closePlanModal() {
+  const el = document.getElementById('train-modal');
+  if (el) el.remove();
+}
+
+function setPlanActive(planId, userId) {
+  const plans = DB.plans().map(p => p.userId===userId ? { ...p, isActive: p.id===planId } : p);
+  DB.setPlans(plans);
+  toast('Plan activado ✅','ok');
+  navigate('train-detail', userId);
+}
+
+function deletePlanConfirm(planId, userId) {
+  if (!confirm('¿Eliminar este plan de entrenamiento? Esta acción no se puede deshacer.')) return;
+  DB.setPlans(DB.plans().filter(p=>p.id!==planId));
+  toast('Plan eliminado','ok');
+  navigate('train-detail', userId);
+}
+
+/* ---------- Vista del miembro: Mi Entrenamiento ---------- */
 function renderNutriList(v)      { v.innerHTML = `<div class="empty-state"><div class="empty-ico">🥗</div><p class="empty-txt">Módulo Nutrición</p><p class="empty-sub">Disponible en la siguiente parte</p></div>`; }
 function renderNutriDetail(v,p)  { v.innerHTML = `<div class="empty-state"><div class="empty-ico">🥗</div><p class="empty-txt">Plan de Nutrición</p><p class="empty-sub">Disponible en la siguiente parte</p></div>`; }
 function renderProgressList(v)   { v.innerHTML = `<div class="empty-state"><div class="empty-ico">📈</div><p class="empty-txt">Módulo Avances</p><p class="empty-sub">Disponible en la siguiente parte</p></div>`; }
 function renderProgDetail(v,p)   { v.innerHTML = `<div class="empty-state"><div class="empty-ico">📈</div><p class="empty-txt">Seguimiento</p><p class="empty-sub">Disponible en la siguiente parte</p></div>`; }
 function renderProfile(v)        { v.innerHTML = `<div class="empty-state"><div class="empty-ico">👤</div><p class="empty-txt">Mi Perfil</p><p class="empty-sub">Disponible en la siguiente parte</p></div>`; }
-function renderMyTraining(v)     { v.innerHTML = `<div class="empty-state"><div class="empty-ico">💪</div><p class="empty-txt">Mi Entrenamiento</p><p class="empty-sub">Disponible en la siguiente parte</p></div>`; }
+function renderMyTraining(v) {
+  const u = DB.user(S.uid);
+  if (!u) { v.innerHTML='<p>Usuario no encontrado</p>'; return; }
+  const plans = DB.plans().filter(p=>p.userId===S.uid);
+  const active = plans.find(p=>p.isActive);
+  const today  = new Date().getDay(); // 0=dom,1=lun...6=sab
+  const dayMap = [6,0,1,2,3,4,5]; // dayjs index → plans day index (Mon=0)
+  const todayIdx = dayMap[today];
+  const todayDay = active ? active.days[todayIdx] : null;
+  const doneKey = (planId,dayI,num) => `gp_done_${planId}_${dayI}_${num}`;
+
+  v.innerHTML = `
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Mi Entrenamiento</h1>
+    <p class="page-sub">${active ? escH(active.name) : 'Sin plan activo'}</p>
+  </div>
+</div>
+
+${!active ? `
+<div class="empty-state">
+  <div class="empty-ico">💪</div>
+  <p class="empty-txt">Sin plan de entrenamiento activo</p>
+  <p class="empty-sub">Habla con tu entrenador para que te asigne un plan</p>
+</div>` : `
+
+${todayDay ? `
+<div class="card" style="margin-bottom:18px">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+    <h3 style="margin:0">Hoy — ${escH(todayDay.dayName)}</h3>
+    <span class="day-type-badge ${todayDay.type==='training'?'dtb-train':todayDay.restType==='active'?'dtb-active':'dtb-rest'}">
+      ${todayDay.type==='training'?'Entrenamiento':todayDay.restType==='active'?'Descanso activo':'Descanso total'}
+    </span>
+  </div>
+  ${todayDay.type==='training' && todayDay.exercises && todayDay.exercises.length ? `
+  <div id="today-ex-list">
+    ${todayDay.exercises.map((ex,n)=>{
+      const k = doneKey(active.id, todayIdx, n);
+      const done = localStorage.getItem(k)==='1';
+      return `<div class="ex-check-row ${done?'ex-done':''}">
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
+          <input type="checkbox" ${done?'checked':''} onchange="toggleExDone(this,'${k}',this.closest('.ex-check-row'))"
+            style="width:18px;height:18px;accent-color:var(--green);cursor:pointer">
+          <div>
+            <div style="font-weight:600">${escH(ex.name)}</div>
+            <div style="font-size:.8rem;color:var(--text-dim)">${escH(ex.muscle)} · ${ex.sets} series × ${escH(String(ex.reps))} reps · ${ex.weight>0?ex.weight+'kg':'Peso corporal'} · ${ex.rest}s descanso</div>
+            ${ex.notes?`<div style="font-size:.75rem;color:var(--green)">${escH(ex.notes)}</div>`:''}
+          </div>
+        </label>
+      </div>`;
+    }).join('')}
+  </div>
+  <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
+    <span id="today-progress-txt" style="font-size:.85rem;color:var(--text-dim)"></span>
+  </div>
+  <script>(function(){
+    const rows = document.querySelectorAll('.ex-check-row');
+    const done = Array.from(rows).filter(r=>r.classList.contains('ex-done')).length;
+    const el   = document.getElementById('today-progress-txt');
+    if(el) el.textContent = done + ' / ' + rows.length + ' ejercicios completados';
+  })();<\/script>
+  ` : `<p style="color:var(--text-dim)">${todayDay.type==='training'?'Sin ejercicios definidos para hoy':'Día de descanso — recupera bien tus músculos'}</p>`}
+</div>` : ''}
+
+<h3 style="margin:0 0 12px">Plan completo — ${escH(active.name)}</h3>
+${active.days.map((day,i) => {
+  const trainingDays = day.type==='training';
+  return `
+<div class="day-section" style="margin-bottom:10px">
+  <div class="day-sec-header ${i===todayIdx?'day-sec-today':''}" onclick="toggleDayCard('mt-${i}')">
+    <span>${escH(day.dayName)} ${i===todayIdx?'<span style="font-size:.7rem;background:var(--green);color:#000;padding:1px 6px;border-radius:4px;margin-left:6px">HOY</span>':''}</span>
+    <span class="day-type-badge ${trainingDays?'dtb-train':day.restType==='active'?'dtb-active':'dtb-rest'}">
+      ${trainingDays?'Entrenamiento':day.restType==='active'?'Descanso activo':'Descanso total'}
+    </span>
+    <span class="plan-card-chevron" id="daychev-mt-${i}">▼</span>
+  </div>
+  <div id="daybody-mt-${i}" style="display:none">
+    ${trainingDays && day.exercises && day.exercises.length ? `
+    <table class="data-table" style="margin-top:8px">
+      <thead><tr><th>#</th><th>Ejercicio</th><th>Grupo</th><th>Series</th><th>Reps</th><th>Peso</th><th>Descanso</th></tr></thead>
+      <tbody>
+        ${day.exercises.map((ex,n)=>`<tr>
+          <td>${n+1}</td><td>${escH(ex.name)}</td>
+          <td><span class="badge badge-dim">${escH(ex.muscle)}</span></td>
+          <td>${ex.sets}</td><td>${escH(String(ex.reps))}</td>
+          <td>${ex.weight>0?ex.weight+'kg':'—'}</td><td>${ex.rest}s</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>` : `<p style="color:var(--text-dim);padding:8px 0">
+      ${trainingDays?'Sin ejercicios definidos':day.restType==='active'?'Actividad ligera recomendada':'Descanso completo'}</p>`}
+  </div>
+</div>`;
+}).join('')}
+${plans.length>1 ? `
+<details style="margin-top:20px">
+  <summary style="cursor:pointer;color:var(--text-dim);font-size:.85rem">Ver historial de planes (${plans.length-1} inactivo${plans.length-1!==1?'s':''})</summary>
+  ${plans.filter(p=>!p.isActive).map(p=>`
+  <div style="padding:10px;background:var(--bg-card2);border-radius:8px;margin-top:8px">
+    <span style="font-weight:600">${escH(p.name)}</span>
+    <span style="font-size:.75rem;color:var(--text-dim);margin-left:8px">Creado: ${fDate(p.createdAt)} · ${p.durationWeeks} semanas</span>
+  </div>`).join('')}
+</details>` : ''}
+`}`;
+}
+
+function toggleExDone(cb, key, row) {
+  localStorage.setItem(key, cb.checked ? '1' : '0');
+  if (cb.checked) row.classList.add('ex-done');
+  else row.classList.remove('ex-done');
+  const rows = document.querySelectorAll('.ex-check-row');
+  const done = Array.from(rows).filter(r=>r.classList.contains('ex-done')).length;
+  const el   = document.getElementById('today-progress-txt');
+  if (el) el.textContent = done + ' / ' + rows.length + ' ejercicios completados';
+}
 function renderMyNutrition(v)    { v.innerHTML = `<div class="empty-state"><div class="empty-ico">🥗</div><p class="empty-txt">Mi Nutrición</p><p class="empty-sub">Disponible en la siguiente parte</p></div>`; }
 
 /* ======================================================
