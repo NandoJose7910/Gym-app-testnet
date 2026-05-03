@@ -1437,7 +1437,26 @@ tbody td {
   font-size: 2rem; font-weight: 700;
   flex-shrink: 0;
 }
-.stat-card {
+/* Dashboard extras */
+.stat-val-warn { color: var(--red) !important; }
+.dash-modules-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.dash-mod-btn {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 4px; padding: 12px 6px;
+  background: var(--bg-card2); border: 1px solid var(--border);
+  border-radius: var(--radius); cursor: pointer; color: var(--white);
+  font-size: .78rem; font-weight: 600; transition: border-color .15s, background .15s;
+}
+.dash-mod-btn:hover { border-color: var(--green); background: var(--green-dim); color: var(--green); }
+.dash-mod-ico { font-size: 1.4rem; line-height: 1; }
+
+/* Profile stats (no override dashboard .stat-card) */
+.pstat-card {
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -1445,9 +1464,9 @@ tbody td {
   text-align: center;
   display: flex; flex-direction: column; align-items: center; gap: 4px;
 }
-.stat-icon { font-size: 1.4rem; }
-.stat-val  { font-size: 1.6rem; font-weight: 700; color: var(--green); }
-.stat-lbl  { font-size: .75rem; color: var(--text-dim); }
+.pstat-icon { font-size: 1.4rem; }
+.pstat-val  { font-size: 1.5rem; font-weight: 700; color: var(--green); }
+.pstat-lbl  { font-size: .75rem; color: var(--text-dim); }
 </style>
 </head>
 <body>
@@ -1998,119 +2017,201 @@ function navigate(view, param) {
 function renderDashboard(v) {
   const users    = DB.users();
   const att      = DB.att();
+  const plans    = DB.plans();
+  const nutris   = DB.nutris();
   const todayStr = today();
 
-  let active = 0, expired = 0, withDebt = 0;
-  const expiring  = [];
-  const birthdays = [];
-  const todayAtt  = att.filter(a => a.date === todayStr);
+  let active = 0, expired = 0, withDebt = 0, expiringSoon = 0;
+  const expiringList = [];
+  const birthdays    = [];
+  const todayAtt     = att.filter(a => a.date === todayStr);
 
   users.forEach(u => {
     const st = memStatus(u);
     if (st.s === 'active' || st.s === 'expiring') active++;
     if (st.s === 'expired') expired++;
     if (u.debt && u.debt.amount > 0) withDebt++;
-    if (st.urgent || (st.s === 'active' && st.days !== null && st.days <= 5)) expiring.push(u);
+    if (st.s !== 'expired' && st.days !== null && st.days <= 5) {
+      expiringSoon++;
+      expiringList.push({ u, days: st.days });
+    }
     if (bdayThisWeek(u.birthdate)) birthdays.push(u);
   });
-  expiring.sort((a, b) => daysUntil(a.membership.endDate) - daysUntil(b.membership.endDate));
+  expiringList.sort((a, b) => a.days - b.days);
 
-  const dateLabel = new Date().toLocaleDateString('es-CO', { weekday:'long', day:'numeric', month:'long' });
+  const dateLabel = new Date().toLocaleDateString('es-CO', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+  const totalPlans  = plans.length;
+  const totalNutris = nutris.length;
+
+  // Últimas 10 asistencias de cualquier día (no solo hoy)
+  const recentAtt = [...att].sort((a,b)=>b.date.localeCompare(a.date)||b.time.localeCompare(a.time)).slice(0,10);
 
   v.innerHTML = `
-    <div class="g4 mb-24">
-      <div class="stat-card">
-        <div class="stat-lbl">Miembros Activos</div>
-        <div class="stat-val">${active}</div>
-        <div class="stat-sub">de ${users.length} registrados</div>
-      </div>
-      <div class="stat-card red">
-        <div class="stat-lbl">Membresías Vencidas</div>
-        <div class="stat-val">${expired}</div>
-        <div class="stat-sub">requieren renovación</div>
-      </div>
-      <div class="stat-card orange">
-        <div class="stat-lbl">Con Deuda</div>
-        <div class="stat-val">${withDebt}</div>
-        <div class="stat-sub">saldo pendiente</div>
-      </div>
-      <div class="stat-card blue">
-        <div class="stat-lbl">Asistencias Hoy</div>
-        <div class="stat-val">${todayAtt.length}</div>
-        <div class="stat-sub">${dateLabel}</div>
-      </div>
-    </div>
+<div class="page-header" style="margin-bottom:20px">
+  <div>
+    <h1 class="page-title">Dashboard</h1>
+    <p class="page-sub" style="text-transform:capitalize">${dateLabel}</p>
+  </div>
+  <button class="btn btn-primary" onclick="showAddMemberModal()">+ Nuevo Miembro</button>
+</div>
 
-    <div class="g2 mb-20">
-      <div class="card">
-        <div class="card-title">⚠️ Membresías por Vencer</div>
-        ${expiring.length === 0
-          ? `<div style="text-align:center;padding:20px 0;color:var(--green)">✅ Sin alertas activas</div>`
-          : `<div class="tbl-wrap"><table>
-              <thead><tr><th>Miembro</th><th>Estado</th><th>Vence</th><th></th></tr></thead>
-              <tbody>${expiring.map(u => {
-                const d = daysUntil(u.membership.endDate);
-                return `<tr>
-                  <td><strong>${escH(u.name)}</strong></td>
-                  <td><span class="badge badge-red badge-blink">${d}d</span></td>
-                  <td class="text-sm text-gray">${fDate(u.membership.endDate)}</td>
-                  <td><button class="btn btn-sm btn-outline-green" onclick="navigate('member-detail','${u.id}')">Ver</button></td>
-                </tr>`;
-              }).join('')}</tbody>
-            </table></div>`}
-      </div>
+<!-- Tarjetas resumen -->
+<div class="g4 mb-24">
+  <div class="stat-card">
+    <div class="stat-lbl">Miembros Activos</div>
+    <div class="stat-val">${active}</div>
+    <div class="stat-sub">de ${users.length} registrados</div>
+  </div>
+  <div class="stat-card red">
+    <div class="stat-lbl">Membresías Vencidas</div>
+    <div class="stat-val">${expired}</div>
+    <div class="stat-sub">requieren renovación</div>
+  </div>
+  <div class="stat-card orange">
+    <div class="stat-lbl">Con Deuda</div>
+    <div class="stat-val">${withDebt}</div>
+    <div class="stat-sub">saldo pendiente</div>
+  </div>
+  <div class="stat-card blue">
+    <div class="stat-lbl">Asistencias Hoy</div>
+    <div class="stat-val">${todayAtt.length}</div>
+    <div class="stat-sub">${todayAtt.length > 0 ? 'registradas' : 'sin registros aún'}</div>
+  </div>
+</div>
 
-      <div class="card">
-        <div class="card-title">🎂 Cumpleaños esta Semana</div>
-        ${birthdays.length === 0
-          ? `<div style="text-align:center;padding:20px 0;color:var(--gray)">📅 Sin cumpleaños esta semana</div>`
-          : birthdays.map(u => {
-              const b   = new Date(u.birthdate + 'T12:00:00');
-              const now = new Date(); now.setHours(0,0,0,0);
-              const next = new Date(now.getFullYear(), b.getMonth(), b.getDate());
-              if (next < now) next.setFullYear(next.getFullYear() + 1);
-              const dLeft = Math.round((next - now) / 86400000);
-              const age   = getAge(u.birthdate);
-              return `<div class="member-card mb-12" onclick="navigate('member-detail','${u.id}')">
-                <div class="m-avatar">${initials(u.name)}</div>
-                <div class="m-info">
-                  <div class="m-name">${escH(u.name)}</div>
-                  <div class="m-meta">${b.toLocaleDateString('es-CO',{day:'numeric',month:'long'})}${age ? ` — Cumple ${age+1} años` : ''}</div>
-                  <div class="m-meta text-green" style="margin-top:2px">${dLeft === 0 ? '🎉 ¡Hoy es su cumpleaños!' : `en ${dLeft} día${dLeft !== 1 ? 's' : ''}`}</div>
+<!-- Segunda fila de stats -->
+<div class="g4 mb-20">
+  <div class="stat-card" style="cursor:pointer" onclick="navigate('members','expiring')">
+    <div class="stat-lbl">Por Vencer ≤5 días</div>
+    <div class="stat-val ${expiringSoon>0?'stat-val-warn':''}">${expiringSoon}</div>
+    <div class="stat-sub">${expiringSoon>0?'⚠️ requieren atención':'✅ sin urgencias'}</div>
+  </div>
+  <div class="stat-card" style="cursor:pointer" onclick="navigate('valuation')">
+    <div class="stat-lbl">Total Miembros</div>
+    <div class="stat-val">${users.length}</div>
+    <div class="stat-sub">en el sistema</div>
+  </div>
+  <div class="stat-card" style="cursor:pointer" onclick="navigate('training')">
+    <div class="stat-lbl">Planes Entrenamiento</div>
+    <div class="stat-val">${totalPlans}</div>
+    <div class="stat-sub">creados</div>
+  </div>
+  <div class="stat-card" style="cursor:pointer" onclick="navigate('nutrition')">
+    <div class="stat-lbl">Planes Nutrición</div>
+    <div class="stat-val">${totalNutris}</div>
+    <div class="stat-sub">creados</div>
+  </div>
+</div>
+
+<div class="g2 mb-20">
+  <!-- Alertas membresía ≤5 días -->
+  <div class="card">
+    <div class="card-title">⚠️ Alertas — Membresías por Vencer</div>
+    ${expiringList.length === 0
+      ? `<div style="text-align:center;padding:20px 0;color:var(--green)">✅ Sin alertas activas</div>`
+      : `<div class="tbl-wrap"><table>
+          <thead><tr><th>Miembro</th><th>Días</th><th>Vence</th><th></th></tr></thead>
+          <tbody>${expiringList.map(({ u, days }) => `<tr>
+            <td>
+              <div style="display:flex;align-items:center;gap:8px">
+                <div class="avatar-sm">${u.name.charAt(0)}</div>
+                <strong>${escH(u.name)}</strong>
+              </div>
+            </td>
+            <td><span class="badge badge-red badge-blink">${days}d</span></td>
+            <td class="text-sm text-gray">${fDate(u.membership.endDate)}</td>
+            <td><button class="btn btn-sm btn-outline-green" onclick="navigate('member-detail','${u.id}')">Ver</button></td>
+          </tr>`).join('')}</tbody>
+        </table></div>`}
+  </div>
+
+  <!-- Cumpleaños de la semana -->
+  <div class="card">
+    <div class="card-title">🎂 Cumpleaños esta Semana</div>
+    ${birthdays.length === 0
+      ? `<div style="text-align:center;padding:20px 0;color:var(--gray)">📅 Sin cumpleaños esta semana</div>`
+      : birthdays.map(u => {
+          const b    = new Date(u.birthdate + 'T12:00:00');
+          const now  = new Date(); now.setHours(0,0,0,0);
+          const next = new Date(now.getFullYear(), b.getMonth(), b.getDate());
+          if (next < now) next.setFullYear(next.getFullYear() + 1);
+          const dLeft = Math.round((next - now) / 86400000);
+          const age   = getAge(u.birthdate);
+          return `<div class="member-card mb-12" onclick="navigate('member-detail','${u.id}')">
+            <div class="m-avatar">${initials(u.name)}</div>
+            <div class="m-info">
+              <div class="m-name">${escH(u.name)}</div>
+              <div class="m-meta">${b.toLocaleDateString('es-CO',{day:'numeric',month:'long'})}${age!==null ? ` · Cumple ${age+1} años` : ''}</div>
+              <div class="m-meta text-green" style="margin-top:2px">
+                ${dLeft === 0 ? '🎉 ¡Hoy es su cumpleaños!' : `🎂 en ${dLeft} día${dLeft!==1?'s':''}`}
+              </div>
+            </div>
+          </div>`;
+        }).join('')}
+  </div>
+</div>
+
+<div class="g2 mb-20">
+  <!-- Últimas asistencias -->
+  <div class="card">
+    <div class="card-title">🕐 Últimas Asistencias</div>
+    ${recentAtt.length === 0
+      ? `<p class="text-gray text-sm">Sin asistencias registradas aún.</p>`
+      : `<div class="tbl-wrap"><table>
+          <thead><tr><th>Miembro</th><th>Fecha</th><th>Hora</th></tr></thead>
+          <tbody>${recentAtt.map(a => {
+            const usr = DB.user(a.userId);
+            const isToday = a.date === todayStr;
+            return `<tr>
+              <td>
+                <div style="display:flex;align-items:center;gap:8px">
+                  ${usr?`<div class="avatar-sm" style="width:24px;height:24px;font-size:.65rem">${usr.name.charAt(0)}</div>`:''}
+                  ${usr ? escH(usr.name) : '<em class="text-gray">Eliminado</em>'}
                 </div>
-              </div>`;
-            }).join('')}
-      </div>
+              </td>
+              <td class="text-sm ${isToday?'text-green':''}">${isToday?'Hoy':fDate(a.date)}</td>
+              <td><span style="color:var(--green);font-weight:600">${a.time}</span></td>
+            </tr>`;
+          }).join('')}</tbody>
+        </table></div>`}
+  </div>
+
+  <!-- Acceso rápido a módulos -->
+  <div class="card">
+    <div class="card-title">⚡ Acceso Rápido</div>
+    <div class="dash-modules-grid">
+      <button class="dash-mod-btn" onclick="navigate('members')">
+        <span class="dash-mod-ico">👥</span>
+        <span>Membresías</span>
+      </button>
+      <button class="dash-mod-btn" onclick="navigate('valuation')">
+        <span class="dash-mod-ico">📋</span>
+        <span>Valoración</span>
+      </button>
+      <button class="dash-mod-btn" onclick="navigate('training')">
+        <span class="dash-mod-ico">💪</span>
+        <span>Entrenam.</span>
+      </button>
+      <button class="dash-mod-btn" onclick="navigate('nutrition')">
+        <span class="dash-mod-ico">🥗</span>
+        <span>Nutrición</span>
+      </button>
+      <button class="dash-mod-btn" onclick="navigate('progress')">
+        <span class="dash-mod-ico">📈</span>
+        <span>Avances</span>
+      </button>
+      <button class="dash-mod-btn" onclick="navigate('members','debt')">
+        <span class="dash-mod-ico">💰</span>
+        <span>Deudas</span>
+      </button>
     </div>
-
-    <div class="g2">
-      <div class="card">
-        <div class="card-title">🕐 Asistencias de Hoy</div>
-        ${todayAtt.length === 0
-          ? `<p class="text-gray text-sm">Nadie ha registrado entrada hoy.</p>`
-          : `<div class="tbl-wrap"><table>
-              <thead><tr><th>Miembro</th><th>Hora</th></tr></thead>
-              <tbody>${[...todayAtt].reverse().map(a => {
-                const u = DB.user(a.userId);
-                return `<tr>
-                  <td>${u ? escH(u.name) : '<em class="text-gray">Eliminado</em>'}</td>
-                  <td><span class="text-green fw-600">${a.time}</span></td>
-                </tr>`;
-              }).join('')}</tbody>
-            </table></div>`}
-      </div>
-
-      <div class="card">
-        <div class="card-title">⚡ Acceso Rápido</div>
-        <div style="display:flex;flex-direction:column;gap:10px">
-          <button class="btn btn-green w-full" onclick="showAddMemberModal()">➕ Registrar nuevo miembro</button>
-          <button class="btn btn-outline w-full" onclick="navigate('members')">👥 Ver todos los miembros</button>
-          <button class="btn btn-outline w-full" onclick="navigate('members','expiring')">⚠️ Membresías por vencer</button>
-          <button class="btn btn-outline w-full" onclick="navigate('members','debt')">💰 Miembros con deuda</button>
-          <button class="btn btn-outline w-full" onclick="navigate('members','expired')">🔴 Membresías vencidas</button>
-        </div>
-      </div>
-    </div>`;
+    <div style="margin-top:10px;display:flex;flex-direction:column;gap:8px">
+      <button class="btn btn-green w-full" onclick="showAddMemberModal()">➕ Registrar nuevo miembro</button>
+      <button class="btn btn-outline w-full" onclick="navigate('members','expiring')">⚠️ Membresías por vencer (${expiringSoon})</button>
+      <button class="btn btn-outline w-full" onclick="navigate('members','expired')">🔴 Membresías vencidas (${expired})</button>
+    </div>
+  </div>
+</div>`;
 }
 
 /* ======================================================
@@ -3565,8 +3666,8 @@ function renderTrainDetail(v, userId) {
   const u     = DB.user(userId);
   if (!u) { v.innerHTML='<p>Usuario no encontrado</p>'; return; }
   const plans = DB.plans().filter(p => p.userId===userId);
-  const med   = u.medical || {};
-  const hasCond = med.conditions && med.conditions.length && !med.conditions.includes('none');
+  const medConds = u.medicalConditions || [];
+  const hasCond  = medConds.length > 0;
 
   v.innerHTML = `
 <div class="page-header">
@@ -3582,8 +3683,8 @@ function renderTrainDetail(v, userId) {
 
 ${hasCond ? `
 <div class="alert-banner alert-warn">
-  <strong>⚠ Condición médica:</strong> ${med.conditions.map(c=>_condLabel(c)).join(', ')} — Considera restricciones en el plan.
-  ${med.notes?`<br><em>${escH(med.notes)}</em>`:''}
+  <strong>⚠ Condición médica:</strong> ${medConds.map(c=>_condLabel(c)).join(', ')} — Considera restricciones en el plan.
+  ${u.medicalNotes?`<br><em>${escH(u.medicalNotes)}</em>`:''}
 </div>` : ''}
 
 ${plans.length===0 ? `
@@ -3951,18 +4052,18 @@ function renderNutriDetail(v, userId) {
   const u = DB.user(userId);
   if (!u) { v.innerHTML='<p>Usuario no encontrado</p>'; return; }
   const plans = DB.nutris().filter(n => n.userId===userId);
-  const med   = u.medical || {};
-  const obj   = u.objectives || {};
-  const hist  = (u.physicalHistory||[]);
-  const last  = hist.length ? hist[hist.length-1] : null;
+  const medConds = u.medicalConditions || [];
+  const obj      = u.objectives || {};
+  const hist     = (u.physicalHistory||[]);
+  const last     = hist.length ? hist[hist.length-1] : null;
 
   // Cálculos automáticos si hay datos físicos
   let autoBlock = '';
-  if (last && u.dob) {
-    const age  = Math.floor((new Date()-new Date(u.dob+'T00:00:00'))/31557600000);
+  if (last && u.birthdate) {
+    const age  = Math.floor((new Date()-new Date(u.birthdate+'T00:00:00'))/31557600000);
     const tmb  = calcTMB(last.weight, last.height, age, u.gender||'M');
-    const tdee = tmb ? calcTDEE(tmb, obj.activityLevel||'moderate') : null;
-    const mac  = tdee ? targetMacros(tdee, obj.objective||'maintenance') : null;
+    const tdee = tmb ? calcTDEE(tmb, u.activityLevel||'moderate') : null;
+    const mac  = tdee ? targetMacros(tdee, obj.primary||'maintenance') : null;
     autoBlock = tmb ? `
 <div class="card nutri-auto-block">
   <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px">
@@ -3985,7 +4086,7 @@ function renderNutriDetail(v, userId) {
     </div>
     ${mac ? `
     <div class="nutri-stat-box nutri-stat-highlight">
-      <span class="nutri-stat-lbl">Objetivo (${_objLabel(obj.objective||'maintenance')})</span>
+      <span class="nutri-stat-lbl">Objetivo (${_objLabel(obj.primary||'maintenance')})</span>
       <span class="nutri-stat-val">${mac.calories}</span>
       <span class="nutri-stat-unit">kcal/día</span>
     </div>
@@ -4008,7 +4109,7 @@ function renderNutriDetail(v, userId) {
 </div>` : '';
   }
 
-  const hasCond = med.conditions && med.conditions.length && !med.conditions.includes('none');
+  const hasCond = medConds.length > 0;
   v.innerHTML = `
 <div class="page-header">
   <div style="display:flex;align-items:center;gap:12px">
@@ -4022,8 +4123,8 @@ function renderNutriDetail(v, userId) {
 </div>
 
 ${hasCond ? `<div class="alert-banner alert-warn">
-  <strong>⚠ Condición médica:</strong> ${med.conditions.map(c=>_condLabel(c)).join(', ')} — Considera restricciones dietéticas específicas.
-  ${med.notes?`<br><em>${escH(med.notes)}</em>`:''}
+  <strong>⚠ Condición médica:</strong> ${medConds.map(c=>_condLabel(c)).join(', ')} — Considera restricciones dietéticas específicas.
+  ${u.medicalNotes?`<br><em>${escH(u.medicalNotes)}</em>`:''}
 </div>` : ''}
 
 ${autoBlock}
@@ -4163,12 +4264,12 @@ function showCreateNutriModal(userId) {
   const hist= u ? (u.physicalHistory||[]) : [];
   const last= hist.length ? hist[hist.length-1] : null;
   let autoCalories=0, autoProtein=0, autoCarbs=0, autoFat=0;
-  if (last && u.dob) {
-    const age  = Math.floor((new Date()-new Date(u.dob+'T00:00:00'))/31557600000);
+  if (last && u.birthdate) {
+    const age  = Math.floor((new Date()-new Date(u.birthdate+'T00:00:00'))/31557600000);
     const tmb  = calcTMB(last.weight, last.height, age, u.gender||'M');
     if (tmb) {
-      const tdee = calcTDEE(tmb, obj.activityLevel||'moderate');
-      const mac  = targetMacros(tdee, obj.objective||'maintenance');
+      const tdee = calcTDEE(tmb, u.activityLevel||'moderate');
+      const mac  = targetMacros(tdee, obj.primary||'maintenance');
       autoCalories=mac.calories; autoProtein=mac.protein; autoCarbs=mac.carbs; autoFat=mac.fat;
     }
   }
@@ -4895,8 +4996,8 @@ function renderProfile(v) {
   const hist  = u.physicalHistory||[];
   const last  = hist.length ? hist[hist.length-1] : null;
   const obj   = u.objectives||{};
-  const med   = u.medical||{};
-  const age   = u.dob ? Math.floor((new Date()-new Date(u.dob+'T00:00:00'))/31557600000) : null;
+  const medConds = u.medicalConditions||[];
+  const age      = u.birthdate ? Math.floor((new Date()-new Date(u.birthdate+'T00:00:00'))/31557600000) : null;
   const imc   = last ? calcIMC(last.weight, last.height) : null;
   const imcLbl= imc  ? imcLabel(imc) : null;
   const objLabels={ lose_weight:'Pérdida de peso', gain_muscle:'Ganancia muscular',
@@ -4929,25 +5030,25 @@ function renderProfile(v) {
 <!-- Stats físicos -->
 ${last ? `
 <div class="g4" style="margin-top:16px">
-  <div class="stat-card">
-    <div class="stat-icon">⚖️</div>
-    <div class="stat-val">${last.weight}</div>
-    <div class="stat-lbl">kg — Peso actual</div>
+  <div class="pstat-card">
+    <div class="pstat-icon">⚖️</div>
+    <div class="pstat-val">${last.weight} kg</div>
+    <div class="pstat-lbl">Peso actual</div>
   </div>
-  <div class="stat-card">
-    <div class="stat-icon">📊</div>
-    <div class="stat-val">${imc?.toFixed(1)}</div>
-    <div class="stat-lbl">IMC — ${imcLbl}</div>
+  <div class="pstat-card">
+    <div class="pstat-icon">📊</div>
+    <div class="pstat-val">${imc?.toFixed(1)}</div>
+    <div class="pstat-lbl">IMC — ${imcLbl}</div>
   </div>
-  <div class="stat-card">
-    <div class="stat-icon">🔥</div>
-    <div class="stat-val">${last.bodyFat??'—'}%</div>
-    <div class="stat-lbl">Grasa corporal</div>
+  <div class="pstat-card">
+    <div class="pstat-icon">🔥</div>
+    <div class="pstat-val">${last.bodyFat??'—'}%</div>
+    <div class="pstat-lbl">Grasa corporal</div>
   </div>
-  <div class="stat-card">
-    <div class="stat-icon">💪</div>
-    <div class="stat-val">${last.muscleMass??'—'}%</div>
-    <div class="stat-lbl">Masa muscular</div>
+  <div class="pstat-card">
+    <div class="pstat-icon">💪</div>
+    <div class="pstat-val">${last.muscleMass??'—'}%</div>
+    <div class="pstat-lbl">Masa muscular</div>
   </div>
 </div>
 <p style="font-size:.75rem;color:var(--text-dim);text-align:right;margin:4px 0">Última medición: ${fDate(last.date)}</p>` :
@@ -4957,7 +5058,7 @@ ${last ? `
 <div class="g2" style="margin-top:16px">
   <div class="card">
     <h4 style="margin:0 0 10px;color:var(--green)">Objetivo principal</h4>
-    <p style="font-size:1rem;font-weight:700;margin:0">${objLabels[obj.objective||obj.primary]||'No definido'}</p>
+    <p style="font-size:1rem;font-weight:700;margin:0">${objLabels[obj.primary]||'No definido'}</p>
     ${obj.secondary||obj.daysPerWeek?`
     <p style="color:var(--text-dim);font-size:.85rem;margin:6px 0 0">${escH(obj.secondary||'')}</p>
     <p style="color:var(--text-dim);font-size:.82rem;margin:4px 0 0">${obj.daysPerWeek?`${obj.daysPerWeek} días/semana`:''} ${obj.sessionDuration?`· ${obj.sessionDuration} min/sesión`:''}</p>`:''}
@@ -4973,10 +5074,10 @@ ${last ? `
   </div>
 </div>
 
-${(med.conditions?.length&&!med.conditions.includes('none'))?`
+${medConds.length>0?`
 <div class="alert-banner alert-warn" style="margin-top:12px">
-  <strong>Condición médica registrada:</strong> ${med.conditions.map(c=>_condLabel(c)).join(', ')}
-  ${med.notes?`<br><em style="font-size:.82rem">${escH(med.notes)}</em>`:''}
+  <strong>Condición médica registrada:</strong> ${medConds.map(c=>_condLabel(c)).join(', ')}
+  ${u.medicalNotes?`<br><em style="font-size:.82rem">${escH(u.medicalNotes)}</em>`:''}
 </div>`:''}
 
 <!-- Accesos rápidos -->
@@ -5119,12 +5220,12 @@ function renderMyNutrition(v) {
   const last = hist.length ? hist[hist.length-1] : null;
 
   let macroBlock = '';
-  if (last && u.dob) {
-    const age  = Math.floor((new Date()-new Date(u.dob+'T00:00:00'))/31557600000);
+  if (last && u.birthdate) {
+    const age  = Math.floor((new Date()-new Date(u.birthdate+'T00:00:00'))/31557600000);
     const tmb  = calcTMB(last.weight, last.height, age, u.gender||'M');
     if (tmb) {
-      const tdee = calcTDEE(tmb, obj.activityLevel||'moderate');
-      const mac  = targetMacros(tdee, obj.objective||'maintenance');
+      const tdee = calcTDEE(tmb, u.activityLevel||'moderate');
+      const mac  = targetMacros(tdee, obj.primary||'maintenance');
       macroBlock = `<div class="card" style="margin-bottom:16px">
         <h4 style="margin:0 0 10px;color:var(--green)">Mis valores nutricionales</h4>
         <div class="nutri-stats-row">
@@ -5434,6 +5535,37 @@ const DEMO_PLANS = [
       { dayName:'Sábado', type:'rest', restType:'total', exercises:[] },
       { dayName:'Domingo', type:'rest', restType:'total', exercises:[] }
     ]
+  },
+  {
+    id: 'p03',
+    userId: 'u03',
+    name: 'Plan Rehabilitación 2 días — Diego',
+    durationWeeks: 16,
+    createdAt: '2023-01-10',
+    isActive: true,
+    days: [
+      { dayName:'Lunes', type:'training', restType:null, exercises:[
+        { num:1, name:'Caminata en cinta (plana)', muscle:'Cardio', sets:1, reps:'20 min', weight:0, rest:0, notes:'FC máx 120 ppm — Bajo impacto' },
+        { num:2, name:'Prensa de pierna (ángulo alto)', muscle:'Cuádriceps', sets:3, reps:'15', weight:60, rest:75, notes:'Evitar rodilla <90°' },
+        { num:3, name:'Extensión de rodilla en máquina', muscle:'Cuádriceps', sets:3, reps:'15', weight:20, rest:60, notes:'ROM parcial, sin dolor' },
+        { num:4, name:'Curl femoral sentado', muscle:'Isquiotibiales', sets:3, reps:'15', weight:15, rest:60, notes:'Movimiento controlado' },
+        { num:5, name:'Press de hombros con mancuernas (sentado)', muscle:'Hombros', sets:3, reps:'12', weight:8, rest:60, notes:'' },
+        { num:6, name:'Remo en máquina', muscle:'Espalda', sets:3, reps:'12', weight:35, rest:60, notes:'' }
+      ]},
+      { dayName:'Martes', type:'rest', restType:'active', exercises:[] },
+      { dayName:'Miércoles', type:'rest', restType:'total', exercises:[] },
+      { dayName:'Jueves', type:'training', restType:null, exercises:[
+        { num:1, name:'Bicicleta estática', muscle:'Cardio', sets:1, reps:'25 min', weight:0, rest:0, notes:'Resistencia baja — Sin impacto en rodilla' },
+        { num:2, name:'Curl de bíceps con mancuernas', muscle:'Bíceps', sets:3, reps:'12', weight:8, rest:60, notes:'' },
+        { num:3, name:'Extensión tríceps en polea', muscle:'Tríceps', sets:3, reps:'12', weight:18, rest:60, notes:'' },
+        { num:4, name:'Press pectoral en máquina', muscle:'Pecho', sets:3, reps:'12', weight:40, rest:60, notes:'' },
+        { num:5, name:'Plancha abdominal (rodillas)', muscle:'Core', sets:3, reps:'20s', weight:0, rest:45, notes:'Modificada para rodilla' },
+        { num:6, name:'Elevaciones de talones sentado', muscle:'Pantorrillas', sets:3, reps:'20', weight:0, rest:45, notes:'' }
+      ]},
+      { dayName:'Viernes', type:'rest', restType:'active', exercises:[] },
+      { dayName:'Sábado', type:'rest', restType:'total', exercises:[] },
+      { dayName:'Domingo', type:'rest', restType:'total', exercises:[] }
+    ]
   }
 ];
 
@@ -5522,6 +5654,51 @@ const DEMO_NUTRI = [
         { food:'Atún en agua', qty:'120g', protein:28, carbs:0, fat:2, calories:130, notes:'' },
         { food:'Espinaca salteada', qty:'100g', protein:3, carbs:3, fat:1, calories:33, notes:'' },
         { food:'Aguacate', qty:'50g', protein:1, carbs:3, fat:8, calories:80, notes:'' }
+      ]},
+      { type:'Pre-entreno', active:false, items:[] },
+      { type:'Post-entreno', active:false, items:[] }
+    ]
+  },
+  {
+    id: 'n03',
+    userId: 'u03',
+    name: 'Plan Nutrición Diabetes — Diego',
+    createdAt: '2023-01-10',
+    isActive: true,
+    calories: 1900,
+    protein: 140,
+    carbs: 200,
+    fat: 65,
+    specialNotes: 'Bajo índice glucémico en todos los carbohidratos. Distribuir comidas cada 3-4h para mantener glucemia estable. Evitar azúcares simples y harinas refinadas. Controlar porciones de carbohidratos. Antiinflamatorios naturales por lesión de rodilla (omega-3, cúrcuma). 2L de agua mínimo.',
+    supplements: [
+      { name:'Omega 3 (EPA/DHA)', dose:'2g', schedule:'Con almuerzo y cena' },
+      { name:'Vitamina D3', dose:'2000 IU', schedule:'Con desayuno' },
+      { name:'Magnesio glicinato', dose:'400mg', schedule:'Antes de dormir — apoya sensibilidad insulínica' }
+    ],
+    meals: [
+      { type:'Desayuno', active:true, items:[
+        { food:'Huevos enteros', qty:'2 und', protein:12, carbs:0, fat:10, calories:132, notes:'Revueltos o cocidos' },
+        { food:'Avena integral', qty:'50g', protein:7, carbs:30, fat:3, calories:175, notes:'Bajo IG — no agregar azúcar' },
+        { food:'Arándanos frescos', qty:'80g', protein:1, carbs:10, fat:0, calories:44, notes:'Antioxidantes — bajo IG' }
+      ]},
+      { type:'Media mañana', active:true, items:[
+        { food:'Nueces', qty:'25g', protein:4, carbs:3, fat:15, calories:163, notes:'Antiinflamatorio' },
+        { food:'Manzana verde', qty:'1 und', protein:0, carbs:20, fat:0, calories:78, notes:'Bajo IG (GI~36)' }
+      ]},
+      { type:'Almuerzo', active:true, items:[
+        { food:'Pechuga de pollo a la plancha', qty:'180g', protein:54, carbs:0, fat:3, calories:243, notes:'Sin adobos con azúcar' },
+        { food:'Arroz integral', qty:'100g cocido', protein:3, carbs:22, fat:1, calories:108, notes:'Porción controlada' },
+        { food:'Ensalada con aceite de oliva', qty:'200g + 10ml', protein:2, carbs:5, fat:9, calories:107, notes:'Cúrcuma en el aderezo' },
+        { food:'Lentejas cocidas', qty:'80g', protein:7, carbs:14, fat:0, calories:84, notes:'Proteína vegetal + fibra' }
+      ]},
+      { type:'Merienda', active:true, items:[
+        { food:'Yogur natural sin azúcar', qty:'150g', protein:9, carbs:8, fat:4, calories:104, notes:'' },
+        { food:'Chía', qty:'15g', protein:3, carbs:4, fat:5, calories:69, notes:'Mezclar con yogur' }
+      ]},
+      { type:'Cena', active:true, items:[
+        { food:'Salmón al horno', qty:'160g', protein:38, carbs:0, fat:14, calories:284, notes:'Omega-3 para articulación' },
+        { food:'Vegetales asados', qty:'200g', protein:4, carbs:16, fat:2, calories:96, notes:'Brócoli, zucchini, pimentón' },
+        { food:'Papa criolla cocida', qty:'80g', protein:2, carbs:16, fat:0, calories:72, notes:'Porción moderada' }
       ]},
       { type:'Pre-entreno', active:false, items:[] },
       { type:'Post-entreno', active:false, items:[] }
