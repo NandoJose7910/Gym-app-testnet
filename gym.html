@@ -4999,7 +4999,7 @@ function renderProfile(v) {
   const medConds = u.medicalConditions||[];
   const age      = u.birthdate ? Math.floor((new Date()-new Date(u.birthdate+'T00:00:00'))/31557600000) : null;
   const imc   = last ? calcIMC(last.weight, last.height) : null;
-  const imcLbl= imc  ? imcLabel(imc) : null;
+  const imcLbl= imc  ? imcCat(imc) : null;
   const objLabels={ lose_weight:'Pérdida de peso', gain_muscle:'Ganancia muscular',
     maintenance:'Mantenimiento', resistance:'Resistencia',
     rehabilitation:'Rehabilitación', sports_performance:'Rendimiento deportivo' };
