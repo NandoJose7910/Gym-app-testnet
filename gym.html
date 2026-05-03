@@ -7,7 +7,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"
+  onerror="(function(){console.warn('[GymApp] jsdelivr falló, probando cdnjs…');var s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js';s.onerror=function(){console.warn('[GymApp] cdnjs falló, probando unpkg…');var s2=document.createElement('script');s2.src='https://unpkg.com/chart.js@4.4.0/dist/chart.umd.min.js';document.head.appendChild(s2);};document.head.appendChild(s);})()"></script>
 <style>
 /* ======================================================
    VARIABLES GLOBALES
@@ -4797,13 +4798,28 @@ function renderProgDetail(v, userId) {
   </div>
 </div>`;
 
-  // Dibujar gráficos con 500ms de espera para garantizar que el canvas esté visible
+  // Dibujar gráficos con 500ms de espera; si Chart.js no cargó → fallback mensaje
+  const _showChartFallback = () => {
+    ['chart-weight','chart-composition','chart-measures','chart-attendance'].forEach(id => {
+      const wrap = document.getElementById(id)?.parentElement;
+      if (wrap) wrap.innerHTML =
+        '<div style="display:flex;align-items:center;justify-content:center;height:100%;' +
+        'color:var(--text-dim);font-size:.85rem;text-align:center;padding:20px">' +
+        '📊 Gráficos no disponibles — recarga la página para cargarlos</div>';
+    });
+  };
+
   setTimeout(() => {
     const c = document.getElementById('chart-weight');
     if (!c) return; // el usuario navegó a otra vista antes del timeout
+    if (typeof Chart === 'undefined') {
+      console.warn('[GymApp Charts] Chart.js no cargó después de 2s, mostrando fallback');
+      _showChartFallback();
+      return;
+    }
     const u2 = DB.user(userId);
     const histLen = u2?.physicalHistory?.length ?? 0;
-    console.log('[GymApp Charts] userId:', userId, '| registros:', histLen, '| canvas en DOM:', !!c);
+    console.log('[GymApp Charts] userId:', userId, '| registros:', histLen, '| Chart.js cargado: true');
     _drawWeightChart(userId);
     _drawCompositionChart(userId);
     _drawMeasuresChart(userId);
@@ -4887,11 +4903,14 @@ function _tooltipPlugin(unitSuffix) {
 }
 
 function _mkChart(canvasId, type, data, options) {
+  if (typeof Chart === 'undefined') {
+    console.warn('[GymApp] _mkChart: Chart.js no disponible, saltando', canvasId);
+    return;
+  }
   const canvas = document.getElementById(canvasId);
   if (!canvas) return;
   // Chart.js 4: destroy any existing instance on this canvas element
-  const existing = Chart.getChart(canvas);
-  if (existing) existing.destroy();
+  try { const ex = Chart.getChart(canvas); if (ex) ex.destroy(); } catch(e){}
   if (S.charts[canvasId]) { try { S.charts[canvasId].destroy(); } catch(e){} }
   const chart = new Chart(canvas, { type, data, options });
   S.charts[canvasId] = chart;
