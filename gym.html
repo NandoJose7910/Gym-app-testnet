@@ -1508,15 +1508,16 @@ tbody td {
 .cff-row .form-group { flex:1; min-width:100px; }
 /* Registro de sesión de entrenamiento */
 .session-logger { background:var(--bg-card2); border:1px solid var(--border); border-radius:var(--radius); padding:16px; margin-top:14px; }
-.session-ex-row { display:grid; grid-template-columns:1fr repeat(4,80px) 1fr; gap:8px; align-items:end; margin-bottom:10px; padding-bottom:10px; border-bottom:1px solid var(--border); }
-.session-ex-row:last-child { border-bottom:none; margin-bottom:0; }
-.session-ex-name { font-weight:600; font-size:.9rem; grid-column:1/-1; margin-bottom:4px; }
-.session-ex-target { font-size:.75rem; color:var(--text-dim); grid-column:1/-1; margin-top:-2px; margin-bottom:4px; }
-.sfield label { display:block; font-size:.72rem; color:var(--text-dim); margin-bottom:3px; }
-.sfield input { width:100%; }
-@media(max-width:640px){
-  .session-ex-row { grid-template-columns:1fr 1fr 1fr; }
-}
+.session-ex-block { margin-bottom:16px; padding-bottom:14px; border-bottom:1px solid var(--border); }
+.session-ex-block:last-of-type { border-bottom:none; margin-bottom:0; }
+.session-ex-name { font-weight:600; font-size:.9rem; margin-bottom:2px; }
+.session-ex-target { font-size:.75rem; color:var(--text-dim); margin-bottom:8px; }
+.session-set-table { width:100%; border-collapse:collapse; }
+.session-set-table th { font-size:.72rem; color:var(--text-dim); text-align:left; padding:3px 6px 5px; border-bottom:1px solid var(--border); }
+.session-set-table td { padding:3px 4px; }
+.session-set-table td:first-child { padding-left:6px; font-size:.8rem; color:var(--text-dim); white-space:nowrap; width:60px; }
+.session-set-table td input { width:72px; }
+.session-set-notes { width:100%; margin-top:6px; }
 /* Selector de ejercicio para gráfica */
 .ex-selector { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:12px; }
 .ex-selector select { flex:1; min-width:180px; }
@@ -5155,7 +5156,9 @@ function _drawExWeightChart(userId, exName) {
   const labels = logs.map(l => fDate(l.date));
   const data   = logs.map(l => {
     const ex = l.exercises.find(e => e.name === exName);
-    return ex ? ex.weight : null;
+    if (!ex) return null;
+    const maxW = Math.max(...(ex.sets||[]).map(s=>s.weight||0), 0);
+    return maxW > 0 ? maxW : null;
   });
   _mkChart('chart-ex-weight','line',{
     labels,
@@ -5188,7 +5191,9 @@ function _drawVolumeChart(userId) {
   const labels  = logs.map(l => fDate(l.date));
   const volumes = logs.map(l => {
     let v = 0;
-    l.exercises.forEach(e => { v += (e.completedSets||0) * (e.repsPerSet||0) * (e.weight||0); });
+    l.exercises.forEach(e => {
+      (e.sets||[]).forEach(s => { v += (s.reps||0) * (s.weight||0); });
+    });
     return Math.round(v);
   });
   _mkChart('chart-volume','line',{
@@ -5221,13 +5226,18 @@ function _drawExCompareChart(userId) {
   if (logs.length < 2) return;
   const first = logs[0];
   const last  = logs[logs.length-1];
+  const getMaxW = (exList, name) => {
+    const ex = exList.find(e => e.name === name);
+    if (!ex) return 0;
+    return Math.max(...(ex.sets||[]).map(s=>s.weight||0), 0);
+  };
   const exNames = [...new Set(
     [...first.exercises, ...last.exercises]
-      .filter(e=>e.weight>0).map(e=>e.name)
+      .filter(e=>(e.sets||[]).some(s=>s.weight>0)).map(e=>e.name)
   )].slice(0,7);
   if (!exNames.length) return;
-  const firstWeights = exNames.map(n => (first.exercises.find(e=>e.name===n)?.weight)||0);
-  const lastWeights  = exNames.map(n => (last.exercises.find(e=>e.name===n)?.weight)||0);
+  const firstWeights = exNames.map(n => getMaxW(first.exercises, n));
+  const lastWeights  = exNames.map(n => getMaxW(last.exercises, n));
   const shortNames   = exNames.map(n => n.length>18 ? n.slice(0,17)+'…' : n);
   _mkChart('chart-ex-compare','bar',{
     labels: shortNames,
@@ -5401,32 +5411,24 @@ ${todayDay ? `
   <div class="session-logger" id="session-logger">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
       <strong style="font-size:.95rem">📝 Registro de sesión de hoy</strong>
-      <span id="today-progress-txt" style="font-size:.8rem;color:var(--text-dim)"></span>
+      <span id="today-progress-txt" style="font-size:.8rem;color:var(--text-dim)">${todayDay.exercises.length} ejercicio${todayDay.exercises.length!==1?'s':''} · ${todayDay.exercises.reduce((s,e)=>s+e.sets,0)} series totales</span>
     </div>
     ${todayDay.exercises.map((ex,n)=>`
-    <div class="session-ex-row">
+    <div class="session-ex-block">
       <div class="session-ex-name">${n+1}. ${escH(ex.name)}</div>
-      <div class="session-ex-target">${escH(ex.muscle)} · Meta: ${ex.sets} series × ${escH(String(ex.reps))} reps · ${ex.weight>0?ex.weight+'kg':'Peso corporal'}</div>
-      <div class="sfield">
-        <label>Series</label>
-        <input id="ex-sets-${n}" type="number" min="0" max="20" class="form-control" placeholder="${ex.sets}" value="${ex.sets}">
-      </div>
-      <div class="sfield">
-        <label>Reps/serie</label>
-        <input id="ex-reps-${n}" type="number" min="0" max="100" class="form-control" placeholder="0">
-      </div>
-      <div class="sfield">
-        <label>Peso (kg)</label>
-        <input id="ex-weight-${n}" type="number" min="0" step="0.5" class="form-control" placeholder="${ex.weight||0}" value="${ex.weight||0}">
-      </div>
-      <div class="sfield">
-        <label>RIR (0-5)</label>
-        <input id="ex-rir-${n}" type="number" min="0" max="5" class="form-control" placeholder="2">
-      </div>
-      <div class="sfield" style="grid-column:1/-1">
-        <label>Notas (opcional)</label>
-        <input id="ex-notes-${n}" type="text" class="form-control" placeholder="Observaciones de este ejercicio…">
-      </div>
+      <div class="session-ex-target">${escH(ex.muscle)} · ${ex.sets} series × ${escH(String(ex.reps))} reps · Meta: ${ex.weight>0?ex.weight+'kg':'Peso corporal'}</div>
+      <table class="session-set-table">
+        <thead><tr><th>Serie</th><th>Reps</th><th>Peso (kg)</th><th>RIR</th></tr></thead>
+        <tbody>
+          ${Array.from({length:ex.sets},(_,s)=>`<tr>
+            <td>Serie ${s+1}</td>
+            <td><input id="ex-${n}-s${s}-reps" type="number" min="0" max="100" class="form-control" placeholder="${String(ex.reps).split('-')[0]||0}"></td>
+            <td><input id="ex-${n}-s${s}-weight" type="number" min="0" step="0.5" class="form-control" placeholder="${ex.weight||0}" value="${ex.weight||0}"></td>
+            <td><input id="ex-${n}-s${s}-rir" type="number" min="0" max="5" class="form-control" placeholder="2"></td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+      <input id="ex-${n}-notes" type="text" class="form-control session-set-notes" placeholder="Notas del ejercicio (opcional)">
     </div>`).join('')}
     <div style="display:flex;gap:10px;align-items:center;margin-top:14px;flex-wrap:wrap">
       <button class="btn btn-primary" onclick="saveWorkoutSession('${active.id}','${todayIdx}')">💾 Guardar sesión</button>
@@ -5499,17 +5501,22 @@ function saveWorkoutSession(planId, dayIdxStr) {
   const day    = plan.days[dayIdx];
   if (!day || !day.exercises) return;
 
-  const exercises = day.exercises.map((ex, n) => ({
-    name:          ex.name,
-    muscle:        ex.muscle,
-    targetSets:    ex.sets,
-    targetReps:    String(ex.reps),
-    completedSets: parseInt(document.getElementById('ex-sets-'+n)?.value)||0,
-    repsPerSet:    parseInt(document.getElementById('ex-reps-'+n)?.value)||0,
-    weight:        parseFloat(document.getElementById('ex-weight-'+n)?.value)||0,
-    rir:           parseInt(document.getElementById('ex-rir-'+n)?.value ?? '2')||0,
-    notes:         (document.getElementById('ex-notes-'+n)?.value||'').trim()
-  }));
+  const exercises = day.exercises.map((ex, n) => {
+    const numSets = ex.sets || 1;
+    const sets = Array.from({length: numSets}, (_, s) => ({
+      reps:   parseInt(document.getElementById(`ex-${n}-s${s}-reps`)?.value)    || 0,
+      weight: parseFloat(document.getElementById(`ex-${n}-s${s}-weight`)?.value) || 0,
+      rir:    parseInt(document.getElementById(`ex-${n}-s${s}-rir`)?.value)     || 2
+    }));
+    return {
+      name:       ex.name,
+      muscle:     ex.muscle,
+      targetSets: ex.sets,
+      targetReps: String(ex.reps),
+      sets,
+      notes: (document.getElementById(`ex-${n}-notes`)?.value || '').trim()
+    };
+  });
 
   const rec = {
     id:        'wl_' + uid(),
@@ -6317,126 +6324,198 @@ const DEMO_NUTRI = [
 const DEMO_WORKOUT_LOGS = [
   // ─── u01 Carlos — Plan hipertrofia ───
   {id:'wl_u01_01',userId:'u01',planId:'p01',date:'2026-02-03',time:'07:15',dayName:'Lunes',exercises:[
-    {name:'Press de banca con barra',muscle:'Pecho',targetSets:4,targetReps:'8-10',completedSets:4,repsPerSet:9,weight:67.5,rir:2,notes:''},
-    {name:'Press inclinado con mancuernas',muscle:'Pecho',targetSets:3,targetReps:'10-12',completedSets:3,repsPerSet:11,weight:22,rir:2,notes:''},
-    {name:'Press militar con barra',muscle:'Hombros',targetSets:4,targetReps:'8-10',completedSets:4,repsPerSet:9,weight:47.5,rir:2,notes:''}
+    {name:'Press de banca con barra',muscle:'Pecho',targetSets:4,targetReps:'8-10',
+     sets:[{reps:9,weight:67.5,rir:2},{reps:9,weight:67.5,rir:2},{reps:8,weight:67.5,rir:2},{reps:8,weight:67.5,rir:3}],notes:''},
+    {name:'Press inclinado con mancuernas',muscle:'Pecho',targetSets:3,targetReps:'10-12',
+     sets:[{reps:11,weight:22,rir:2},{reps:11,weight:22,rir:2},{reps:10,weight:22,rir:3}],notes:''},
+    {name:'Press militar con barra',muscle:'Hombros',targetSets:4,targetReps:'8-10',
+     sets:[{reps:9,weight:47.5,rir:2},{reps:9,weight:47.5,rir:2},{reps:8,weight:47.5,rir:2},{reps:8,weight:47.5,rir:3}],notes:''}
   ]},
   {id:'wl_u01_02',userId:'u01',planId:'p01',date:'2026-02-10',time:'07:20',dayName:'Lunes',exercises:[
-    {name:'Press de banca con barra',muscle:'Pecho',targetSets:4,targetReps:'8-10',completedSets:4,repsPerSet:9,weight:70,rir:2,notes:'Subí 2.5kg, se sintió bien'},
-    {name:'Press inclinado con mancuernas',muscle:'Pecho',targetSets:3,targetReps:'10-12',completedSets:3,repsPerSet:12,weight:22,rir:1,notes:''},
-    {name:'Press militar con barra',muscle:'Hombros',targetSets:4,targetReps:'8-10',completedSets:4,repsPerSet:9,weight:47.5,rir:2,notes:''}
+    {name:'Press de banca con barra',muscle:'Pecho',targetSets:4,targetReps:'8-10',
+     sets:[{reps:9,weight:70,rir:2},{reps:9,weight:70,rir:2},{reps:9,weight:70,rir:2},{reps:8,weight:70,rir:2}],notes:'Subí 2.5kg, se sintió bien'},
+    {name:'Press inclinado con mancuernas',muscle:'Pecho',targetSets:3,targetReps:'10-12',
+     sets:[{reps:12,weight:22,rir:1},{reps:12,weight:22,rir:1},{reps:11,weight:22,rir:2}],notes:''},
+    {name:'Press militar con barra',muscle:'Hombros',targetSets:4,targetReps:'8-10',
+     sets:[{reps:9,weight:47.5,rir:2},{reps:9,weight:47.5,rir:2},{reps:9,weight:47.5,rir:2},{reps:8,weight:47.5,rir:3}],notes:''}
   ]},
   {id:'wl_u01_03',userId:'u01',planId:'p01',date:'2026-02-17',time:'07:10',dayName:'Lunes',exercises:[
-    {name:'Press de banca con barra',muscle:'Pecho',targetSets:4,targetReps:'8-10',completedSets:4,repsPerSet:10,weight:70,rir:1,notes:'Logré 10 en todas las series'},
-    {name:'Press inclinado con mancuernas',muscle:'Pecho',targetSets:3,targetReps:'10-12',completedSets:3,repsPerSet:12,weight:24,rir:1,notes:'Subí mancuernas'},
-    {name:'Press militar con barra',muscle:'Hombros',targetSets:4,targetReps:'8-10',completedSets:4,repsPerSet:10,weight:50,rir:2,notes:''}
+    {name:'Press de banca con barra',muscle:'Pecho',targetSets:4,targetReps:'8-10',
+     sets:[{reps:10,weight:70,rir:1},{reps:10,weight:70,rir:1},{reps:10,weight:70,rir:1},{reps:9,weight:70,rir:2}],notes:'Logré 10 en todas las series'},
+    {name:'Press inclinado con mancuernas',muscle:'Pecho',targetSets:3,targetReps:'10-12',
+     sets:[{reps:12,weight:24,rir:1},{reps:12,weight:24,rir:1},{reps:11,weight:24,rir:2}],notes:'Subí mancuernas'},
+    {name:'Press militar con barra',muscle:'Hombros',targetSets:4,targetReps:'8-10',
+     sets:[{reps:10,weight:50,rir:2},{reps:10,weight:50,rir:2},{reps:9,weight:50,rir:2},{reps:9,weight:50,rir:3}],notes:''}
   ]},
   {id:'wl_u01_04',userId:'u01',planId:'p01',date:'2026-02-24',time:'07:05',dayName:'Lunes',exercises:[
-    {name:'Press de banca con barra',muscle:'Pecho',targetSets:4,targetReps:'8-10',completedSets:4,repsPerSet:10,weight:72.5,rir:1,notes:'Nuevo máximo'},
-    {name:'Press inclinado con mancuernas',muscle:'Pecho',targetSets:3,targetReps:'10-12',completedSets:3,repsPerSet:11,weight:24,rir:2,notes:''},
-    {name:'Press militar con barra',muscle:'Hombros',targetSets:4,targetReps:'8-10',completedSets:4,repsPerSet:9,weight:50,rir:2,notes:''}
+    {name:'Press de banca con barra',muscle:'Pecho',targetSets:4,targetReps:'8-10',
+     sets:[{reps:10,weight:72.5,rir:1},{reps:10,weight:72.5,rir:1},{reps:9,weight:72.5,rir:2},{reps:9,weight:72.5,rir:2}],notes:'Nuevo máximo'},
+    {name:'Press inclinado con mancuernas',muscle:'Pecho',targetSets:3,targetReps:'10-12',
+     sets:[{reps:11,weight:24,rir:2},{reps:11,weight:24,rir:2},{reps:10,weight:24,rir:3}],notes:''},
+    {name:'Press militar con barra',muscle:'Hombros',targetSets:4,targetReps:'8-10',
+     sets:[{reps:9,weight:50,rir:2},{reps:9,weight:50,rir:2},{reps:9,weight:50,rir:2},{reps:8,weight:50,rir:3}],notes:''}
   ]},
   {id:'wl_u01_05',userId:'u01',planId:'p01',date:'2026-03-03',time:'07:30',dayName:'Lunes',exercises:[
-    {name:'Press de banca con barra',muscle:'Pecho',targetSets:4,targetReps:'8-10',completedSets:4,repsPerSet:9,weight:72.5,rir:2,notes:'Día pesado'},
-    {name:'Press inclinado con mancuernas',muscle:'Pecho',targetSets:3,targetReps:'10-12',completedSets:3,repsPerSet:12,weight:24,rir:1,notes:''},
-    {name:'Press militar con barra',muscle:'Hombros',targetSets:4,targetReps:'8-10',completedSets:4,repsPerSet:10,weight:52.5,rir:1,notes:''}
+    {name:'Press de banca con barra',muscle:'Pecho',targetSets:4,targetReps:'8-10',
+     sets:[{reps:9,weight:72.5,rir:2},{reps:9,weight:72.5,rir:2},{reps:8,weight:72.5,rir:2},{reps:8,weight:72.5,rir:3}],notes:'Día pesado'},
+    {name:'Press inclinado con mancuernas',muscle:'Pecho',targetSets:3,targetReps:'10-12',
+     sets:[{reps:12,weight:24,rir:1},{reps:12,weight:24,rir:1},{reps:11,weight:24,rir:2}],notes:''},
+    {name:'Press militar con barra',muscle:'Hombros',targetSets:4,targetReps:'8-10',
+     sets:[{reps:10,weight:52.5,rir:1},{reps:10,weight:52.5,rir:1},{reps:9,weight:52.5,rir:2},{reps:9,weight:52.5,rir:2}],notes:''}
   ]},
   {id:'wl_u01_06',userId:'u01',planId:'p01',date:'2026-03-10',time:'07:15',dayName:'Lunes',exercises:[
-    {name:'Press de banca con barra',muscle:'Pecho',targetSets:4,targetReps:'8-10',completedSets:4,repsPerSet:10,weight:75,rir:1,notes:'75kg x10 🔥'},
-    {name:'Press inclinado con mancuernas',muscle:'Pecho',targetSets:3,targetReps:'10-12',completedSets:3,repsPerSet:12,weight:26,rir:1,notes:''},
-    {name:'Press militar con barra',muscle:'Hombros',targetSets:4,targetReps:'8-10',completedSets:4,repsPerSet:9,weight:52.5,rir:2,notes:''}
+    {name:'Press de banca con barra',muscle:'Pecho',targetSets:4,targetReps:'8-10',
+     sets:[{reps:10,weight:75,rir:1},{reps:10,weight:75,rir:1},{reps:10,weight:75,rir:1},{reps:9,weight:75,rir:2}],notes:'75kg x10'},
+    {name:'Press inclinado con mancuernas',muscle:'Pecho',targetSets:3,targetReps:'10-12',
+     sets:[{reps:12,weight:26,rir:1},{reps:12,weight:26,rir:1},{reps:11,weight:26,rir:2}],notes:''},
+    {name:'Press militar con barra',muscle:'Hombros',targetSets:4,targetReps:'8-10',
+     sets:[{reps:9,weight:52.5,rir:2},{reps:9,weight:52.5,rir:2},{reps:9,weight:52.5,rir:2},{reps:8,weight:52.5,rir:3}],notes:''}
   ]},
   {id:'wl_u01_07',userId:'u01',planId:'p01',date:'2026-03-17',time:'07:10',dayName:'Lunes',exercises:[
-    {name:'Press de banca con barra',muscle:'Pecho',targetSets:4,targetReps:'8-10',completedSets:4,repsPerSet:9,weight:75,rir:2,notes:''},
-    {name:'Press inclinado con mancuernas',muscle:'Pecho',targetSets:3,targetReps:'10-12',completedSets:3,repsPerSet:11,weight:26,rir:2,notes:''},
-    {name:'Press militar con barra',muscle:'Hombros',targetSets:4,targetReps:'8-10',completedSets:4,repsPerSet:10,weight:55,rir:1,notes:'Nuevo PR hombros'}
+    {name:'Press de banca con barra',muscle:'Pecho',targetSets:4,targetReps:'8-10',
+     sets:[{reps:9,weight:75,rir:2},{reps:9,weight:75,rir:2},{reps:9,weight:75,rir:2},{reps:8,weight:75,rir:3}],notes:''},
+    {name:'Press inclinado con mancuernas',muscle:'Pecho',targetSets:3,targetReps:'10-12',
+     sets:[{reps:11,weight:26,rir:2},{reps:11,weight:26,rir:2},{reps:10,weight:26,rir:3}],notes:''},
+    {name:'Press militar con barra',muscle:'Hombros',targetSets:4,targetReps:'8-10',
+     sets:[{reps:10,weight:55,rir:1},{reps:10,weight:55,rir:1},{reps:9,weight:55,rir:2},{reps:9,weight:55,rir:2}],notes:'Nuevo PR hombros'}
   ]},
   {id:'wl_u01_08',userId:'u01',planId:'p01',date:'2026-03-24',time:'07:20',dayName:'Lunes',exercises:[
-    {name:'Press de banca con barra',muscle:'Pecho',targetSets:4,targetReps:'8-10',completedSets:4,repsPerSet:10,weight:77.5,rir:1,notes:'Progresión constante'},
-    {name:'Press inclinado con mancuernas',muscle:'Pecho',targetSets:3,targetReps:'10-12',completedSets:3,repsPerSet:12,weight:28,rir:1,notes:''},
-    {name:'Press militar con barra',muscle:'Hombros',targetSets:4,targetReps:'8-10',completedSets:4,repsPerSet:9,weight:55,rir:2,notes:''}
+    {name:'Press de banca con barra',muscle:'Pecho',targetSets:4,targetReps:'8-10',
+     sets:[{reps:10,weight:77.5,rir:1},{reps:10,weight:77.5,rir:1},{reps:9,weight:77.5,rir:2},{reps:9,weight:77.5,rir:2}],notes:'Progresión constante'},
+    {name:'Press inclinado con mancuernas',muscle:'Pecho',targetSets:3,targetReps:'10-12',
+     sets:[{reps:12,weight:28,rir:1},{reps:12,weight:28,rir:1},{reps:11,weight:28,rir:2}],notes:''},
+    {name:'Press militar con barra',muscle:'Hombros',targetSets:4,targetReps:'8-10',
+     sets:[{reps:9,weight:55,rir:2},{reps:9,weight:55,rir:2},{reps:9,weight:55,rir:2},{reps:8,weight:55,rir:3}],notes:''}
   ]},
   // ─── u02 Laura — Plan quema de grasa ───
   {id:'wl_u02_01',userId:'u02',planId:'p02',date:'2026-02-04',time:'18:30',dayName:'Martes',exercises:[
-    {name:'Sentadilla goblet',muscle:'Cuádriceps',targetSets:3,targetReps:'12-15',completedSets:3,repsPerSet:12,weight:14,rir:3,notes:'Primera semana'},
-    {name:'Prensa de pierna',muscle:'Cuádriceps',targetSets:3,targetReps:'15',completedSets:3,repsPerSet:15,weight:60,rir:2,notes:''},
-    {name:'Hip thrust',muscle:'Glúteos',targetSets:3,targetReps:'12-15',completedSets:3,repsPerSet:12,weight:30,rir:3,notes:''}
+    {name:'Sentadilla goblet',muscle:'Cuádriceps',targetSets:3,targetReps:'12-15',
+     sets:[{reps:12,weight:14,rir:3},{reps:12,weight:14,rir:3},{reps:11,weight:14,rir:3}],notes:'Primera semana'},
+    {name:'Prensa de pierna',muscle:'Cuádriceps',targetSets:3,targetReps:'15',
+     sets:[{reps:15,weight:60,rir:2},{reps:15,weight:60,rir:2},{reps:14,weight:60,rir:3}],notes:''},
+    {name:'Hip thrust',muscle:'Glúteos',targetSets:3,targetReps:'12-15',
+     sets:[{reps:12,weight:30,rir:3},{reps:12,weight:30,rir:3},{reps:11,weight:30,rir:3}],notes:''}
   ]},
   {id:'wl_u02_02',userId:'u02',planId:'p02',date:'2026-02-11',time:'18:45',dayName:'Martes',exercises:[
-    {name:'Sentadilla goblet',muscle:'Cuádriceps',targetSets:3,targetReps:'12-15',completedSets:3,repsPerSet:14,weight:16,rir:2,notes:''},
-    {name:'Prensa de pierna',muscle:'Cuádriceps',targetSets:3,targetReps:'15',completedSets:3,repsPerSet:15,weight:65,rir:2,notes:''},
-    {name:'Hip thrust',muscle:'Glúteos',targetSets:3,targetReps:'12-15',completedSets:3,repsPerSet:14,weight:35,rir:2,notes:''}
+    {name:'Sentadilla goblet',muscle:'Cuádriceps',targetSets:3,targetReps:'12-15',
+     sets:[{reps:14,weight:16,rir:2},{reps:14,weight:16,rir:2},{reps:13,weight:16,rir:3}],notes:''},
+    {name:'Prensa de pierna',muscle:'Cuádriceps',targetSets:3,targetReps:'15',
+     sets:[{reps:15,weight:65,rir:2},{reps:15,weight:65,rir:2},{reps:15,weight:65,rir:2}],notes:''},
+    {name:'Hip thrust',muscle:'Glúteos',targetSets:3,targetReps:'12-15',
+     sets:[{reps:14,weight:35,rir:2},{reps:14,weight:35,rir:2},{reps:13,weight:35,rir:3}],notes:''}
   ]},
   {id:'wl_u02_03',userId:'u02',planId:'p02',date:'2026-02-18',time:'18:30',dayName:'Martes',exercises:[
-    {name:'Sentadilla goblet',muscle:'Cuádriceps',targetSets:3,targetReps:'12-15',completedSets:3,repsPerSet:15,weight:16,rir:1,notes:'Logré 15 reps'},
-    {name:'Prensa de pierna',muscle:'Cuádriceps',targetSets:3,targetReps:'15',completedSets:3,repsPerSet:15,weight:70,rir:2,notes:''},
-    {name:'Hip thrust',muscle:'Glúteos',targetSets:3,targetReps:'12-15',completedSets:3,repsPerSet:15,weight:40,rir:1,notes:''}
+    {name:'Sentadilla goblet',muscle:'Cuádriceps',targetSets:3,targetReps:'12-15',
+     sets:[{reps:15,weight:16,rir:1},{reps:15,weight:16,rir:1},{reps:14,weight:16,rir:2}],notes:'Logré 15 reps'},
+    {name:'Prensa de pierna',muscle:'Cuádriceps',targetSets:3,targetReps:'15',
+     sets:[{reps:15,weight:70,rir:2},{reps:15,weight:70,rir:2},{reps:15,weight:70,rir:2}],notes:''},
+    {name:'Hip thrust',muscle:'Glúteos',targetSets:3,targetReps:'12-15',
+     sets:[{reps:15,weight:40,rir:1},{reps:15,weight:40,rir:1},{reps:14,weight:40,rir:2}],notes:''}
   ]},
   {id:'wl_u02_04',userId:'u02',planId:'p02',date:'2026-02-25',time:'19:00',dayName:'Martes',exercises:[
-    {name:'Sentadilla goblet',muscle:'Cuádriceps',targetSets:3,targetReps:'12-15',completedSets:3,repsPerSet:14,weight:18,rir:2,notes:'Subí peso'},
-    {name:'Prensa de pierna',muscle:'Cuádriceps',targetSets:3,targetReps:'15',completedSets:3,repsPerSet:15,weight:70,rir:2,notes:''},
-    {name:'Hip thrust',muscle:'Glúteos',targetSets:3,targetReps:'12-15',completedSets:3,repsPerSet:14,weight:42.5,rir:2,notes:''}
+    {name:'Sentadilla goblet',muscle:'Cuádriceps',targetSets:3,targetReps:'12-15',
+     sets:[{reps:14,weight:18,rir:2},{reps:14,weight:18,rir:2},{reps:13,weight:18,rir:3}],notes:'Subí peso'},
+    {name:'Prensa de pierna',muscle:'Cuádriceps',targetSets:3,targetReps:'15',
+     sets:[{reps:15,weight:70,rir:2},{reps:15,weight:70,rir:2},{reps:15,weight:70,rir:2}],notes:''},
+    {name:'Hip thrust',muscle:'Glúteos',targetSets:3,targetReps:'12-15',
+     sets:[{reps:14,weight:42.5,rir:2},{reps:14,weight:42.5,rir:2},{reps:13,weight:42.5,rir:3}],notes:''}
   ]},
   {id:'wl_u02_05',userId:'u02',planId:'p02',date:'2026-03-04',time:'18:30',dayName:'Martes',exercises:[
-    {name:'Sentadilla goblet',muscle:'Cuádriceps',targetSets:3,targetReps:'12-15',completedSets:3,repsPerSet:15,weight:18,rir:1,notes:''},
-    {name:'Prensa de pierna',muscle:'Cuádriceps',targetSets:3,targetReps:'15',completedSets:3,repsPerSet:15,weight:75,rir:2,notes:''},
-    {name:'Hip thrust',muscle:'Glúteos',targetSets:3,targetReps:'12-15',completedSets:3,repsPerSet:15,weight:45,rir:1,notes:''}
+    {name:'Sentadilla goblet',muscle:'Cuádriceps',targetSets:3,targetReps:'12-15',
+     sets:[{reps:15,weight:18,rir:1},{reps:15,weight:18,rir:1},{reps:14,weight:18,rir:2}],notes:''},
+    {name:'Prensa de pierna',muscle:'Cuádriceps',targetSets:3,targetReps:'15',
+     sets:[{reps:15,weight:75,rir:2},{reps:15,weight:75,rir:2},{reps:15,weight:75,rir:2}],notes:''},
+    {name:'Hip thrust',muscle:'Glúteos',targetSets:3,targetReps:'12-15',
+     sets:[{reps:15,weight:45,rir:1},{reps:15,weight:45,rir:1},{reps:14,weight:45,rir:2}],notes:''}
   ]},
   {id:'wl_u02_06',userId:'u02',planId:'p02',date:'2026-03-11',time:'18:45',dayName:'Martes',exercises:[
-    {name:'Sentadilla goblet',muscle:'Cuádriceps',targetSets:3,targetReps:'12-15',completedSets:3,repsPerSet:15,weight:20,rir:2,notes:'20kg'},
-    {name:'Prensa de pierna',muscle:'Cuádriceps',targetSets:3,targetReps:'15',completedSets:3,repsPerSet:15,weight:80,rir:2,notes:''},
-    {name:'Hip thrust',muscle:'Glúteos',targetSets:3,targetReps:'12-15',completedSets:3,repsPerSet:14,weight:47.5,rir:2,notes:''}
+    {name:'Sentadilla goblet',muscle:'Cuádriceps',targetSets:3,targetReps:'12-15',
+     sets:[{reps:15,weight:20,rir:2},{reps:15,weight:20,rir:2},{reps:14,weight:20,rir:2}],notes:'20kg'},
+    {name:'Prensa de pierna',muscle:'Cuádriceps',targetSets:3,targetReps:'15',
+     sets:[{reps:15,weight:80,rir:2},{reps:15,weight:80,rir:2},{reps:15,weight:80,rir:2}],notes:''},
+    {name:'Hip thrust',muscle:'Glúteos',targetSets:3,targetReps:'12-15',
+     sets:[{reps:14,weight:47.5,rir:2},{reps:14,weight:47.5,rir:2},{reps:13,weight:47.5,rir:3}],notes:''}
   ]},
   {id:'wl_u02_07',userId:'u02',planId:'p02',date:'2026-03-18',time:'18:30',dayName:'Martes',exercises:[
-    {name:'Sentadilla goblet',muscle:'Cuádriceps',targetSets:3,targetReps:'12-15',completedSets:3,repsPerSet:14,weight:20,rir:2,notes:''},
-    {name:'Prensa de pierna',muscle:'Cuádriceps',targetSets:3,targetReps:'15',completedSets:3,repsPerSet:15,weight:82.5,rir:2,notes:''},
-    {name:'Hip thrust',muscle:'Glúteos',targetSets:3,targetReps:'12-15',completedSets:3,repsPerSet:15,weight:50,rir:1,notes:'50kg hip thrust!'}
+    {name:'Sentadilla goblet',muscle:'Cuádriceps',targetSets:3,targetReps:'12-15',
+     sets:[{reps:14,weight:20,rir:2},{reps:14,weight:20,rir:2},{reps:13,weight:20,rir:3}],notes:''},
+    {name:'Prensa de pierna',muscle:'Cuádriceps',targetSets:3,targetReps:'15',
+     sets:[{reps:15,weight:82.5,rir:2},{reps:15,weight:82.5,rir:2},{reps:15,weight:82.5,rir:2}],notes:''},
+    {name:'Hip thrust',muscle:'Glúteos',targetSets:3,targetReps:'12-15',
+     sets:[{reps:15,weight:50,rir:1},{reps:15,weight:50,rir:1},{reps:14,weight:50,rir:2}],notes:'50kg hip thrust!'}
   ]},
   {id:'wl_u02_08',userId:'u02',planId:'p02',date:'2026-03-25',time:'19:00',dayName:'Martes',exercises:[
-    {name:'Sentadilla goblet',muscle:'Cuádriceps',targetSets:3,targetReps:'12-15',completedSets:3,repsPerSet:15,weight:22,rir:1,notes:'Nueva marca'},
-    {name:'Prensa de pierna',muscle:'Cuádriceps',targetSets:3,targetReps:'15',completedSets:3,repsPerSet:15,weight:85,rir:2,notes:''},
-    {name:'Hip thrust',muscle:'Glúteos',targetSets:3,targetReps:'12-15',completedSets:3,repsPerSet:15,weight:52.5,rir:1,notes:''}
+    {name:'Sentadilla goblet',muscle:'Cuádriceps',targetSets:3,targetReps:'12-15',
+     sets:[{reps:15,weight:22,rir:1},{reps:15,weight:22,rir:1},{reps:14,weight:22,rir:2}],notes:'Nueva marca'},
+    {name:'Prensa de pierna',muscle:'Cuádriceps',targetSets:3,targetReps:'15',
+     sets:[{reps:15,weight:85,rir:2},{reps:15,weight:85,rir:2},{reps:15,weight:85,rir:2}],notes:''},
+    {name:'Hip thrust',muscle:'Glúteos',targetSets:3,targetReps:'12-15',
+     sets:[{reps:15,weight:52.5,rir:1},{reps:15,weight:52.5,rir:1},{reps:14,weight:52.5,rir:2}],notes:''}
   ]},
   // ─── u03 Diego — Plan rehabilitación ───
   {id:'wl_u03_01',userId:'u03',planId:'p03',date:'2026-02-05',time:'10:00',dayName:'Miércoles',exercises:[
-    {name:'Caminata en banda',muscle:'Cardio',targetSets:1,targetReps:'20 min',completedSets:1,repsPerSet:20,weight:0,rir:4,notes:'Velocidad 4.5 km/h'},
-    {name:'Prensa de pierna (liviano)',muscle:'Cuádriceps',targetSets:3,targetReps:'15',completedSets:3,repsPerSet:15,weight:30,rir:4,notes:'Sin dolor'},
-    {name:'Curl femoral en máquina',muscle:'Isquiotibiales',targetSets:3,targetReps:'15',completedSets:3,repsPerSet:15,weight:20,rir:3,notes:''}
+    {name:'Caminata en banda',muscle:'Cardio',targetSets:1,targetReps:'20 min',
+     sets:[{reps:20,weight:0,rir:4}],notes:'Velocidad 4.5 km/h'},
+    {name:'Prensa de pierna (liviano)',muscle:'Cuádriceps',targetSets:3,targetReps:'15',
+     sets:[{reps:15,weight:30,rir:4},{reps:15,weight:30,rir:4},{reps:14,weight:30,rir:4}],notes:'Sin dolor'},
+    {name:'Curl femoral en máquina',muscle:'Isquiotibiales',targetSets:3,targetReps:'15',
+     sets:[{reps:15,weight:20,rir:3},{reps:15,weight:20,rir:3},{reps:14,weight:20,rir:4}],notes:''}
   ]},
   {id:'wl_u03_02',userId:'u03',planId:'p03',date:'2026-02-12',time:'10:15',dayName:'Miércoles',exercises:[
-    {name:'Caminata en banda',muscle:'Cardio',targetSets:1,targetReps:'20 min',completedSets:1,repsPerSet:20,weight:0,rir:4,notes:'Velocidad 5 km/h'},
-    {name:'Prensa de pierna (liviano)',muscle:'Cuádriceps',targetSets:3,targetReps:'15',completedSets:3,repsPerSet:15,weight:35,rir:3,notes:''},
-    {name:'Curl femoral en máquina',muscle:'Isquiotibiales',targetSets:3,targetReps:'15',completedSets:3,repsPerSet:15,weight:22.5,rir:3,notes:''}
+    {name:'Caminata en banda',muscle:'Cardio',targetSets:1,targetReps:'20 min',
+     sets:[{reps:20,weight:0,rir:4}],notes:'Velocidad 5 km/h'},
+    {name:'Prensa de pierna (liviano)',muscle:'Cuádriceps',targetSets:3,targetReps:'15',
+     sets:[{reps:15,weight:35,rir:3},{reps:15,weight:35,rir:3},{reps:15,weight:35,rir:3}],notes:''},
+    {name:'Curl femoral en máquina',muscle:'Isquiotibiales',targetSets:3,targetReps:'15',
+     sets:[{reps:15,weight:22.5,rir:3},{reps:15,weight:22.5,rir:3},{reps:14,weight:22.5,rir:4}],notes:''}
   ]},
   {id:'wl_u03_03',userId:'u03',planId:'p03',date:'2026-02-19',time:'10:00',dayName:'Miércoles',exercises:[
-    {name:'Caminata en banda',muscle:'Cardio',targetSets:1,targetReps:'25 min',completedSets:1,repsPerSet:25,weight:0,rir:4,notes:'Aumenté tiempo'},
-    {name:'Prensa de pierna (liviano)',muscle:'Cuádriceps',targetSets:3,targetReps:'15',completedSets:3,repsPerSet:15,weight:40,rir:3,notes:''},
-    {name:'Curl femoral en máquina',muscle:'Isquiotibiales',targetSets:3,targetReps:'15',completedSets:3,repsPerSet:15,weight:25,rir:3,notes:''}
+    {name:'Caminata en banda',muscle:'Cardio',targetSets:1,targetReps:'25 min',
+     sets:[{reps:25,weight:0,rir:4}],notes:'Aumenté tiempo'},
+    {name:'Prensa de pierna (liviano)',muscle:'Cuádriceps',targetSets:3,targetReps:'15',
+     sets:[{reps:15,weight:40,rir:3},{reps:15,weight:40,rir:3},{reps:15,weight:40,rir:3}],notes:''},
+    {name:'Curl femoral en máquina',muscle:'Isquiotibiales',targetSets:3,targetReps:'15',
+     sets:[{reps:15,weight:25,rir:3},{reps:15,weight:25,rir:3},{reps:14,weight:25,rir:4}],notes:''}
   ]},
   {id:'wl_u03_04',userId:'u03',planId:'p03',date:'2026-02-26',time:'10:30',dayName:'Miércoles',exercises:[
-    {name:'Caminata en banda',muscle:'Cardio',targetSets:1,targetReps:'25 min',completedSets:1,repsPerSet:25,weight:0,rir:3,notes:''},
-    {name:'Prensa de pierna (liviano)',muscle:'Cuádriceps',targetSets:3,targetReps:'15',completedSets:3,repsPerSet:15,weight:45,rir:3,notes:'Subí 5kg'},
-    {name:'Curl femoral en máquina',muscle:'Isquiotibiales',targetSets:3,targetReps:'15',completedSets:3,repsPerSet:15,weight:27.5,rir:2,notes:''}
+    {name:'Caminata en banda',muscle:'Cardio',targetSets:1,targetReps:'25 min',
+     sets:[{reps:25,weight:0,rir:3}],notes:''},
+    {name:'Prensa de pierna (liviano)',muscle:'Cuádriceps',targetSets:3,targetReps:'15',
+     sets:[{reps:15,weight:45,rir:3},{reps:15,weight:45,rir:3},{reps:14,weight:45,rir:3}],notes:'Subí 5kg'},
+    {name:'Curl femoral en máquina',muscle:'Isquiotibiales',targetSets:3,targetReps:'15',
+     sets:[{reps:15,weight:27.5,rir:2},{reps:15,weight:27.5,rir:2},{reps:14,weight:27.5,rir:3}],notes:''}
   ]},
   {id:'wl_u03_05',userId:'u03',planId:'p03',date:'2026-03-05',time:'10:00',dayName:'Miércoles',exercises:[
-    {name:'Caminata en banda',muscle:'Cardio',targetSets:1,targetReps:'30 min',completedSets:1,repsPerSet:30,weight:0,rir:3,notes:'30 min sin parar'},
-    {name:'Prensa de pierna (liviano)',muscle:'Cuádriceps',targetSets:3,targetReps:'15',completedSets:3,repsPerSet:15,weight:50,rir:3,notes:''},
-    {name:'Curl femoral en máquina',muscle:'Isquiotibiales',targetSets:3,targetReps:'15',completedSets:3,repsPerSet:15,weight:30,rir:2,notes:''}
+    {name:'Caminata en banda',muscle:'Cardio',targetSets:1,targetReps:'30 min',
+     sets:[{reps:30,weight:0,rir:3}],notes:'30 min sin parar'},
+    {name:'Prensa de pierna (liviano)',muscle:'Cuádriceps',targetSets:3,targetReps:'15',
+     sets:[{reps:15,weight:50,rir:3},{reps:15,weight:50,rir:3},{reps:15,weight:50,rir:3}],notes:''},
+    {name:'Curl femoral en máquina',muscle:'Isquiotibiales',targetSets:3,targetReps:'15',
+     sets:[{reps:15,weight:30,rir:2},{reps:15,weight:30,rir:2},{reps:14,weight:30,rir:3}],notes:''}
   ]},
   {id:'wl_u03_06',userId:'u03',planId:'p03',date:'2026-03-12',time:'10:15',dayName:'Miércoles',exercises:[
-    {name:'Caminata en banda',muscle:'Cardio',targetSets:1,targetReps:'30 min',completedSets:1,repsPerSet:30,weight:0,rir:3,notes:''},
-    {name:'Prensa de pierna (liviano)',muscle:'Cuádriceps',targetSets:3,targetReps:'15',completedSets:3,repsPerSet:15,weight:55,rir:3,notes:'Muy bien'},
-    {name:'Curl femoral en máquina',muscle:'Isquiotibiales',targetSets:3,targetReps:'15',completedSets:3,repsPerSet:15,weight:32.5,rir:2,notes:''}
+    {name:'Caminata en banda',muscle:'Cardio',targetSets:1,targetReps:'30 min',
+     sets:[{reps:30,weight:0,rir:3}],notes:''},
+    {name:'Prensa de pierna (liviano)',muscle:'Cuádriceps',targetSets:3,targetReps:'15',
+     sets:[{reps:15,weight:55,rir:3},{reps:15,weight:55,rir:3},{reps:15,weight:55,rir:3}],notes:'Muy bien'},
+    {name:'Curl femoral en máquina',muscle:'Isquiotibiales',targetSets:3,targetReps:'15',
+     sets:[{reps:15,weight:32.5,rir:2},{reps:15,weight:32.5,rir:2},{reps:14,weight:32.5,rir:3}],notes:''}
   ]},
   {id:'wl_u03_07',userId:'u03',planId:'p03',date:'2026-03-19',time:'10:00',dayName:'Miércoles',exercises:[
-    {name:'Caminata en banda',muscle:'Cardio',targetSets:1,targetReps:'30 min',completedSets:1,repsPerSet:30,weight:0,rir:3,notes:'Inclinación 2%'},
-    {name:'Prensa de pierna (liviano)',muscle:'Cuádriceps',targetSets:3,targetReps:'15',completedSets:3,repsPerSet:15,weight:60,rir:3,notes:''},
-    {name:'Curl femoral en máquina',muscle:'Isquiotibiales',targetSets:3,targetReps:'15',completedSets:3,repsPerSet:15,weight:35,rir:2,notes:''}
+    {name:'Caminata en banda',muscle:'Cardio',targetSets:1,targetReps:'30 min',
+     sets:[{reps:30,weight:0,rir:3}],notes:'Inclinación 2%'},
+    {name:'Prensa de pierna (liviano)',muscle:'Cuádriceps',targetSets:3,targetReps:'15',
+     sets:[{reps:15,weight:60,rir:3},{reps:15,weight:60,rir:3},{reps:15,weight:60,rir:3}],notes:''},
+    {name:'Curl femoral en máquina',muscle:'Isquiotibiales',targetSets:3,targetReps:'15',
+     sets:[{reps:15,weight:35,rir:2},{reps:15,weight:35,rir:2},{reps:14,weight:35,rir:3}],notes:''}
   ]},
   {id:'wl_u03_08',userId:'u03',planId:'p03',date:'2026-03-26',time:'10:20',dayName:'Miércoles',exercises:[
-    {name:'Caminata en banda',muscle:'Cardio',targetSets:1,targetReps:'35 min',completedSets:1,repsPerSet:35,weight:0,rir:3,notes:'35 min — récord personal'},
-    {name:'Prensa de pierna (liviano)',muscle:'Cuádriceps',targetSets:3,targetReps:'15',completedSets:3,repsPerSet:15,weight:65,rir:2,notes:'Gran avance'},
-    {name:'Curl femoral en máquina',muscle:'Isquiotibiales',targetSets:3,targetReps:'15',completedSets:3,repsPerSet:15,weight:37.5,rir:2,notes:''}
+    {name:'Caminata en banda',muscle:'Cardio',targetSets:1,targetReps:'35 min',
+     sets:[{reps:35,weight:0,rir:3}],notes:'35 min — récord personal'},
+    {name:'Prensa de pierna (liviano)',muscle:'Cuádriceps',targetSets:3,targetReps:'15',
+     sets:[{reps:15,weight:65,rir:2},{reps:15,weight:65,rir:2},{reps:15,weight:65,rir:2}],notes:'Gran avance'},
+    {name:'Curl femoral en máquina',muscle:'Isquiotibiales',targetSets:3,targetReps:'15',
+     sets:[{reps:15,weight:37.5,rir:2},{reps:15,weight:37.5,rir:2},{reps:14,weight:37.5,rir:3}],notes:''}
   ]}
 ];
 
@@ -6535,6 +6614,12 @@ function initApp() {
       try { DB.setAtt(DEMO_ATT); } catch(e) { DB.setAtt([]); }
       if (DB.wlogs().length === 0) DB.setWlogs(DEMO_WORKOUT_LOGS);
       DB.setInit();
+    }
+
+    /* ── Migración: reemplaza logs en formato antiguo (sin sets[]) ─────────── */
+    const _wlCheck = DB.wlogs();
+    if (_wlCheck.length > 0 && _wlCheck[0]?.exercises?.[0] && !_wlCheck[0].exercises[0].sets) {
+      DB.setWlogs(DEMO_WORKOUT_LOGS);
     }
 
     /* ── PASO 2: Credenciales admin ───────────────────────────────────────────
