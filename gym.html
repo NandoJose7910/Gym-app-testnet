@@ -4829,7 +4829,9 @@ function renderProgDetail(v, userId) {
     if (!sel) return;
     const logs = DB.userWlogs(userId);
     const exSet = new Set();
-    logs.forEach(l => l.exercises.forEach(e => { if (e.weight > 0) exSet.add(e.name); }));
+    logs.forEach(l => l.exercises.forEach(e => {
+      if ((e.sets||[]).some(s => s.weight > 0)) exSet.add(e.name);
+    }));
     exSet.forEach(name => {
       const o = document.createElement('option');
       o.value = name; o.textContent = name;
