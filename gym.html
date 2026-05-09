@@ -1540,6 +1540,13 @@ tbody td {
 .ar-badge { font-size:.72rem; padding:3px 10px; background:rgba(0,255,102,.12); color:var(--green); border-radius:20px; border:1px solid rgba(0,255,102,.3); letter-spacing:.02em; }
 .ar-ex-tip { font-size:.75rem; color:var(--text-dim); margin-top:4px; font-style:italic; }
 .ar-technique-tag { display:inline-block; font-size:.68rem; padding:1px 7px; border-radius:10px; background:rgba(255,136,0,.15); color:#ff8800; border:1px solid rgba(255,136,0,.3); margin-left:6px; vertical-align:middle; }
+.badge-auto { background:rgba(138,43,226,.18); color:#b980ff; border:1px solid rgba(138,43,226,.35); }
+.ar-info-banner { background:rgba(0,255,102,.06); border:1px solid rgba(0,255,102,.25); border-radius:8px; padding:12px 14px; margin-bottom:16px; font-size:.82rem; color:var(--text-dim); line-height:1.5; }
+.ar-info-banner strong { color:var(--green); }
+.survey-opt-multi { display:flex; align-items:center; gap:12px; padding:10px 14px; background:var(--bg-card); border:1px solid var(--border); border-radius:8px; cursor:pointer; transition:border-color .15s,background .15s; user-select:none; }
+.survey-opt-multi:hover { border-color:var(--green); }
+.survey-opt-multi.ar-sel { border-color:var(--green); background:rgba(0,255,102,.07); }
+.survey-opt-multi input[type=checkbox] { accent-color:var(--green); width:16px; height:16px; flex-shrink:0; }
 </style>
 </head>
 <body>
@@ -3792,6 +3799,8 @@ ${plans.length===0 ? `
   ${S.role==='admin'?`<button class="btn btn-primary" onclick="showCreatePlanModal('${userId}')">Crear primer plan</button>`:''}
 </div>` : plans.sort((a,b)=>b.isActive-a.isActive).map(p=>_planCardHTML(p, userId)).join('')}
 
+${_wlogHistoryHTML(userId)}
+
 <div id="train-modal-root"></div>`;
 }
 
@@ -3800,6 +3809,62 @@ function _condLabel(c) {
     asthma:'Asma', joint_injury:'Lesión articular', back_pain:'Dolor lumbar',
     osteoporosis:'Osteoporosis', pregnancy:'Embarazo', obesity:'Obesidad', none:'Ninguna' };
   return MAP[c] || c;
+}
+
+/* ---------- Historial de sesiones registradas (admin) ---------- */
+function _wlogHistoryHTML(userId) {
+  const logs = DB.userWlogs(userId).sort((a,b) => b.date.localeCompare(a.date));
+  if (!logs.length) return '';
+
+  return `
+<div class="card" style="margin-top:24px">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+    <strong>📊 Historial de sesiones registradas</strong>
+    <span style="font-size:.8rem;color:var(--text-dim)">${logs.length} sesión${logs.length!==1?'es':''}</span>
+  </div>
+  ${logs.map(log => {
+    const isAuto = !!log.isAuto;
+    const meta   = log.autoMeta || {};
+    return `
+  <details style="margin-bottom:8px;border:1px solid var(--border);border-radius:8px;overflow:hidden">
+    <summary style="padding:10px 14px;cursor:pointer;display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--bg-card2);list-style:none">
+      <span style="font-weight:600;font-size:.88rem">${fDate(log.date)}</span>
+      <span style="font-size:.8rem;color:var(--text-dim)">${log.time||''}</span>
+      <span style="font-size:.8rem;color:var(--text-dim)">${escH(log.dayName||'')}</span>
+      ${isAuto
+        ? `<span class="badge badge-auto" style="font-size:.7rem">🤖 Auto-generada</span>
+           <span style="font-size:.75rem;color:var(--text-dim)">${escH(meta.location||'')}${meta.duration?' · '+meta.duration:''}</span>`
+        : `<span class="badge badge-ok" style="font-size:.7rem">📋 Plan coach</span>`}
+      <span style="margin-left:auto;font-size:.78rem;color:var(--text-dim)">${log.exercises?.length||0} ejercicios</span>
+    </summary>
+    <div style="padding:12px 14px">
+      ${isAuto ? `<div style="font-size:.78rem;color:var(--text-dim);margin-bottom:10px">
+        Nivel: <strong>${meta.level||'—'}</strong> · Energía: <strong>${meta.energy||'—'}</strong>
+      </div>` : ''}
+      ${(log.exercises||[]).map((ex,ei) => `
+      <div style="margin-bottom:12px${ei<(log.exercises.length-1)?';padding-bottom:12px;border-bottom:1px solid var(--border)':''}">
+        <div style="font-weight:600;font-size:.85rem;margin-bottom:4px">${ei+1}. ${escH(ex.name)}
+          <span class="badge badge-dim" style="font-size:.68rem;margin-left:6px">${escH(ex.muscle)}</span>
+        </div>
+        <div style="overflow-x:auto">
+          <table class="data-table" style="margin-top:4px;font-size:.8rem">
+            <thead><tr><th>Serie</th><th>Reps</th><th>Peso (kg)</th><th>RIR</th></tr></thead>
+            <tbody>
+              ${(ex.sets||[]).map((s,si)=>`<tr>
+                <td>S${si+1}</td>
+                <td>${s.reps||'—'}</td>
+                <td>${s.weight>0?s.weight+'kg':'—'}</td>
+                <td>${s.rir!==undefined?s.rir:'—'}</td>
+              </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>
+        ${ex.notes ? `<div style="font-size:.75rem;color:var(--text-dim);margin-top:4px">📝 ${escH(ex.notes)}</div>` : ''}
+      </div>`).join('')}
+    </div>
+  </details>`;
+  }).join('')}
+</div>`;
 }
 
 /* ---------- Tarjeta de plan (sólo lectura) ---------- */
@@ -5514,6 +5579,8 @@ ${plans.length>1 ? `
   </button>
 </div>
 `}`;
+  // Restaurar borrador del día si existe (setTimeout para que el DOM esté listo)
+  setTimeout(() => _arTryRestoreDraft(), 0);
 }
 
 function toggleExDone(cb, key, row) {
@@ -6644,15 +6711,18 @@ function _arParams(level, energy, timeMins) {
 
 /* ─── Generador principal ───────────────────────────────────────────────── */
 function generateAutoRoutine(ans) {
-  // ans: {location, time, focus, energy, level}
-  const locKey  = ans.location === 'gym' ? 'gym' : 'home';
+  // ans: {location (array|string), time, focus, energy, level}
+  const locArr  = Array.isArray(ans.location)
+    ? ans.location.map(l => l === 'gym' ? 'gym' : 'home')
+    : [ans.location === 'gym' ? 'gym' : 'home'];
+  const locSet  = [...new Set(locArr)];
   const muscles = AR_MUSCLE_MAP[ans.focus] || AR_MUSCLE_MAP.full;
   const params  = _arParams(ans.level, ans.energy, parseInt(ans.time));
   const adv     = ans.level === 'advanced' && ans.energy === 'high';
 
-  // Filtrar ejercicios por ubicación y músculos objetivo
+  // Filtrar ejercicios de todas las ubicaciones seleccionadas
   const pool = AR_EXERCISES.filter(e =>
-    e.loc.includes(locKey) && muscles.includes(e.muscle)
+    locSet.some(lk => e.loc.includes(lk)) && muscles.includes(e.muscle)
   );
 
   // Distribuir equilibradamente por grupo muscular
@@ -6710,12 +6780,15 @@ function generateAutoRoutine(ans) {
     push:'Empuje', pull:'Jalón', legs_glutes:'Pierna y glúteo', core:'Core y abdomen'
   };
   const locLabels = {gym:'Gimnasio', home:'Casa', none:'Sin equipamiento'};
+  const locDisplay = Array.isArray(ans.location)
+    ? ans.location.map(l => locLabels[l] || l).join(' + ')
+    : (locLabels[ans.location] || ans.location);
 
   return {
     id:       'auto_' + Date.now(),
     date:     today(),
     time:     nowTime(),
-    location: locLabels[ans.location] || ans.location,
+    location: locDisplay,
     focus:    focusLabels[ans.focus]  || ans.focus,
     level:    ans.level,
     energy:   ans.energy,
@@ -6732,8 +6805,9 @@ let _arStep     = 0;
 
 const AR_QUESTIONS = [
   { key:'location', label:'¿Dónde vas a entrenar hoy?',
-    hint:'Esto determina los ejercicios y equipamiento disponible',
-    opts:[{val:'gym',txt:'🏋️ Gimnasio'},{val:'home',txt:'🏠 Casa (con mancuernas / bandas)'},{val:'none',txt:'🚶 Sin equipamiento (calistenia pura)'}] },
+    hint:'Puedes combinar ubicaciones — se mezclarán ejercicios proporcionalmente',
+    multi: true,
+    opts:[{val:'gym',txt:'🏋️ Gimnasio (máquinas + pesas)'},{val:'home',txt:'🏠 Casa (mancuernas / bandas)'},{val:'none',txt:'🚶 Sin equipamiento (calistenia pura)'}] },
   { key:'time', label:'¿Cuánto tiempo tienes?',
     hint:'Ajustaremos el número de ejercicios al tiempo disponible',
     opts:[{val:'30',txt:'⚡ 30 minutos'},{val:'45',txt:'🕐 45 minutos'},{val:'60',txt:'🕑 60 minutos'},{val:'90',txt:'🕙 90 minutos'}] },
@@ -6749,6 +6823,50 @@ const AR_QUESTIONS = [
     hint:'Principiante = técnica y peso moderado · Avanzado = más series, técnicas especiales',
     opts:[{val:'beginner',txt:'🌱 Principiante'},{val:'intermediate',txt:'💪 Intermedio'},{val:'advanced',txt:'🔥 Avanzado'}] },
 ];
+
+/* ─── Persistencia de borrador ──────────────────────────────────────────── */
+function _arDraftKey() { return 'gp_ar_draft_' + (S.uid||'x'); }
+
+function _arSaveDraft(inputVals) {
+  try {
+    const draft = { date: today(), routine: _arRoutine, inputs: inputVals || {} };
+    localStorage.setItem(_arDraftKey(), JSON.stringify(draft));
+  } catch(e) {}
+}
+
+function _arLoadDraft() {
+  try {
+    const raw = localStorage.getItem(_arDraftKey());
+    if (!raw) return null;
+    const draft = JSON.parse(raw);
+    if (draft.date !== today()) { localStorage.removeItem(_arDraftKey()); return null; }
+    return draft;
+  } catch(e) { return null; }
+}
+
+function _arClearDraft() {
+  try { localStorage.removeItem(_arDraftKey()); } catch(e) {}
+}
+
+function _arReadInputs() {
+  if (!_arRoutine) return {};
+  const vals = {};
+  _arRoutine.exercises.forEach((ex, n) => {
+    for (let s = 0; s < ex.sets; s++) {
+      ['reps','weight','rir'].forEach(f => {
+        const el = document.getElementById(`ar-${n}-s${s}-${f}`);
+        if (el) vals[`ar-${n}-s${s}-${f}`] = el.value;
+      });
+    }
+    const notesEl = document.getElementById(`ar-${n}-notes`);
+    if (notesEl) vals[`ar-${n}-notes`] = notesEl.value;
+  });
+  return vals;
+}
+
+function _arAutoSave() {
+  _arSaveDraft(_arReadInputs());
+}
 
 /* ─── Render de la encuesta ─────────────────────────────────────────────── */
 function openAutoRoutineSurvey() {
@@ -6766,6 +6884,10 @@ function _arRenderStep() {
   const total = AR_QUESTIONS.length;
   const q     = AR_QUESTIONS[_arStep];
   const pct   = Math.round((_arStep / total) * 100);
+  const isMulti = !!q.multi;
+  const curVal  = _arAnswers[q.key];
+  const selArr  = isMulti ? (Array.isArray(curVal) ? curVal : []) : [];
+  const hasAns  = isMulti ? selArr.length > 0 : !!curVal;
 
   wrap.innerHTML = `
 <div class="survey-wrap">
@@ -6774,18 +6896,27 @@ function _arRenderStep() {
     <button class="btn btn-sm" style="padding:3px 10px;font-size:.78rem" onclick="document.getElementById('ar-survey-wrap').style.display='none'">✕ Cerrar</button>
   </div>
   <div class="survey-progress-bar"><div class="survey-progress-fill" style="width:${pct}%"></div></div>
-  <div class="survey-q">${q.label}<small>${q.hint}</small></div>
+  <div class="survey-q">${q.label}<small>${q.hint}${isMulti?' <em>(selección múltiple)</em>':''}</small></div>
   <div class="survey-opts" id="ar-opts">
-    ${q.opts.map(o=>`
-    <label class="survey-opt${_arAnswers[q.key]===o.val?' ar-sel':''}">
-      <input type="radio" name="ar-q" value="${o.val}" ${_arAnswers[q.key]===o.val?'checked':''}
+    ${q.opts.map(o => {
+      const isSel = isMulti ? selArr.includes(o.val) : curVal === o.val;
+      if (isMulti) return `
+    <label class="survey-opt-multi${isSel?' ar-sel':''}">
+      <input type="checkbox" value="${o.val}" ${isSel?'checked':''}
+        onchange="_arToggleMulti('${q.key}',this)">
+      <span>${o.txt}</span>
+    </label>`;
+      return `
+    <label class="survey-opt${isSel?' ar-sel':''}">
+      <input type="radio" name="ar-q" value="${o.val}" ${isSel?'checked':''}
         onchange="_arSelect('${q.key}','${o.val}',this.closest('.survey-opt'))">
       <span>${o.txt}</span>
-    </label>`).join('')}
+    </label>`;
+    }).join('')}
   </div>
   <div class="survey-nav">
     ${_arStep > 0 ? `<button class="btn btn-sm" onclick="_arBack()">← Anterior</button>` : ''}
-    <button class="btn btn-primary btn-sm" onclick="_arNext()" ${_arAnswers[q.key]?'':'disabled'} id="ar-btn-next">
+    <button class="btn btn-primary btn-sm" onclick="_arNext()" ${hasAns?'':'disabled'} id="ar-btn-next">
       ${_arStep < total-1 ? 'Siguiente →' : '🚀 Generar rutina'}
     </button>
     <span class="survey-progress">Pregunta ${_arStep+1} de ${total}</span>
@@ -6801,28 +6932,36 @@ function _arSelect(key, val, el) {
   if (btn) btn.disabled = false;
 }
 
+function _arToggleMulti(key, cb) {
+  const val = cb.value;
+  let arr = Array.isArray(_arAnswers[key]) ? [..._arAnswers[key]] : [];
+  if (cb.checked) { if (!arr.includes(val)) arr.push(val); }
+  else arr = arr.filter(v => v !== val);
+  _arAnswers[key] = arr;
+  cb.closest('.survey-opt-multi').classList.toggle('ar-sel', cb.checked);
+  const btn = document.getElementById('ar-btn-next');
+  if (btn) btn.disabled = arr.length === 0;
+}
+
 function _arBack() {
   if (_arStep > 0) { _arStep--; _arRenderStep(); }
 }
 
 function _arNext() {
   const q = AR_QUESTIONS[_arStep];
-  if (!_arAnswers[q.key]) return;
-  if (_arStep < AR_QUESTIONS.length - 1) {
-    _arStep++;
-    _arRenderStep();
-  } else {
-    _arGenerate();
-  }
+  const val = _arAnswers[q.key];
+  const ok = q.multi ? (Array.isArray(val) && val.length > 0) : !!val;
+  if (!ok) return;
+  if (_arStep < AR_QUESTIONS.length - 1) { _arStep++; _arRenderStep(); }
+  else _arGenerate();
 }
 
 /* ─── Genera y muestra la rutina ────────────────────────────────────────── */
-function _arGenerate() {
-  _arRoutine = generateAutoRoutine(_arAnswers);
+function _arRenderRoutine(savedInputs) {
   const wrap = document.getElementById('ar-survey-wrap');
-  if (!wrap) return;
+  if (!wrap || !_arRoutine) return;
 
-  const levelLabel = {beginner:'Principiante', intermediate:'Intermedio', advanced:'Avanzado'};
+  const levelLabel  = {beginner:'Principiante', intermediate:'Intermedio', advanced:'Avanzado'};
   const energyLabel = {high:'Alta energía', normal:'Normal', low:'Baja energía'};
 
   wrap.innerHTML = `
@@ -6839,6 +6978,11 @@ function _arGenerate() {
     </div>
   </div>
 
+  <div class="ar-info-banner">
+    <strong>💡 Punto de partida personalizado</strong> — Te proponemos estos pesos, series y RIR según tu perfil de hoy.
+    Eres libre de ajustar cada valor según cómo te sientas. Al finalizar, todo quedará registrado en tus estadísticas.
+  </div>
+
   ${_arRoutine.exercises.map((ex,n)=>`
   <div class="session-ex-block">
     <div class="session-ex-name">${n+1}. ${escH(ex.name)}
@@ -6849,18 +6993,30 @@ function _arGenerate() {
     <table class="session-set-table" style="margin-top:8px">
       <thead><tr><th>Serie</th><th>Reps</th><th>Peso (kg)</th><th>RIR</th></tr></thead>
       <tbody>
-        ${Array.from({length:ex.sets},(_,s)=>`<tr>
+        ${Array.from({length:ex.sets},(_,s)=>{
+          const repsId   = `ar-${n}-s${s}-reps`;
+          const weightId = `ar-${n}-s${s}-weight`;
+          const rirId    = `ar-${n}-s${s}-rir`;
+          const sv = f => savedInputs ? (savedInputs[f] ?? '') : '';
+          const defWeight = (ex.eq==='bodyweight'||ex.eq==='household') ? '' : (sv(weightId) || ex.weight || '');
+          const defRir    = sv(rirId) !== '' ? sv(rirId) : ex.rir;
+          return `<tr>
           <td>Serie ${s+1}${ex.dropSet&&s===ex.sets-1?' <span style="font-size:.65rem;color:#ff8800">(drop)</span>':''}</td>
-          <td><input id="ar-${n}-s${s}-reps" type="number" min="0" max="100" class="form-control"
-              placeholder="${String(ex.reps).split('-')[0]||10}"></td>
-          <td><input id="ar-${n}-s${s}-weight" type="number" min="0" step="0.5" class="form-control"
-              placeholder="${ex.weight||0}" value="${ex.eq==='bodyweight'||ex.eq==='household'?'':ex.weight||''}"></td>
-          <td><input id="ar-${n}-s${s}-rir" type="number" min="0" max="5" class="form-control"
-              placeholder="${ex.rir}" value="${ex.rir}"></td>
-        </tr>`).join('')}
+          <td><input id="${repsId}" type="number" min="0" max="100" class="form-control"
+              value="${sv(repsId)}" placeholder="${String(ex.reps).split('-')[0]||10}"
+              oninput="_arAutoSave()"></td>
+          <td><input id="${weightId}" type="number" min="0" step="0.5" class="form-control"
+              value="${defWeight}" placeholder="${ex.weight||0}"
+              oninput="_arAutoSave()"></td>
+          <td><input id="${rirId}" type="number" min="0" max="5" class="form-control"
+              value="${defRir}" placeholder="${ex.rir}"
+              oninput="_arAutoSave()"></td>
+        </tr>`;}).join('')}
       </tbody>
     </table>
-    <input id="ar-${n}-notes" type="text" class="form-control session-set-notes" placeholder="Notas (opcional)">
+    <input id="ar-${n}-notes" type="text" class="form-control session-set-notes"
+      value="${savedInputs ? (savedInputs[`ar-${n}-notes`]||'') : ''}"
+      placeholder="Notas (opcional)" oninput="_arAutoSave()">
   </div>`).join('')}
 
   <div style="display:flex;gap:10px;align-items:center;margin-top:14px;flex-wrap:wrap">
@@ -6869,6 +7025,24 @@ function _arGenerate() {
     <span id="ar-save-msg" style="font-size:.85rem;color:var(--green);display:none">✅ Sesión guardada</span>
   </div>
 </div>`;
+}
+
+function _arGenerate() {
+  _arRoutine = generateAutoRoutine(_arAnswers);
+  _arSaveDraft({});
+  _arRenderRoutine(null);
+}
+
+/* ─── Carga borrador del día si existe ──────────────────────────────────── */
+function _arTryRestoreDraft() {
+  const draft = _arLoadDraft();
+  if (!draft) return false;
+  _arRoutine = draft.routine;
+  const wrap = document.getElementById('ar-survey-wrap');
+  if (!wrap) return false;
+  wrap.style.display = 'block';
+  _arRenderRoutine(draft.inputs || {});
+  return true;
 }
 
 /* ─── Guarda la sesión de rutina automática ─────────────────────────────── */
@@ -6904,6 +7078,7 @@ function saveAutoRoutineSession() {
     exercises
   };
   DB.addWlog(rec);
+  _arClearDraft();
 
   const msg = document.getElementById('ar-save-msg');
   if (msg) { msg.style.display='inline'; setTimeout(()=>{ msg.style.display='none'; }, 3500); }
