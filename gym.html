@@ -1521,6 +1521,25 @@ tbody td {
 /* Selector de ejercicio para gráfica */
 .ex-selector { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:12px; }
 .ex-selector select { flex:1; min-width:180px; }
+/* Módulo de rutina automática */
+.survey-wrap { background:var(--bg-card2); border:1px solid var(--border); border-radius:var(--radius); padding:20px; margin-bottom:16px; }
+.survey-step { display:none; }
+.survey-step.ar-active { display:block; }
+.survey-q { font-size:.95rem; font-weight:600; margin-bottom:14px; color:var(--text); }
+.survey-q small { font-weight:400; font-size:.78rem; color:var(--text-dim); display:block; margin-top:2px; }
+.survey-opts { display:flex; flex-direction:column; gap:8px; }
+.survey-opt { display:flex; align-items:center; gap:12px; padding:10px 14px; background:var(--bg-card); border:1px solid var(--border); border-radius:8px; cursor:pointer; transition:border-color .15s,background .15s; user-select:none; }
+.survey-opt:hover { border-color:var(--green); }
+.survey-opt.ar-sel { border-color:var(--green); background:rgba(0,255,102,.07); }
+.survey-opt input[type=radio] { accent-color:var(--green); width:16px; height:16px; flex-shrink:0; }
+.survey-nav { display:flex; gap:10px; margin-top:18px; align-items:center; flex-wrap:wrap; }
+.survey-progress { font-size:.78rem; color:var(--text-dim); margin-left:auto; }
+.survey-progress-bar { height:3px; background:var(--border); border-radius:2px; margin-bottom:18px; }
+.survey-progress-fill { height:100%; background:var(--green); border-radius:2px; transition:width .3s; }
+.ar-routine-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:8px; }
+.ar-badge { font-size:.72rem; padding:3px 10px; background:rgba(0,255,102,.12); color:var(--green); border-radius:20px; border:1px solid rgba(0,255,102,.3); letter-spacing:.02em; }
+.ar-ex-tip { font-size:.75rem; color:var(--text-dim); margin-top:4px; font-style:italic; }
+.ar-technique-tag { display:inline-block; font-size:.68rem; padding:1px 7px; border-radius:10px; background:rgba(255,136,0,.15); color:#ff8800; border:1px solid rgba(255,136,0,.3); margin-left:6px; vertical-align:middle; }
 </style>
 </head>
 <body>
@@ -5394,11 +5413,15 @@ function renderMyTraining(v) {
   </div>
 </div>
 
+<!-- Contenedor del generador automático de rutina -->
+<div id="ar-survey-wrap" style="display:none"></div>
+
 ${!active ? `
 <div class="empty-state">
   <div class="empty-ico">💪</div>
   <p class="empty-txt">Sin plan de entrenamiento activo</p>
-  <p class="empty-sub">Habla con tu entrenador para que te asigne un plan</p>
+  <p class="empty-sub">Habla con tu entrenador para que te asigne un plan, o genera una rutina automática para hoy.</p>
+  <button class="btn btn-primary" style="margin-top:14px" onclick="openAutoRoutineSurvey()">🤖 Generar mi rutina de hoy</button>
 </div>` : `
 
 ${todayDay ? `
@@ -5483,6 +5506,13 @@ ${plans.length>1 ? `
     <span style="font-size:.75rem;color:var(--text-dim);margin-left:8px">Creado: ${fDate(p.createdAt)} · ${p.durationWeeks} semanas</span>
   </div>`).join('')}
 </details>` : ''}
+
+<div style="margin-top:24px;padding:16px;background:var(--bg-card2);border:1px dashed var(--border);border-radius:var(--radius);text-align:center">
+  <p style="margin:0 0 10px;font-size:.88rem;color:var(--text-dim)">¿Quieres hacer algo diferente hoy o no puedes seguir tu plan habitual?</p>
+  <button class="btn btn-sm" style="border-color:var(--green);color:var(--green)" onclick="openAutoRoutineSurvey();document.getElementById('ar-survey-wrap').scrollIntoView({behavior:'smooth'})">
+    🤖 Generar rutina alternativa para hoy
+  </button>
+</div>
 `}`;
 }
 
@@ -6520,6 +6550,365 @@ const DEMO_WORKOUT_LOGS = [
      sets:[{reps:15,weight:37.5,rir:2},{reps:15,weight:37.5,rir:2},{reps:14,weight:37.5,rir:3}],notes:''}
   ]}
 ];
+
+/* ======================================================
+   BASE DE EJERCICIOS — Rutina Automática
+   Campos: name, muscle, location[], equipment, tip
+   location: 'gym' | 'home'
+   equipment: 'machine' | 'barbell' | 'dumbbell' | 'bodyweight' | 'household'
+====================================================== */
+const AR_EXERCISES = [
+  // ── GYM · MÁQUINAS ──────────────────────────────────
+  {name:'Prensa de pierna',         muscle:'Cuádriceps',  loc:['gym'], eq:'machine', push:false},
+  {name:'Curl femoral en máquina',  muscle:'Isquiotibiales',loc:['gym'],eq:'machine',push:false},
+  {name:'Extensión de cuádriceps',  muscle:'Cuádriceps',  loc:['gym'], eq:'machine', push:false},
+  {name:'Hip abductor en máquina',  muscle:'Glúteos',     loc:['gym'], eq:'machine', push:false},
+  {name:'Jalón al pecho en polea',  muscle:'Espalda',     loc:['gym'], eq:'machine', push:false},
+  {name:'Remo en polea baja',       muscle:'Espalda',     loc:['gym'], eq:'machine', push:false},
+  {name:'Press de pecho en máquina',muscle:'Pecho',       loc:['gym'], eq:'machine', push:true },
+  {name:'Press de hombros en máquina',muscle:'Hombros',   loc:['gym'], eq:'machine', push:true },
+  {name:'Curl de bíceps en máquina',muscle:'Bíceps',      loc:['gym'], eq:'machine', push:false},
+  {name:'Extensión de tríceps en polea',muscle:'Tríceps', loc:['gym'], eq:'machine', push:true },
+  {name:'Cruce de poleas (pecho)',  muscle:'Pecho',       loc:['gym'], eq:'machine', push:true },
+  {name:'Abdomen en máquina crunch',muscle:'Core',        loc:['gym'], eq:'machine', push:false},
+  // ── GYM · PESO LIBRE (barra) ────────────────────────
+  {name:'Press de banca con barra', muscle:'Pecho',       loc:['gym'], eq:'barbell', push:true },
+  {name:'Press inclinado con barra',muscle:'Pecho',       loc:['gym'], eq:'barbell', push:true },
+  {name:'Press militar con barra',  muscle:'Hombros',     loc:['gym'], eq:'barbell', push:true },
+  {name:'Sentadilla con barra',     muscle:'Cuádriceps',  loc:['gym'], eq:'barbell', push:false},
+  {name:'Peso muerto convencional', muscle:'Isquiotibiales',loc:['gym'],eq:'barbell',push:false},
+  {name:'Remo con barra',           muscle:'Espalda',     loc:['gym'], eq:'barbell', push:false},
+  {name:'Press francés con barra',  muscle:'Tríceps',     loc:['gym'], eq:'barbell', push:true },
+  {name:'Curl con barra',           muscle:'Bíceps',      loc:['gym'], eq:'barbell', push:false},
+  // ── GYM · PESO LIBRE (mancuernas) ───────────────────
+  {name:'Press inclinado con mancuernas',muscle:'Pecho',  loc:['gym'], eq:'dumbbell',push:true },
+  {name:'Press de hombros con mancuernas',muscle:'Hombros',loc:['gym'],eq:'dumbbell',push:true },
+  {name:'Remo con mancuerna unilateral',muscle:'Espalda', loc:['gym'], eq:'dumbbell',push:false},
+  {name:'Hip thrust con barra',     muscle:'Glúteos',     loc:['gym'], eq:'barbell', push:false},
+  {name:'Curl de bíceps con mancuernas',muscle:'Bíceps',  loc:['gym'], eq:'dumbbell',push:false},
+  {name:'Extensión de tríceps con mancuerna',muscle:'Tríceps',loc:['gym'],eq:'dumbbell',push:true },
+  {name:'Elevaciones laterales',    muscle:'Hombros',     loc:['gym'], eq:'dumbbell',push:false},
+  {name:'Face pull con polea',      muscle:'Hombros',     loc:['gym'], eq:'machine', push:false},
+  {name:'Sentadilla búlgara con mancuernas',muscle:'Cuádriceps',loc:['gym'],eq:'dumbbell',push:false},
+  {name:'Peso muerto rumano con mancuernas',muscle:'Isquiotibiales',loc:['gym'],eq:'dumbbell',push:false},
+  // ── CASA / CALISTENIA ───────────────────────────────
+  {name:'Flexiones estándar',       muscle:'Pecho',       loc:['gym','home'], eq:'bodyweight',push:true },
+  {name:'Flexiones inclinadas',     muscle:'Pecho',       loc:['home'],       eq:'bodyweight',push:true },
+  {name:'Flexiones declinadas',     muscle:'Pecho',       loc:['home'],       eq:'bodyweight',push:true },
+  {name:'Fondos en sillas',         muscle:'Tríceps',     loc:['home'],       eq:'household', push:true },
+  {name:'Remo invertido en mesa',   muscle:'Espalda',     loc:['home'],       eq:'household', push:false},
+  {name:'Sentadilla sin peso',      muscle:'Cuádriceps',  loc:['home'],       eq:'bodyweight',push:false},
+  {name:'Sentadilla sumo',          muscle:'Cuádriceps',  loc:['home'],       eq:'bodyweight',push:false},
+  {name:'Zancadas alternas',        muscle:'Cuádriceps',  loc:['home'],       eq:'bodyweight',push:false},
+  {name:'Puente de glúteos',        muscle:'Glúteos',     loc:['home'],       eq:'bodyweight',push:false},
+  {name:'Puente de glúteos unilateral',muscle:'Glúteos',  loc:['home'],       eq:'bodyweight',push:false},
+  {name:'Sentadilla búlgara en silla',muscle:'Cuádriceps',loc:['home'],       eq:'household', push:false},
+  {name:'Dominadas',                muscle:'Espalda',     loc:['gym','home'], eq:'bodyweight',push:false},
+  {name:'Fondos en paralelas',      muscle:'Pecho',       loc:['gym'],        eq:'bodyweight',push:true },
+  {name:'Plancha abdominal',        muscle:'Core',        loc:['gym','home'], eq:'bodyweight',push:false},
+  {name:'Plancha lateral',          muscle:'Core',        loc:['gym','home'], eq:'bodyweight',push:false},
+  {name:'Elevaciones de piernas en suelo',muscle:'Core',  loc:['home'],       eq:'bodyweight',push:false},
+  {name:'Crunch abdominal',         muscle:'Core',        loc:['gym','home'], eq:'bodyweight',push:false},
+  {name:'Mountain climbers',        muscle:'Core',        loc:['gym','home'], eq:'bodyweight',push:false},
+  {name:'Burpees',                  muscle:'Cardio',      loc:['gym','home'], eq:'bodyweight',push:false},
+  {name:'Saltos al cajón',          muscle:'Cardio',      loc:['gym'],        eq:'bodyweight',push:false},
+  {name:'Curl de bíceps con botellas',muscle:'Bíceps',    loc:['home'],       eq:'household', push:false},
+];
+
+/* ─── Grupos musculares por focus ───────────────────────────────────────── */
+const AR_MUSCLE_MAP = {
+  full:        ['Pecho','Espalda','Hombros','Cuádriceps','Isquiotibiales','Glúteos','Bíceps','Tríceps','Core'],
+  upper:       ['Pecho','Espalda','Hombros','Bíceps','Tríceps'],
+  lower:       ['Cuádriceps','Isquiotibiales','Glúteos','Core'],
+  push:        ['Pecho','Hombros','Tríceps'],
+  pull:        ['Espalda','Bíceps'],
+  legs_glutes: ['Cuádriceps','Isquiotibiales','Glúteos'],
+  core:        ['Core','Cardio']
+};
+
+/* ─── Parámetros por nivel y energía ───────────────────────────────────── */
+function _arParams(level, energy, timeMins) {
+  const base = {
+    beginner:     {sets:3, repsLow:12, repsHigh:15, rest:90,  weightPct:.4, rir:3},
+    intermediate: {sets:3, repsLow:8,  repsHigh:12, rest:60,  weightPct:.6, rir:2},
+    advanced:     {sets:4, repsLow:6,  repsHigh:10, rest:45,  weightPct:.75,rir:1},
+  }[level] || {sets:3,repsLow:10,repsHigh:12,rest:60,weightPct:.55,rir:2};
+
+  const exCount = {30:4, 45:6, 60:8, 90:11}[timeMins] || 6;
+
+  if (energy === 'low')  { base.sets = Math.max(2, base.sets - 1); base.rest += 15; }
+  if (energy === 'high' && level !== 'beginner') base.sets = base.sets + 1;
+
+  return { ...base, exCount };
+}
+
+/* ─── Generador principal ───────────────────────────────────────────────── */
+function generateAutoRoutine(ans) {
+  // ans: {location, time, focus, energy, level}
+  const locKey  = ans.location === 'gym' ? 'gym' : 'home';
+  const muscles = AR_MUSCLE_MAP[ans.focus] || AR_MUSCLE_MAP.full;
+  const params  = _arParams(ans.level, ans.energy, parseInt(ans.time));
+  const adv     = ans.level === 'advanced' && ans.energy === 'high';
+
+  // Filtrar ejercicios por ubicación y músculos objetivo
+  const pool = AR_EXERCISES.filter(e =>
+    e.loc.includes(locKey) && muscles.includes(e.muscle)
+  );
+
+  // Distribuir equilibradamente por grupo muscular
+  const chosen = [];
+  const usedMuscles = {};
+  const shuffled = [...pool].sort(() => Math.random() - .5);
+
+  // Primera pasada: 1 ejercicio por músculo
+  for (const m of muscles) {
+    if (chosen.length >= params.exCount) break;
+    const ex = shuffled.find(e => e.muscle === m && !chosen.includes(e));
+    if (ex) { chosen.push(ex); usedMuscles[m] = 1; }
+  }
+  // Segunda pasada: rellenar si faltan
+  for (const ex of shuffled) {
+    if (chosen.length >= params.exCount) break;
+    if (!chosen.includes(ex)) chosen.push(ex);
+  }
+
+  // Priorizar: poner Core/Cardio al final
+  chosen.sort((a,b) => {
+    const order = m => (m==='Core'||m==='Cardio') ? 1 : 0;
+    return order(a.muscle) - order(b.muscle);
+  });
+
+  // Construir ejercicios con parámetros
+  const exercises = chosen.map((e, i) => {
+    const isLast  = i === chosen.length - 1;
+    const isCore  = e.muscle === 'Core' || e.muscle === 'Cardio';
+    const sets    = isCore ? Math.min(params.sets, 3) : params.sets;
+    const reps    = isCore ? (e.muscle==='Cardio' ? '30 seg' : `${params.repsLow}-${params.repsHigh}`)
+                           : `${params.repsLow}-${params.repsHigh}`;
+    const weight  = (e.eq === 'bodyweight' || e.eq === 'household') ? 0
+                  : Math.round(params.weightPct * (e.muscle.includes('Bíceps')||e.muscle.includes('Tríceps') ? 30 :
+                      e.muscle==='Hombros' ? 50 :
+                      e.muscle==='Pecho' ? 80 :
+                      e.muscle==='Espalda' ? 70 :
+                      e.muscle==='Cuádriceps'&&e.eq==='machine' ? 80 :
+                      e.muscle==='Isquiotibiales'&&e.eq==='machine' ? 50 :
+                      e.muscle==='Glúteos' ? 60 : 60) / 2.5) * 2.5; // round to 2.5kg
+
+    const dropSet = adv && !isCore && isLast;
+    const rir     = adv ? (isLast ? 0 : params.rir) : params.rir;
+    const tip     = e.eq==='bodyweight' ? 'Peso corporal — enfocate en la técnica'
+                  : e.eq==='household'  ? 'Usa lo que tengas en casa'
+                  : weight > 0          ? `Peso sugerido: ~${weight}kg`
+                  : '';
+
+    return { name:e.name, muscle:e.muscle, sets, reps, weight, rest:params.rest, rir, dropSet, tip,
+             eq:e.eq };
+  });
+
+  const focusLabels = {
+    full:'Cuerpo completo', upper:'Tren superior', lower:'Tren inferior',
+    push:'Empuje', pull:'Jalón', legs_glutes:'Pierna y glúteo', core:'Core y abdomen'
+  };
+  const locLabels = {gym:'Gimnasio', home:'Casa', none:'Sin equipamiento'};
+
+  return {
+    id:       'auto_' + Date.now(),
+    date:     today(),
+    time:     nowTime(),
+    location: locLabels[ans.location] || ans.location,
+    focus:    focusLabels[ans.focus]  || ans.focus,
+    level:    ans.level,
+    energy:   ans.energy,
+    duration: ans.time + ' min',
+    advanced: adv,
+    exercises
+  };
+}
+
+/* ─── Estado de la encuesta ─────────────────────────────────────────────── */
+let _arAnswers  = {};
+let _arRoutine  = null;
+let _arStep     = 0;
+
+const AR_QUESTIONS = [
+  { key:'location', label:'¿Dónde vas a entrenar hoy?',
+    hint:'Esto determina los ejercicios y equipamiento disponible',
+    opts:[{val:'gym',txt:'🏋️ Gimnasio'},{val:'home',txt:'🏠 Casa (con mancuernas / bandas)'},{val:'none',txt:'🚶 Sin equipamiento (calistenia pura)'}] },
+  { key:'time', label:'¿Cuánto tiempo tienes?',
+    hint:'Ajustaremos el número de ejercicios al tiempo disponible',
+    opts:[{val:'30',txt:'⚡ 30 minutos'},{val:'45',txt:'🕐 45 minutos'},{val:'60',txt:'🕑 60 minutos'},{val:'90',txt:'🕙 90 minutos'}] },
+  { key:'focus', label:'¿Qué quieres trabajar hoy?',
+    hint:'La rutina se centrará en estos grupos musculares',
+    opts:[{val:'full',txt:'💪 Cuerpo completo'},{val:'upper',txt:'🔝 Tren superior'},{val:'lower',txt:'🦵 Tren inferior'},
+          {val:'push',txt:'➡️ Empuje — pecho, hombros, tríceps'},{val:'pull',txt:'⬅️ Jalón — espalda, bíceps'},
+          {val:'legs_glutes',txt:'🍑 Pierna y glúteo'},{val:'core',txt:'🎯 Core y abdomen'}] },
+  { key:'energy', label:'¿Cómo te sientes hoy?',
+    hint:'Adaptaremos la intensidad a tu nivel de energía',
+    opts:[{val:'high',txt:'⚡ Con mucha energía — a tope'},{val:'normal',txt:'😐 Normal — bien pero sin pasarse'},{val:'low',txt:'😴 Cansado — sesión suave'}] },
+  { key:'level', label:'¿Cuál es tu nivel de dificultad?',
+    hint:'Principiante = técnica y peso moderado · Avanzado = más series, técnicas especiales',
+    opts:[{val:'beginner',txt:'🌱 Principiante'},{val:'intermediate',txt:'💪 Intermedio'},{val:'advanced',txt:'🔥 Avanzado'}] },
+];
+
+/* ─── Render de la encuesta ─────────────────────────────────────────────── */
+function openAutoRoutineSurvey() {
+  _arAnswers = {}; _arRoutine = null; _arStep = 0;
+  const wrap = document.getElementById('ar-survey-wrap');
+  if (!wrap) return;
+  wrap.style.display = 'block';
+  wrap.scrollIntoView({behavior:'smooth', block:'nearest'});
+  _arRenderStep();
+}
+
+function _arRenderStep() {
+  const wrap = document.getElementById('ar-survey-wrap');
+  if (!wrap) return;
+  const total = AR_QUESTIONS.length;
+  const q     = AR_QUESTIONS[_arStep];
+  const pct   = Math.round((_arStep / total) * 100);
+
+  wrap.innerHTML = `
+<div class="survey-wrap">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+    <strong style="font-size:.9rem">🤖 Generador de rutina automática</strong>
+    <button class="btn btn-sm" style="padding:3px 10px;font-size:.78rem" onclick="document.getElementById('ar-survey-wrap').style.display='none'">✕ Cerrar</button>
+  </div>
+  <div class="survey-progress-bar"><div class="survey-progress-fill" style="width:${pct}%"></div></div>
+  <div class="survey-q">${q.label}<small>${q.hint}</small></div>
+  <div class="survey-opts" id="ar-opts">
+    ${q.opts.map(o=>`
+    <label class="survey-opt${_arAnswers[q.key]===o.val?' ar-sel':''}">
+      <input type="radio" name="ar-q" value="${o.val}" ${_arAnswers[q.key]===o.val?'checked':''}
+        onchange="_arSelect('${q.key}','${o.val}',this.closest('.survey-opt'))">
+      <span>${o.txt}</span>
+    </label>`).join('')}
+  </div>
+  <div class="survey-nav">
+    ${_arStep > 0 ? `<button class="btn btn-sm" onclick="_arBack()">← Anterior</button>` : ''}
+    <button class="btn btn-primary btn-sm" onclick="_arNext()" ${_arAnswers[q.key]?'':'disabled'} id="ar-btn-next">
+      ${_arStep < total-1 ? 'Siguiente →' : '🚀 Generar rutina'}
+    </button>
+    <span class="survey-progress">Pregunta ${_arStep+1} de ${total}</span>
+  </div>
+</div>`;
+}
+
+function _arSelect(key, val, el) {
+  _arAnswers[key] = val;
+  el.closest('.survey-opts').querySelectorAll('.survey-opt').forEach(o => o.classList.remove('ar-sel'));
+  el.classList.add('ar-sel');
+  const btn = document.getElementById('ar-btn-next');
+  if (btn) btn.disabled = false;
+}
+
+function _arBack() {
+  if (_arStep > 0) { _arStep--; _arRenderStep(); }
+}
+
+function _arNext() {
+  const q = AR_QUESTIONS[_arStep];
+  if (!_arAnswers[q.key]) return;
+  if (_arStep < AR_QUESTIONS.length - 1) {
+    _arStep++;
+    _arRenderStep();
+  } else {
+    _arGenerate();
+  }
+}
+
+/* ─── Genera y muestra la rutina ────────────────────────────────────────── */
+function _arGenerate() {
+  _arRoutine = generateAutoRoutine(_arAnswers);
+  const wrap = document.getElementById('ar-survey-wrap');
+  if (!wrap) return;
+
+  const levelLabel = {beginner:'Principiante', intermediate:'Intermedio', advanced:'Avanzado'};
+  const energyLabel = {high:'Alta energía', normal:'Normal', low:'Baja energía'};
+
+  wrap.innerHTML = `
+<div class="session-logger" id="ar-session-logger">
+  <div class="ar-routine-header">
+    <div>
+      <strong style="font-size:.95rem">🤖 Rutina generada automáticamente</strong><br>
+      <span style="font-size:.78rem;color:var(--text-dim)">${_arRoutine.focus} · ${_arRoutine.location} · ${_arRoutine.duration}</span>
+    </div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+      <span class="ar-badge">${levelLabel[_arRoutine.level]||_arRoutine.level}</span>
+      <span class="ar-badge">${energyLabel[_arRoutine.energy]||_arRoutine.energy}</span>
+      ${_arRoutine.advanced ? '<span class="ar-technique-tag">Técnicas avanzadas</span>' : ''}
+    </div>
+  </div>
+
+  ${_arRoutine.exercises.map((ex,n)=>`
+  <div class="session-ex-block">
+    <div class="session-ex-name">${n+1}. ${escH(ex.name)}
+      ${ex.dropSet ? '<span class="ar-technique-tag">Drop-set</span>' : ''}
+    </div>
+    <div class="session-ex-target">${escH(ex.muscle)} · ${ex.sets} series × ${escH(String(ex.reps))} reps · Descanso: ${ex.rest}s · RIR meta: ${ex.rir}</div>
+    ${ex.tip ? `<div class="ar-ex-tip">💡 ${escH(ex.tip)}</div>` : ''}
+    <table class="session-set-table" style="margin-top:8px">
+      <thead><tr><th>Serie</th><th>Reps</th><th>Peso (kg)</th><th>RIR</th></tr></thead>
+      <tbody>
+        ${Array.from({length:ex.sets},(_,s)=>`<tr>
+          <td>Serie ${s+1}${ex.dropSet&&s===ex.sets-1?' <span style="font-size:.65rem;color:#ff8800">(drop)</span>':''}</td>
+          <td><input id="ar-${n}-s${s}-reps" type="number" min="0" max="100" class="form-control"
+              placeholder="${String(ex.reps).split('-')[0]||10}"></td>
+          <td><input id="ar-${n}-s${s}-weight" type="number" min="0" step="0.5" class="form-control"
+              placeholder="${ex.weight||0}" value="${ex.eq==='bodyweight'||ex.eq==='household'?'':ex.weight||''}"></td>
+          <td><input id="ar-${n}-s${s}-rir" type="number" min="0" max="5" class="form-control"
+              placeholder="${ex.rir}" value="${ex.rir}"></td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+    <input id="ar-${n}-notes" type="text" class="form-control session-set-notes" placeholder="Notas (opcional)">
+  </div>`).join('')}
+
+  <div style="display:flex;gap:10px;align-items:center;margin-top:14px;flex-wrap:wrap">
+    <button class="btn btn-primary" onclick="saveAutoRoutineSession()">💾 Guardar sesión</button>
+    <button class="btn btn-sm" onclick="openAutoRoutineSurvey()">🔄 Generar otra</button>
+    <span id="ar-save-msg" style="font-size:.85rem;color:var(--green);display:none">✅ Sesión guardada</span>
+  </div>
+</div>`;
+}
+
+/* ─── Guarda la sesión de rutina automática ─────────────────────────────── */
+function saveAutoRoutineSession() {
+  if (!_arRoutine) return;
+  const exercises = _arRoutine.exercises.map((ex, n) => {
+    const numSets = ex.sets || 1;
+    const sets = Array.from({length: numSets}, (_, s) => ({
+      reps:   parseInt(document.getElementById(`ar-${n}-s${s}-reps`)?.value)    || 0,
+      weight: parseFloat(document.getElementById(`ar-${n}-s${s}-weight`)?.value) || 0,
+      rir:    parseInt(document.getElementById(`ar-${n}-s${s}-rir`)?.value)     || ex.rir
+    }));
+    return {
+      name:       ex.name,
+      muscle:     ex.muscle,
+      targetSets: ex.sets,
+      targetReps: String(ex.reps),
+      sets,
+      notes: (document.getElementById(`ar-${n}-notes`)?.value || '').trim()
+    };
+  });
+
+  const rec = {
+    id:       'wl_' + uid(),
+    userId:   S.uid,
+    planId:   _arRoutine.id,
+    date:     today(),
+    time:     nowTime(),
+    dayName:  _arRoutine.focus,
+    isAuto:   true,
+    autoMeta: { location:_arRoutine.location, level:_arRoutine.level,
+                energy:_arRoutine.energy, duration:_arRoutine.duration },
+    exercises
+  };
+  DB.addWlog(rec);
+
+  const msg = document.getElementById('ar-save-msg');
+  if (msg) { msg.style.display='inline'; setTimeout(()=>{ msg.style.display='none'; }, 3500); }
+  console.log('[GymApp] Auto-sesión guardada:', rec.id);
+}
 
 // Asistencias demo (últimas semanas)
 const DEMO_ATT = (() => {
