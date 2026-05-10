@@ -6644,183 +6644,183 @@ const DEMO_WORKOUT_LOGS = [
    noFor: medicalConditions que contraindican el ejercicio
 ====================================================== */
 const AR_EXERCISES = [
-  // ── EMPUJE HORIZONTAL (push_h) ───────────────────────────────────────────
-  {name:'Press de banca plano con barra',  pat:'push_h',muscle:'Pecho',     sec:['Tríceps','Hombros'],loc:['gym'],        eq:'barbell',   lvl:['intermediate','advanced'],ji:'high',  cpd:true, tip:'Retrae escápulas, pies en el suelo',noFor:['shoulder_injury']},
-  {name:'Press de banca inclinado con barra',pat:'push_h',muscle:'Pecho',   sec:['Tríceps','Hombros'],loc:['gym'],        eq:'barbell',   lvl:['intermediate','advanced'],ji:'high',  cpd:true, tip:'Agarre a 1.5× ancho de hombros',noFor:['shoulder_injury']},
-  {name:'Press con mancuernas plano',      pat:'push_h',muscle:'Pecho',     sec:['Tríceps','Hombros'],loc:['gym','home'], eq:'dumbbell',  lvl:['beginner','intermediate','advanced'],ji:'medium',cpd:true, tip:'Codos a 45° del torso',noFor:[]},
-  {name:'Press inclinado con mancuernas',  pat:'push_h',muscle:'Pecho',     sec:['Tríceps','Hombros'],loc:['gym','home'], eq:'dumbbell',  lvl:['beginner','intermediate','advanced'],ji:'medium',cpd:true, tip:'Inclinación 30-45°, no más',noFor:[]},
-  {name:'Aperturas con mancuernas',        pat:'push_h',muscle:'Pecho',     sec:['Hombros'],          loc:['gym','home'], eq:'dumbbell',  lvl:['intermediate','advanced'],ji:'medium',cpd:false,tip:'Codos ligeramente flexionados todo el arco',noFor:['shoulder_injury']},
-  {name:'Cruce de poleas',                 pat:'push_h',muscle:'Pecho',     sec:['Hombros'],          loc:['gym'],        eq:'cable',     lvl:['intermediate','advanced'],ji:'low',   cpd:false,tip:'Contrae el pecho en el punto de cruce',noFor:[]},
-  {name:'Pec Deck (mariposa)',             pat:'push_h',muscle:'Pecho',     sec:[],                   loc:['gym'],        eq:'machine',   lvl:['beginner','intermediate'],ji:'low',   cpd:false,tip:'Mantén cuello relajado y espalda pegada',noFor:['shoulder_injury']},
-  {name:'Press de pecho en máquina',       pat:'push_h',muscle:'Pecho',     sec:['Tríceps'],          loc:['gym'],        eq:'machine',   lvl:['beginner','intermediate','advanced'],ji:'low',cpd:true, tip:'Pausa 1 seg al frente para mayor activación',noFor:[]},
-  {name:'Fondos en paralelas (pecho)',     pat:'push_h',muscle:'Pecho',     sec:['Tríceps','Hombros'],loc:['gym'],        eq:'bodyweight',lvl:['intermediate','advanced'],ji:'high',  cpd:true, tip:'Inclina el torso hacia adelante para énfasis pectoral',noFor:['shoulder_injury','joint_injury']},
-  {name:'Flexiones estándar',              pat:'push_h',muscle:'Pecho',     sec:['Tríceps','Core'],   loc:['gym','home'], eq:'bodyweight',lvl:['beginner','intermediate'],ji:'medium',cpd:true, tip:'Cuerpo rígido, manos bajo los hombros',noFor:[]},
-  {name:'Flexiones inclinadas (pies altos)',pat:'push_h',muscle:'Pecho',    sec:['Tríceps'],          loc:['home'],       eq:'bodyweight',lvl:['intermediate','advanced'],ji:'medium',cpd:true, tip:'Pies en silla o escalón para énfasis superior',noFor:[]},
-  {name:'Flexiones declinadas (manos altas)',pat:'push_h',muscle:'Pecho',   sec:['Tríceps'],          loc:['home'],       eq:'bodyweight',lvl:['beginner','intermediate'],ji:'low',   cpd:true, tip:'Manos en escalón reduce exigencia',noFor:[]},
-  {name:'Flexiones diamante',              pat:'push_h',muscle:'Pecho',     sec:['Tríceps'],          loc:['gym','home'], eq:'bodyweight',lvl:['intermediate','advanced'],ji:'medium',cpd:true, tip:'Índices y pulgares se tocan formando diamante',noFor:['joint_injury']},
+  // ── EMPUJE HORIZONTAL (push_h) — 20 ejercicios de pecho ──────────────────
+  {name:'Press de banca plano con barra',             pat:'push_h',muscle:'Pecho',     sec:['Tríceps','Hombros'],loc:['gym'],        eq:'barbell',   lvl:['intermediate','advanced'],ji:'high',  cpd:true, tip:'Retrae escápulas, pies en el suelo',                              noFor:['shoulder_injury'],multiplicador_peso:0.30},
+  {name:'Press de banca inclinado con barra',         pat:'push_h',muscle:'Pecho',     sec:['Tríceps','Hombros'],loc:['gym'],        eq:'barbell',   lvl:['intermediate','advanced'],ji:'high',  cpd:true, tip:'Agarre a 1.5× ancho de hombros',                                  noFor:['shoulder_injury'],multiplicador_peso:0.28},
+  {name:'Press declinado con barra',                  pat:'push_h',muscle:'Pecho',     sec:['Tríceps'],          loc:['gym'],        eq:'barbell',   lvl:['intermediate','advanced'],ji:'high',  cpd:true, tip:'Pies anclados, barra al borde inferior del pecho',                noFor:['shoulder_injury','back_pain'],multiplicador_peso:0.32},
+  {name:'Press con mancuernas plano',                 pat:'push_h',muscle:'Pecho',     sec:['Tríceps','Hombros'],loc:['gym','home'], eq:'dumbbell',  lvl:['beginner','intermediate','advanced'],ji:'medium',cpd:true, tip:'Codos a 45° del torso',                                  noFor:[],multiplicador_peso:0.25},
+  {name:'Press inclinado con mancuernas',             pat:'push_h',muscle:'Pecho',     sec:['Tríceps','Hombros'],loc:['gym','home'], eq:'dumbbell',  lvl:['beginner','intermediate','advanced'],ji:'medium',cpd:true, tip:'Inclinación 30-45°, no más',                             noFor:[],multiplicador_peso:0.22},
+  {name:'Press de pecho en máquina',                  pat:'push_h',muscle:'Pecho',     sec:['Tríceps'],          loc:['gym'],        eq:'machine',   lvl:['beginner','intermediate','advanced'],ji:'low', cpd:true, tip:'Pausa 1 seg al frente para mayor activación',               noFor:[],multiplicador_peso:0.30},
+  {name:'Press inclinado en máquina convergente',     pat:'push_h',muscle:'Pecho',     sec:['Tríceps','Hombros'],loc:['gym'],        eq:'machine',   lvl:['beginner','intermediate'],ji:'low',   cpd:true, tip:'Ajusta la altura del asiento para que el movimiento sea diagonal',noFor:[],multiplicador_peso:0.28},
+  {name:'Pec Deck (mariposa)',                        pat:'push_h',muscle:'Pecho',     sec:[],                   loc:['gym'],        eq:'machine',   lvl:['beginner','intermediate'],ji:'low',   cpd:false,tip:'Mantén cuello relajado y espalda pegada',                        noFor:['shoulder_injury'],multiplicador_peso:0.15},
+  {name:'Aperturas con mancuernas',                   pat:'push_h',muscle:'Pecho',     sec:['Hombros'],          loc:['gym','home'], eq:'dumbbell',  lvl:['intermediate','advanced'],ji:'medium',cpd:false,tip:'Codos ligeramente flexionados todo el arco',                     noFor:['shoulder_injury'],multiplicador_peso:0.15},
+  {name:'Cruce de poleas',                            pat:'push_h',muscle:'Pecho',     sec:['Hombros'],          loc:['gym'],        eq:'cable',     lvl:['intermediate','advanced'],ji:'low',   cpd:false,tip:'Contrae el pecho en el punto de cruce',                          noFor:[],multiplicador_peso:0.12},
+  {name:'Apertura en polea alta (cruce)',             pat:'push_h',muscle:'Pecho',     sec:[],                   loc:['gym'],        eq:'cable',     lvl:['intermediate','advanced'],ji:'low',   cpd:false,tip:'Polea alta, cruza las manos abajo para enfatizar pecho bajo',    noFor:[],multiplicador_peso:0.12},
+  {name:'Apertura en polea baja (cruce)',             pat:'push_h',muscle:'Pecho',     sec:[],                   loc:['gym'],        eq:'cable',     lvl:['intermediate','advanced'],ji:'low',   cpd:false,tip:'Polea baja, lleva las manos arriba y al centro',                 noFor:[],multiplicador_peso:0.12},
+  {name:'Fondos en paralelas (pecho)',                pat:'push_h',muscle:'Pecho',     sec:['Tríceps','Hombros'],loc:['gym'],        eq:'bodyweight',lvl:['intermediate','advanced'],ji:'high',  cpd:true, tip:'Inclina el torso hacia adelante para énfasis pectoral',           noFor:['shoulder_injury','joint_injury'],multiplicador_peso:0},
+  {name:'Flexiones estándar',                         pat:'push_h',muscle:'Pecho',     sec:['Tríceps','Core'],   loc:['gym','home'], eq:'bodyweight',lvl:['beginner','intermediate'],ji:'medium',cpd:true, tip:'Cuerpo rígido, manos bajo los hombros',                          noFor:[],multiplicador_peso:0},
+  {name:'Flexiones inclinadas (pies altos)',           pat:'push_h',muscle:'Pecho',     sec:['Tríceps'],          loc:['home'],       eq:'bodyweight',lvl:['intermediate','advanced'],ji:'medium',cpd:true, tip:'Pies en silla o escalón para énfasis superior',                  noFor:[],multiplicador_peso:0},
+  {name:'Flexiones declinadas (manos altas)',          pat:'push_h',muscle:'Pecho',     sec:['Tríceps'],          loc:['home'],       eq:'bodyweight',lvl:['beginner','intermediate'],ji:'low',   cpd:true, tip:'Manos en escalón reduce exigencia',                               noFor:[],multiplicador_peso:0},
+  {name:'Flexiones diamante',                         pat:'push_h',muscle:'Pecho',     sec:['Tríceps'],          loc:['gym','home'], eq:'bodyweight',lvl:['intermediate','advanced'],ji:'medium',cpd:true, tip:'Índices y pulgares se tocan formando diamante',                  noFor:['joint_injury'],multiplicador_peso:0},
+  {name:'Flexiones cerradas',                         pat:'push_h',muscle:'Pecho',     sec:['Tríceps'],          loc:['gym','home'], eq:'bodyweight',lvl:['beginner','intermediate'],ji:'medium',cpd:true, tip:'Manos al ancho de hombros o menos, codos rozan el cuerpo',       noFor:[],multiplicador_peso:0},
+  {name:'Flexiones con palmada (pliométrico)',         pat:'push_h',muscle:'Pecho',     sec:['Tríceps'],          loc:['gym','home'], eq:'bodyweight',lvl:['advanced'],               ji:'medium',cpd:true, tip:'Explosión total hacia arriba, aterrizaje suave',                  noFor:['joint_injury'],multiplicador_peso:0},
+  {name:'Press de pecho unilateral con mancuerna',    pat:'push_h',muscle:'Pecho',     sec:['Tríceps','Core'],   loc:['gym','home'], eq:'dumbbell',  lvl:['intermediate','advanced'],ji:'low',   cpd:true, tip:'Un brazo a la vez; activa el core para no rotar',                noFor:[],multiplicador_peso:0.15},
 
-  // ── EMPUJE VERTICAL (push_v) ─────────────────────────────────────────────
-  {name:'Press militar con barra de pie',  pat:'push_v',muscle:'Hombros',   sec:['Tríceps','Core'],   loc:['gym'],        eq:'barbell',   lvl:['intermediate','advanced'],ji:'high',  cpd:true, tip:'Core activo, no arquees la zona lumbar',noFor:['back_pain','shoulder_injury']},
-  {name:'Press de hombros con mancuernas', pat:'push_v',muscle:'Hombros',   sec:['Tríceps'],          loc:['gym','home'], eq:'dumbbell',  lvl:['beginner','intermediate','advanced'],ji:'medium',cpd:true, tip:'No bloquees codos arriba, mantén tensión',noFor:[]},
-  {name:'Press Arnold',                    pat:'push_v',muscle:'Hombros',   sec:['Tríceps'],          loc:['gym','home'], eq:'dumbbell',  lvl:['intermediate','advanced'],ji:'medium',cpd:true, tip:'Rotación completa para máxima activación del deltoides',noFor:['shoulder_injury']},
-  {name:'Press de hombros en máquina',     pat:'push_v',muscle:'Hombros',   sec:['Tríceps'],          loc:['gym'],        eq:'machine',   lvl:['beginner','intermediate'],ji:'low',   cpd:true, tip:'Ajusta el asiento para que codos queden a 90°',noFor:[]},
-  {name:'Push press con barra',            pat:'push_v',muscle:'Hombros',   sec:['Tríceps','Piernas'],loc:['gym'],        eq:'barbell',   lvl:['advanced'],               ji:'high',  cpd:true, tip:'Pequeño impulso de piernas para iniciar el movimiento',noFor:['back_pain','knee_injury']},
-  {name:'Flexiones pike',                  pat:'push_v',muscle:'Hombros',   sec:['Tríceps'],          loc:['home'],       eq:'bodyweight',lvl:['intermediate','advanced'],ji:'medium',cpd:true, tip:'Caderas en alto, cabeza busca el suelo',noFor:[]},
-  {name:'Fondos en paralelas (tríceps)',   pat:'push_v',muscle:'Tríceps',   sec:['Pecho','Hombros'],  loc:['gym'],        eq:'bodyweight',lvl:['intermediate','advanced'],ji:'high',  cpd:true, tip:'Torso vertical, codos pegados al cuerpo',noFor:['shoulder_injury','joint_injury']},
-  {name:'Dips en banco (tríceps)',         pat:'push_v',muscle:'Tríceps',   sec:['Pecho'],            loc:['gym','home'], eq:'household', lvl:['beginner','intermediate'],ji:'medium',cpd:false,tip:'Codos atrás, espalda cerca del banco',noFor:['shoulder_injury']},
+  // ── EMPUJE VERTICAL (push_v) — 9 ejercicios de hombros/tríceps ───────────
+  {name:'Press militar con barra de pie',             pat:'push_v',muscle:'Hombros',   sec:['Tríceps','Core'],   loc:['gym'],        eq:'barbell',   lvl:['intermediate','advanced'],ji:'high',  cpd:true, tip:'Core activo, no arquees la zona lumbar',                          noFor:['back_pain','shoulder_injury'],multiplicador_peso:0.20},
+  {name:'Press de hombros con mancuernas',            pat:'push_v',muscle:'Hombros',   sec:['Tríceps'],          loc:['gym','home'], eq:'dumbbell',  lvl:['beginner','intermediate','advanced'],ji:'medium',cpd:true, tip:'No bloquees codos arriba, mantén tensión',              noFor:[],multiplicador_peso:0.17},
+  {name:'Press Arnold',                               pat:'push_v',muscle:'Hombros',   sec:['Tríceps'],          loc:['gym','home'], eq:'dumbbell',  lvl:['intermediate','advanced'],ji:'medium',cpd:true, tip:'Rotación completa para máxima activación del deltoides',          noFor:['shoulder_injury'],multiplicador_peso:0.15},
+  {name:'Press de hombros en máquina',                pat:'push_v',muscle:'Hombros',   sec:['Tríceps'],          loc:['gym'],        eq:'machine',   lvl:['beginner','intermediate'],ji:'low',   cpd:true, tip:'Ajusta el asiento para que codos queden a 90°',                   noFor:[],multiplicador_peso:0.20},
+  {name:'Push press con barra',                       pat:'push_v',muscle:'Hombros',   sec:['Tríceps','Piernas'],loc:['gym'],        eq:'barbell',   lvl:['advanced'],               ji:'high',  cpd:true, tip:'Pequeño impulso de piernas para iniciar el movimiento',           noFor:['back_pain','knee_injury'],multiplicador_peso:0.25},
+  {name:'Press de hombros unilateral con mancuerna',  pat:'push_v',muscle:'Hombros',   sec:['Tríceps','Core'],   loc:['gym','home'], eq:'dumbbell',  lvl:['intermediate','advanced'],ji:'medium',cpd:true, tip:'Un brazo a la vez; controla la rotación del torso',               noFor:[],multiplicador_peso:0.15},
+  {name:'Flexiones pike',                             pat:'push_v',muscle:'Hombros',   sec:['Tríceps'],          loc:['home'],       eq:'bodyweight',lvl:['intermediate','advanced'],ji:'medium',cpd:true, tip:'Caderas en alto, cabeza busca el suelo',                          noFor:[],multiplicador_peso:0},
+  {name:'Fondos en paralelas (tríceps)',               pat:'push_v',muscle:'Tríceps',   sec:['Pecho','Hombros'],  loc:['gym'],        eq:'bodyweight',lvl:['intermediate','advanced'],ji:'high',  cpd:true, tip:'Torso vertical, codos pegados al cuerpo',                         noFor:['shoulder_injury','joint_injury'],multiplicador_peso:0},
+  {name:'Dips en banco (tríceps)',                    pat:'push_v',muscle:'Tríceps',   sec:['Pecho'],            loc:['gym','home'], eq:'household', lvl:['beginner','intermediate'],ji:'medium',cpd:false,tip:'Codos atrás, espalda cerca del banco',                            noFor:['shoulder_injury'],multiplicador_peso:0},
 
-  // ── JALÓN HORIZONTAL (pull_h) ─────────────────────────────────────────────
-  {name:'Remo con barra inclinado',        pat:'pull_h',muscle:'Espalda',   sec:['Bíceps','Core'],    loc:['gym'],        eq:'barbell',   lvl:['intermediate','advanced'],ji:'medium',cpd:true, tip:'Espalda recta 45°, tira hacia el ombligo',noFor:['back_pain']},
-  {name:'Remo Pendlay',                    pat:'pull_h',muscle:'Espalda',   sec:['Bíceps'],           loc:['gym'],        eq:'barbell',   lvl:['advanced'],               ji:'medium',cpd:true, tip:'Barra al suelo entre reps, explosivo',noFor:['back_pain']},
-  {name:'Remo con mancuerna unilateral',   pat:'pull_h',muscle:'Espalda',   sec:['Bíceps'],           loc:['gym','home'], eq:'dumbbell',  lvl:['beginner','intermediate','advanced'],ji:'low',cpd:true, tip:'Rodilla y mano en el banco, espalda paralela al suelo',noFor:[]},
-  {name:'Remo con mancuernas bilateral',   pat:'pull_h',muscle:'Espalda',   sec:['Bíceps'],           loc:['gym','home'], eq:'dumbbell',  lvl:['intermediate','advanced'],ji:'medium',cpd:true, tip:'Apoya el pecho en banco inclinado',noFor:[]},
-  {name:'Remo en polea baja sentado',      pat:'pull_h',muscle:'Espalda',   sec:['Bíceps'],           loc:['gym'],        eq:'cable',     lvl:['beginner','intermediate','advanced'],ji:'low',cpd:true, tip:'No redondees la lumbar al estirar los brazos',noFor:[]},
-  {name:'Remo en máquina',                 pat:'pull_h',muscle:'Espalda',   sec:['Bíceps'],           loc:['gym'],        eq:'machine',   lvl:['beginner','intermediate'],ji:'low',   cpd:true, tip:'Pecho contra el apoyo, escápulas al frente',noFor:[]},
-  {name:'Face pull en polea',              pat:'pull_h',muscle:'Hombros',   sec:['Espalda'],          loc:['gym'],        eq:'cable',     lvl:['beginner','intermediate','advanced'],ji:'low',cpd:false,tip:'Polea a altura de cabeza, codos arriba al tirar',noFor:[]},
-  {name:'Remo invertido en mesa',          pat:'pull_h',muscle:'Espalda',   sec:['Bíceps'],           loc:['home'],       eq:'household', lvl:['beginner','intermediate'],ji:'low',   cpd:true, tip:'Cuerpo rígido, tira el pecho a la mesa',noFor:[]},
-  {name:'Remo en polea un brazo',          pat:'pull_h',muscle:'Espalda',   sec:['Bíceps'],           loc:['gym'],        eq:'cable',     lvl:['intermediate','advanced'],ji:'low',   cpd:true, tip:'Rota el torso para mayor rango de movimiento',noFor:[]},
-  {name:'Remo con agarre neutro en polea', pat:'pull_h',muscle:'Espalda',   sec:['Bíceps'],           loc:['gym'],        eq:'cable',     lvl:['beginner','intermediate'],ji:'low',   cpd:true, tip:'Agarre neutro reduce estrés en muñecas',noFor:[]},
+  // ── JALÓN HORIZONTAL (pull_h) — 10 ejercicios de espalda ──────────────────
+  {name:'Remo con barra inclinado',                   pat:'pull_h',muscle:'Espalda',   sec:['Bíceps','Core'],    loc:['gym'],        eq:'barbell',   lvl:['intermediate','advanced'],ji:'medium',cpd:true, tip:'Espalda recta 45°, tira hacia el ombligo',                       noFor:['back_pain'],multiplicador_peso:0.30},
+  {name:'Remo Pendlay',                               pat:'pull_h',muscle:'Espalda',   sec:['Bíceps'],           loc:['gym'],        eq:'barbell',   lvl:['advanced'],               ji:'medium',cpd:true, tip:'Barra al suelo entre reps, explosivo',                            noFor:['back_pain'],multiplicador_peso:0.35},
+  {name:'Remo con mancuerna unilateral',              pat:'pull_h',muscle:'Espalda',   sec:['Bíceps'],           loc:['gym','home'], eq:'dumbbell',  lvl:['beginner','intermediate','advanced'],ji:'low',cpd:true, tip:'Rodilla y mano en el banco, espalda paralela al suelo',    noFor:[],multiplicador_peso:0.25},
+  {name:'Remo con mancuernas bilateral',              pat:'pull_h',muscle:'Espalda',   sec:['Bíceps'],           loc:['gym','home'], eq:'dumbbell',  lvl:['intermediate','advanced'],ji:'medium',cpd:true, tip:'Apoya el pecho en banco inclinado',                               noFor:[],multiplicador_peso:0.22},
+  {name:'Remo en polea baja sentado',                 pat:'pull_h',muscle:'Espalda',   sec:['Bíceps'],           loc:['gym'],        eq:'cable',     lvl:['beginner','intermediate','advanced'],ji:'low',cpd:true, tip:'No redondees la lumbar al estirar los brazos',             noFor:[],multiplicador_peso:0.28},
+  {name:'Remo en máquina',                            pat:'pull_h',muscle:'Espalda',   sec:['Bíceps'],           loc:['gym'],        eq:'machine',   lvl:['beginner','intermediate'],ji:'low',   cpd:true, tip:'Pecho contra el apoyo, escápulas al frente',                     noFor:[],multiplicador_peso:0.30},
+  {name:'Face pull en polea',                         pat:'pull_h',muscle:'Hombros',   sec:['Espalda'],          loc:['gym'],        eq:'cable',     lvl:['beginner','intermediate','advanced'],ji:'low',cpd:false,tip:'Polea a altura de cabeza, codos arriba al tirar',          noFor:[],multiplicador_peso:0.10},
+  {name:'Remo invertido en mesa',                     pat:'pull_h',muscle:'Espalda',   sec:['Bíceps'],           loc:['home'],       eq:'household', lvl:['beginner','intermediate'],ji:'low',   cpd:true, tip:'Cuerpo rígido, tira el pecho a la mesa',                         noFor:[],multiplicador_peso:0},
+  {name:'Remo en polea un brazo',                     pat:'pull_h',muscle:'Espalda',   sec:['Bíceps'],           loc:['gym'],        eq:'cable',     lvl:['intermediate','advanced'],ji:'low',   cpd:true, tip:'Rota el torso para mayor rango de movimiento',                   noFor:[],multiplicador_peso:0.20},
+  {name:'Remo con agarre neutro en polea',            pat:'pull_h',muscle:'Espalda',   sec:['Bíceps'],           loc:['gym'],        eq:'cable',     lvl:['beginner','intermediate'],ji:'low',   cpd:true, tip:'Agarre neutro reduce estrés en muñecas',                         noFor:[],multiplicador_peso:0.25},
 
-  // ── JALÓN VERTICAL (pull_v) ──────────────────────────────────────────────
-  {name:'Jalón al pecho agarre abierto',   pat:'pull_v',muscle:'Espalda',   sec:['Bíceps'],           loc:['gym'],        eq:'machine',   lvl:['beginner','intermediate','advanced'],ji:'low',cpd:true, tip:'Lleva la barra a la clavícula, pecho arriba',noFor:[]},
-  {name:'Jalón al pecho agarre neutro',    pat:'pull_v',muscle:'Espalda',   sec:['Bíceps'],           loc:['gym'],        eq:'machine',   lvl:['beginner','intermediate','advanced'],ji:'low',cpd:true, tip:'Codos bajan al lado del torso al jalar',noFor:[]},
-  {name:'Jalón en polea agarre cerrado',   pat:'pull_v',muscle:'Espalda',   sec:['Bíceps'],           loc:['gym'],        eq:'cable',     lvl:['intermediate','advanced'],ji:'low',   cpd:true, tip:'Barra a la barbilla, aprieta la espalda abajo',noFor:[]},
-  {name:'Dominadas pronadas (pull-up)',     pat:'pull_v',muscle:'Espalda',   sec:['Bíceps','Core'],    loc:['gym','home'], eq:'bodyweight',lvl:['advanced'],               ji:'high',  cpd:true, tip:'Cuerpo rígido, escápulas activadas antes de jalar',noFor:['shoulder_injury','joint_injury']},
-  {name:'Dominadas supinas (chin-up)',      pat:'pull_v',muscle:'Espalda',   sec:['Bíceps'],           loc:['gym','home'], eq:'bodyweight',lvl:['intermediate','advanced'],ji:'high',  cpd:true, tip:'Supinación maximiza activación del bíceps',noFor:['shoulder_injury']},
-  {name:'Dominadas neutras',               pat:'pull_v',muscle:'Espalda',   sec:['Bíceps'],           loc:['gym'],        eq:'bodyweight',lvl:['intermediate','advanced'],ji:'high',  cpd:true, tip:'Agarre neutro = menos estrés en muñecas',noFor:['shoulder_injury']},
-  {name:'Pullover con mancuerna',          pat:'pull_v',muscle:'Espalda',   sec:['Pecho'],            loc:['gym','home'], eq:'dumbbell',  lvl:['intermediate','advanced'],ji:'medium',cpd:false,tip:'Mantén codos ligeramente doblados en todo el arco',noFor:['shoulder_injury']},
-  {name:'Pullover en polea',               pat:'pull_v',muscle:'Espalda',   sec:['Pecho'],            loc:['gym'],        eq:'cable',     lvl:['intermediate','advanced'],ji:'low',   cpd:false,tip:'Usa el dorsal, no los brazos para bajar la cuerda',noFor:[]},
+  // ── JALÓN VERTICAL (pull_v) — 8 ejercicios de espalda ────────────────────
+  {name:'Jalón al pecho agarre abierto',              pat:'pull_v',muscle:'Espalda',   sec:['Bíceps'],           loc:['gym'],        eq:'machine',   lvl:['beginner','intermediate','advanced'],ji:'low',cpd:true, tip:'Lleva la barra a la clavícula, pecho arriba',              noFor:[],multiplicador_peso:0.28},
+  {name:'Jalón al pecho agarre neutro',               pat:'pull_v',muscle:'Espalda',   sec:['Bíceps'],           loc:['gym'],        eq:'machine',   lvl:['beginner','intermediate','advanced'],ji:'low',cpd:true, tip:'Codos bajan al lado del torso al jalar',                   noFor:[],multiplicador_peso:0.28},
+  {name:'Jalón en polea agarre cerrado',              pat:'pull_v',muscle:'Espalda',   sec:['Bíceps'],           loc:['gym'],        eq:'cable',     lvl:['intermediate','advanced'],ji:'low',   cpd:true, tip:'Barra a la barbilla, aprieta la espalda abajo',                  noFor:[],multiplicador_peso:0.25},
+  {name:'Dominadas pronadas (pull-up)',                pat:'pull_v',muscle:'Espalda',   sec:['Bíceps','Core'],    loc:['gym','home'], eq:'bodyweight',lvl:['advanced'],               ji:'high',  cpd:true, tip:'Cuerpo rígido, escápulas activadas antes de jalar',               noFor:['shoulder_injury','joint_injury'],multiplicador_peso:0},
+  {name:'Dominadas supinas (chin-up)',                 pat:'pull_v',muscle:'Espalda',   sec:['Bíceps'],           loc:['gym','home'], eq:'bodyweight',lvl:['intermediate','advanced'],ji:'high',  cpd:true, tip:'Supinación maximiza activación del bíceps',                       noFor:['shoulder_injury'],multiplicador_peso:0},
+  {name:'Dominadas neutras',                          pat:'pull_v',muscle:'Espalda',   sec:['Bíceps'],           loc:['gym'],        eq:'bodyweight',lvl:['intermediate','advanced'],ji:'high',  cpd:true, tip:'Agarre neutro = menos estrés en muñecas',                        noFor:['shoulder_injury'],multiplicador_peso:0},
+  {name:'Pullover con mancuerna',                     pat:'pull_v',muscle:'Espalda',   sec:['Pecho'],            loc:['gym','home'], eq:'dumbbell',  lvl:['intermediate','advanced'],ji:'medium',cpd:false,tip:'Mantén codos ligeramente doblados en todo el arco',              noFor:['shoulder_injury'],multiplicador_peso:0.12},
+  {name:'Pullover en polea',                          pat:'pull_v',muscle:'Espalda',   sec:['Pecho'],            loc:['gym'],        eq:'cable',     lvl:['intermediate','advanced'],ji:'low',   cpd:false,tip:'Usa el dorsal, no los brazos para bajar la cuerda',               noFor:[],multiplicador_peso:0.12},
 
-  // ── SENTADILLA — dominante de rodilla (squat) ────────────────────────────
-  {name:'Sentadilla trasera con barra',    pat:'squat', muscle:'Cuádriceps',sec:['Glúteos','Core'],   loc:['gym'],        eq:'barbell',   lvl:['intermediate','advanced'],ji:'high',  cpd:true, tip:'Rodillas sobre pies, pecho arriba',noFor:['back_pain','knee_injury','joint_injury']},
-  {name:'Sentadilla frontal con barra',    pat:'squat', muscle:'Cuádriceps',sec:['Core','Glúteos'],   loc:['gym'],        eq:'barbell',   lvl:['advanced'],               ji:'high',  cpd:true, tip:'Codos arriba, espalda vertical',noFor:['back_pain','joint_injury']},
-  {name:'Sentadilla goblet con mancuerna', pat:'squat', muscle:'Cuádriceps',sec:['Glúteos','Core'],   loc:['gym','home'], eq:'dumbbell',  lvl:['beginner','intermediate'],ji:'medium',cpd:true, tip:'Mancuerna en el pecho, talones en el suelo',noFor:[]},
-  {name:'Sentadilla búlgara con mancuernas',pat:'squat',muscle:'Cuádriceps',sec:['Glúteos'],          loc:['gym','home'], eq:'dumbbell',  lvl:['intermediate','advanced'],ji:'medium',cpd:true, tip:'Rodilla delantera no sobrepasa la punta del pie',noFor:['knee_injury']},
-  {name:'Prensa de pierna 45°',            pat:'squat', muscle:'Cuádriceps',sec:['Glúteos'],          loc:['gym'],        eq:'machine',   lvl:['beginner','intermediate','advanced'],ji:'low',cpd:true, tip:'No bloquees las rodillas arriba',noFor:['back_pain']},
-  {name:'Hack squat en máquina',           pat:'squat', muscle:'Cuádriceps',sec:['Glúteos'],          loc:['gym'],        eq:'machine',   lvl:['intermediate','advanced'],ji:'medium',cpd:true, tip:'Pies bajos en la plataforma = más cuádriceps',noFor:['knee_injury']},
-  {name:'Extensión de cuádriceps',         pat:'squat', muscle:'Cuádriceps',sec:[],                   loc:['gym'],        eq:'machine',   lvl:['beginner','intermediate','advanced'],ji:'low',cpd:false,tip:'Pausa 1 seg arriba, baja controlado',noFor:['knee_injury']},
-  {name:'Sentadilla sin peso',             pat:'squat', muscle:'Cuádriceps',sec:['Glúteos','Core'],   loc:['home'],       eq:'bodyweight',lvl:['beginner'],               ji:'low',   cpd:true, tip:'Desciende hasta muslos paralelos al suelo',noFor:[]},
-  {name:'Sentadilla sumo sin peso',        pat:'squat', muscle:'Cuádriceps',sec:['Glúteos','Aductores'],loc:['home'],     eq:'bodyweight',lvl:['beginner','intermediate'],ji:'low',   cpd:true, tip:'Pies separados y puntando afuera 45°',noFor:[]},
-  {name:'Sentadilla a una pierna asistida',pat:'squat', muscle:'Cuádriceps',sec:['Glúteos','Equilibrio'],loc:['home'],    eq:'bodyweight',lvl:['intermediate'],           ji:'medium',cpd:true, tip:'Apóyate en una pared o poste para balance',noFor:['knee_injury']},
-  {name:'Pistol squat asistido',           pat:'squat', muscle:'Cuádriceps',sec:['Glúteos','Core'],   loc:['gym','home'], eq:'bodyweight',lvl:['advanced'],               ji:'medium',cpd:true, tip:'Agárrate de un soporte y controla el descenso',noFor:['knee_injury','joint_injury']},
-  {name:'Sentadilla sumo con mancuerna',   pat:'squat', muscle:'Cuádriceps',sec:['Glúteos','Aductores'],loc:['gym','home'],eq:'dumbbell', lvl:['beginner','intermediate'],ji:'low',   cpd:true, tip:'Mancuerna colgando al centro, pies abiertos',noFor:[]},
+  // ── SENTADILLA (squat) — 12 ejercicios ───────────────────────────────────
+  {name:'Sentadilla trasera con barra',               pat:'squat', muscle:'Cuádriceps',sec:['Glúteos','Core'],      loc:['gym'],        eq:'barbell',   lvl:['intermediate','advanced'],ji:'high',  cpd:true, tip:'Rodillas sobre pies, pecho arriba',noFor:['back_pain','knee_injury','joint_injury'],multiplicador_peso:0.60},
+  {name:'Sentadilla frontal con barra',               pat:'squat', muscle:'Cuádriceps',sec:['Core','Glúteos'],      loc:['gym'],        eq:'barbell',   lvl:['advanced'],               ji:'high',  cpd:true, tip:'Codos arriba, espalda vertical',noFor:['back_pain','joint_injury'],multiplicador_peso:0.50},
+  {name:'Sentadilla goblet con mancuerna',            pat:'squat', muscle:'Cuádriceps',sec:['Glúteos','Core'],      loc:['gym','home'], eq:'dumbbell',  lvl:['beginner','intermediate'],ji:'medium',cpd:true, tip:'Mancuerna en el pecho, talones en el suelo',noFor:[],multiplicador_peso:0.25},
+  {name:'Sentadilla búlgara con mancuernas',          pat:'squat', muscle:'Cuádriceps',sec:['Glúteos'],             loc:['gym','home'], eq:'dumbbell',  lvl:['intermediate','advanced'],ji:'medium',cpd:true, tip:'Rodilla delantera no sobrepasa la punta del pie',noFor:['knee_injury'],multiplicador_peso:0.20},
+  {name:'Prensa de pierna 45°',                       pat:'squat', muscle:'Cuádriceps',sec:['Glúteos'],             loc:['gym'],        eq:'machine',   lvl:['beginner','intermediate','advanced'],ji:'low',cpd:true, tip:'No bloquees las rodillas arriba',noFor:['back_pain'],multiplicador_peso:0.80},
+  {name:'Hack squat en máquina',                      pat:'squat', muscle:'Cuádriceps',sec:['Glúteos'],             loc:['gym'],        eq:'machine',   lvl:['intermediate','advanced'],ji:'medium',cpd:true, tip:'Pies bajos en la plataforma = más cuádriceps',noFor:['knee_injury'],multiplicador_peso:0.60},
+  {name:'Extensión de cuádriceps',                    pat:'squat', muscle:'Cuádriceps',sec:[],                      loc:['gym'],        eq:'machine',   lvl:['beginner','intermediate','advanced'],ji:'low',cpd:false,tip:'Pausa 1 seg arriba, baja controlado',noFor:['knee_injury'],multiplicador_peso:0.25},
+  {name:'Sentadilla sin peso',                        pat:'squat', muscle:'Cuádriceps',sec:['Glúteos','Core'],      loc:['home'],       eq:'bodyweight',lvl:['beginner'],               ji:'low',   cpd:true, tip:'Desciende hasta muslos paralelos al suelo',noFor:[],multiplicador_peso:0},
+  {name:'Sentadilla sumo sin peso',                   pat:'squat', muscle:'Cuádriceps',sec:['Glúteos','Aductores'], loc:['home'],       eq:'bodyweight',lvl:['beginner','intermediate'],ji:'low',   cpd:true, tip:'Pies separados y puntando afuera 45°',noFor:[],multiplicador_peso:0},
+  {name:'Sentadilla a una pierna asistida',           pat:'squat', muscle:'Cuádriceps',sec:['Glúteos'],             loc:['home'],       eq:'bodyweight',lvl:['intermediate'],           ji:'medium',cpd:true, tip:'Apóyate en una pared o poste para balance',noFor:['knee_injury'],multiplicador_peso:0},
+  {name:'Pistol squat asistido',                      pat:'squat', muscle:'Cuádriceps',sec:['Glúteos','Core'],      loc:['gym','home'], eq:'bodyweight',lvl:['advanced'],               ji:'medium',cpd:true, tip:'Agárrate de un soporte y controla el descenso',noFor:['knee_injury','joint_injury'],multiplicador_peso:0},
+  {name:'Sentadilla sumo con mancuerna',              pat:'squat', muscle:'Cuádriceps',sec:['Glúteos','Aductores'], loc:['gym','home'], eq:'dumbbell',  lvl:['beginner','intermediate'],ji:'low',   cpd:true, tip:'Mancuerna colgando al centro, pies abiertos',noFor:[],multiplicador_peso:0.25},
 
-  // ── BISAGRA DE CADERA — dominante de cadera (hinge) ─────────────────────
-  {name:'Peso muerto convencional',        pat:'hinge', muscle:'Isquiotibiales',sec:['Glúteos','Espalda','Core'],loc:['gym'],eq:'barbell',lvl:['intermediate','advanced'],ji:'high',cpd:true,  tip:'Barra pegada al cuerpo, espalda neutral',noFor:['back_pain']},
-  {name:'Peso muerto rumano con barra',    pat:'hinge', muscle:'Isquiotibiales',sec:['Glúteos','Core'],loc:['gym'],       eq:'barbell',   lvl:['intermediate','advanced'],ji:'medium',cpd:true, tip:'Bisagra en cadera, barra baja hasta media espinilla',noFor:['back_pain']},
-  {name:'Peso muerto sumo con barra',      pat:'hinge', muscle:'Isquiotibiales',sec:['Glúteos','Aductores'],loc:['gym'],  eq:'barbell',   lvl:['intermediate','advanced'],ji:'high',  cpd:true, tip:'Agarre dentro de las rodillas, pecho arriba',noFor:['back_pain','joint_injury']},
-  {name:'Peso muerto rumano con mancuernas',pat:'hinge',muscle:'Isquiotibiales',sec:['Glúteos'],       loc:['gym','home'],eq:'dumbbell',  lvl:['beginner','intermediate','advanced'],ji:'medium',cpd:true,tip:'Mancuernas rozan los muslos todo el recorrido',noFor:[]},
-  {name:'Hip thrust con barra',            pat:'hinge', muscle:'Glúteos',     sec:['Isquiotibiales'],  loc:['gym'],        eq:'barbell',   lvl:['intermediate','advanced'],ji:'medium',cpd:true, tip:'Espalda en borde del banco, empuja el suelo',noFor:['back_pain']},
-  {name:'Hip thrust con mancuerna',        pat:'hinge', muscle:'Glúteos',     sec:['Isquiotibiales'],  loc:['gym','home'], eq:'dumbbell',  lvl:['beginner','intermediate','advanced'],ji:'low',cpd:true, tip:'Presiona el abdomen y activa glúteo arriba',noFor:[]},
-  {name:'Puente de glúteos',               pat:'hinge', muscle:'Glúteos',     sec:['Isquiotibiales','Core'],loc:['gym','home'],eq:'bodyweight',lvl:['beginner','intermediate'],ji:'low',cpd:true,tip:'Aprieta el glúteo 2 seg en la posición alta',noFor:[]},
-  {name:'Puente de glúteos unilateral',    pat:'hinge', muscle:'Glúteos',     sec:['Core'],            loc:['gym','home'], eq:'bodyweight',lvl:['intermediate','advanced'],ji:'low',   cpd:true, tip:'Rodilla libre flexionada, caderas niveladas',noFor:[]},
-  {name:'Curl femoral tumbado',            pat:'hinge', muscle:'Isquiotibiales',sec:[],                loc:['gym'],        eq:'machine',   lvl:['beginner','intermediate','advanced'],ji:'low',cpd:false,tip:'Baja controlado (excéntrico lento = más hipertrofia)',noFor:[]},
-  {name:'Curl femoral sentado',            pat:'hinge', muscle:'Isquiotibiales',sec:[],                loc:['gym'],        eq:'machine',   lvl:['intermediate','advanced'],ji:'low',   cpd:false,tip:'Mayor rango de movimiento que el curl tumbado',noFor:[]},
-  {name:'Patada de glúteo en polea',       pat:'hinge', muscle:'Glúteos',     sec:[],                  loc:['gym'],        eq:'cable',     lvl:['beginner','intermediate'],ji:'low',   cpd:false,tip:'Pelvis estable, no uses el torso para empujar',noFor:[]},
-  {name:'Abducción de cadera en máquina',  pat:'hinge', muscle:'Glúteos',     sec:[],                  loc:['gym'],        eq:'machine',   lvl:['beginner','intermediate'],ji:'low',   cpd:false,tip:'No muevas el torso lateral al empujar',noFor:[]},
-  {name:'Good morning con barra',          pat:'hinge', muscle:'Isquiotibiales',sec:['Glúteos','Core'],loc:['gym'],        eq:'barbell',   lvl:['advanced'],               ji:'high',  cpd:true, tip:'Rodillas ligeramente flexionadas, espalda neutral',noFor:['back_pain']},
+  // ── BISAGRA DE CADERA (hinge) — 13 ejercicios ────────────────────────────
+  {name:'Peso muerto convencional',                   pat:'hinge', muscle:'Isquiotibiales',sec:['Glúteos','Espalda','Core'],loc:['gym'],eq:'barbell',lvl:['intermediate','advanced'],ji:'high',cpd:true, tip:'Barra pegada al cuerpo, espalda neutral',noFor:['back_pain'],multiplicador_peso:0.60},
+  {name:'Peso muerto rumano con barra',               pat:'hinge', muscle:'Isquiotibiales',sec:['Glúteos','Core'],       loc:['gym'],        eq:'barbell',   lvl:['intermediate','advanced'],ji:'medium',cpd:true, tip:'Bisagra en cadera, barra baja hasta media espinilla',noFor:['back_pain'],multiplicador_peso:0.55},
+  {name:'Peso muerto sumo con barra',                 pat:'hinge', muscle:'Isquiotibiales',sec:['Glúteos','Aductores'],  loc:['gym'],        eq:'barbell',   lvl:['intermediate','advanced'],ji:'high',  cpd:true, tip:'Agarre dentro de las rodillas, pecho arriba',noFor:['back_pain','joint_injury'],multiplicador_peso:0.65},
+  {name:'Peso muerto rumano con mancuernas',          pat:'hinge', muscle:'Isquiotibiales',sec:['Glúteos'],              loc:['gym','home'], eq:'dumbbell',  lvl:['beginner','intermediate','advanced'],ji:'medium',cpd:true,tip:'Mancuernas rozan los muslos todo el recorrido',noFor:[],multiplicador_peso:0.40},
+  {name:'Hip thrust con barra',                       pat:'hinge', muscle:'Glúteos',       sec:['Isquiotibiales'],       loc:['gym'],        eq:'barbell',   lvl:['intermediate','advanced'],ji:'medium',cpd:true, tip:'Espalda en borde del banco, empuja el suelo',noFor:['back_pain'],multiplicador_peso:0.55},
+  {name:'Hip thrust con mancuerna',                   pat:'hinge', muscle:'Glúteos',       sec:['Isquiotibiales'],       loc:['gym','home'], eq:'dumbbell',  lvl:['beginner','intermediate','advanced'],ji:'low',cpd:true, tip:'Presiona el abdomen y activa glúteo arriba',noFor:[],multiplicador_peso:0.35},
+  {name:'Puente de glúteos',                          pat:'hinge', muscle:'Glúteos',       sec:['Isquiotibiales','Core'],loc:['gym','home'], eq:'bodyweight',lvl:['beginner','intermediate'],ji:'low', cpd:true, tip:'Aprieta el glúteo 2 seg en la posición alta',noFor:[],multiplicador_peso:0},
+  {name:'Puente de glúteos unilateral',               pat:'hinge', muscle:'Glúteos',       sec:['Core'],                 loc:['gym','home'], eq:'bodyweight',lvl:['intermediate','advanced'],ji:'low',  cpd:true, tip:'Rodilla libre flexionada, caderas niveladas',noFor:[],multiplicador_peso:0},
+  {name:'Curl femoral tumbado',                       pat:'hinge', muscle:'Isquiotibiales',sec:[],                       loc:['gym'],        eq:'machine',   lvl:['beginner','intermediate','advanced'],ji:'low',cpd:false,tip:'Baja controlado (excéntrico lento = más hipertrofia)',noFor:[],multiplicador_peso:0.22},
+  {name:'Curl femoral sentado',                       pat:'hinge', muscle:'Isquiotibiales',sec:[],                       loc:['gym'],        eq:'machine',   lvl:['intermediate','advanced'],ji:'low',   cpd:false,tip:'Mayor rango de movimiento que el curl tumbado',noFor:[],multiplicador_peso:0.22},
+  {name:'Patada de glúteo en polea',                  pat:'hinge', muscle:'Glúteos',       sec:[],                       loc:['gym'],        eq:'cable',     lvl:['beginner','intermediate'],ji:'low',   cpd:false,tip:'Pelvis estable, no uses el torso para empujar',noFor:[],multiplicador_peso:0.05},
+  {name:'Abducción de cadera en máquina',             pat:'hinge', muscle:'Glúteos',       sec:[],                       loc:['gym'],        eq:'machine',   lvl:['beginner','intermediate'],ji:'low',   cpd:false,tip:'No muevas el torso lateral al empujar',noFor:[],multiplicador_peso:0.15},
+  {name:'Good morning con barra',                     pat:'hinge', muscle:'Isquiotibiales',sec:['Glúteos','Core'],       loc:['gym'],        eq:'barbell',   lvl:['advanced'],               ji:'high',  cpd:true, tip:'Rodillas ligeramente flexionadas, espalda neutral',noFor:['back_pain'],multiplicador_peso:0.30},
 
-  // ── LOCOMOCIÓN (locomotion) ───────────────────────────────────────────────
-  {name:'Zancadas con barra',              pat:'locomotion',muscle:'Cuádriceps',sec:['Glúteos','Core'],loc:['gym'],       eq:'barbell',   lvl:['intermediate','advanced'],ji:'medium',cpd:true, tip:'Paso amplio, rodilla trasera sin tocar el suelo',noFor:['back_pain','knee_injury']},
-  {name:'Zancadas con mancuernas',         pat:'locomotion',muscle:'Cuádriceps',sec:['Glúteos'],       loc:['gym','home'],eq:'dumbbell',  lvl:['beginner','intermediate','advanced'],ji:'medium',cpd:true,tip:'Mantén torso vertical durante todo el paso',noFor:['knee_injury']},
-  {name:'Zancadas alternas sin peso',      pat:'locomotion',muscle:'Cuádriceps',sec:['Glúteos'],       loc:['home'],       eq:'bodyweight',lvl:['beginner'],               ji:'low',   cpd:true, tip:'Alterna piernas, controla el descenso',noFor:[]},
-  {name:'Zancadas hacia atrás',            pat:'locomotion',muscle:'Cuádriceps',sec:['Glúteos'],       loc:['gym','home'], eq:'bodyweight',lvl:['beginner','intermediate'],ji:'low',   cpd:true, tip:'Paso atrás, rodilla delantera estable',noFor:[]},
-  {name:'Zancadas laterales',              pat:'locomotion',muscle:'Cuádriceps',sec:['Glúteos','Aductores'],loc:['home'],  eq:'bodyweight',lvl:['intermediate','advanced'],ji:'medium',cpd:true, tip:'Punta del pie afuera, sienta la cadera atrás',noFor:['knee_injury']},
-  {name:'Step-up con mancuernas',          pat:'locomotion',muscle:'Cuádriceps',sec:['Glúteos'],       loc:['gym','home'], eq:'dumbbell',  lvl:['intermediate','advanced'],ji:'medium',cpd:true, tip:'Empuja desde el talón de la pierna de trabajo',noFor:['knee_injury']},
-  {name:'Step-up sin peso',               pat:'locomotion',muscle:'Cuádriceps',sec:['Glúteos','Equilibrio'],loc:['home'],  eq:'bodyweight',lvl:['beginner','intermediate'],ji:'low',  cpd:true, tip:'Usa un escalón o caja estable',noFor:[]},
-  {name:'Split squat',                     pat:'locomotion',muscle:'Cuádriceps',sec:['Glúteos'],       loc:['gym','home'], eq:'bodyweight',lvl:['beginner','intermediate'],ji:'medium',cpd:true, tip:'Posición estática de zancada, trabaja la pierna delantera',noFor:['knee_injury']},
+  // ── LOCOMOCIÓN (locomotion) — 8 ejercicios ────────────────────────────────
+  {name:'Zancadas con barra',                         pat:'locomotion',muscle:'Cuádriceps',sec:['Glúteos','Core'],      loc:['gym'],        eq:'barbell',   lvl:['intermediate','advanced'],ji:'medium',cpd:true, tip:'Paso amplio, rodilla trasera sin tocar el suelo',noFor:['back_pain','knee_injury'],multiplicador_peso:0.30},
+  {name:'Zancadas con mancuernas',                    pat:'locomotion',muscle:'Cuádriceps',sec:['Glúteos'],             loc:['gym','home'], eq:'dumbbell',  lvl:['beginner','intermediate','advanced'],ji:'medium',cpd:true,tip:'Mantén torso vertical durante todo el paso',noFor:['knee_injury'],multiplicador_peso:0.20},
+  {name:'Zancadas alternas sin peso',                 pat:'locomotion',muscle:'Cuádriceps',sec:['Glúteos'],             loc:['home'],       eq:'bodyweight',lvl:['beginner'],               ji:'low',   cpd:true, tip:'Alterna piernas, controla el descenso',noFor:[],multiplicador_peso:0},
+  {name:'Zancadas hacia atrás',                       pat:'locomotion',muscle:'Cuádriceps',sec:['Glúteos'],             loc:['gym','home'], eq:'bodyweight',lvl:['beginner','intermediate'],ji:'low',   cpd:true, tip:'Paso atrás, rodilla delantera estable',noFor:[],multiplicador_peso:0},
+  {name:'Zancadas laterales',                         pat:'locomotion',muscle:'Cuádriceps',sec:['Glúteos','Aductores'], loc:['home'],       eq:'bodyweight',lvl:['intermediate','advanced'],ji:'medium',cpd:true, tip:'Punta del pie afuera, sienta la cadera atrás',noFor:['knee_injury'],multiplicador_peso:0},
+  {name:'Step-up con mancuernas',                     pat:'locomotion',muscle:'Cuádriceps',sec:['Glúteos'],             loc:['gym','home'], eq:'dumbbell',  lvl:['intermediate','advanced'],ji:'medium',cpd:true, tip:'Empuja desde el talón de la pierna de trabajo',noFor:['knee_injury'],multiplicador_peso:0.18},
+  {name:'Step-up sin peso',                           pat:'locomotion',muscle:'Cuádriceps',sec:['Glúteos'],             loc:['home'],       eq:'bodyweight',lvl:['beginner','intermediate'],ji:'low',   cpd:true, tip:'Usa un escalón o caja estable',noFor:[],multiplicador_peso:0},
+  {name:'Split squat',                                pat:'locomotion',muscle:'Cuádriceps',sec:['Glúteos'],             loc:['gym','home'], eq:'bodyweight',lvl:['beginner','intermediate'],ji:'medium',cpd:true, tip:'Posición estática de zancada, trabaja la pierna delantera',noFor:['knee_injury'],multiplicador_peso:0},
 
-  // ── AISLAMIENTOS — bíceps, tríceps, hombros ──────────────────────────────
-  {name:'Curl de bíceps con barra',        pat:'isolation',muscle:'Bíceps',   sec:[],                  loc:['gym'],        eq:'barbell',   lvl:['beginner','intermediate','advanced'],ji:'low',cpd:false,tip:'No balancees el cuerpo; codos pegados al torso',noFor:[]},
-  {name:'Curl de bíceps con mancuernas',   pat:'isolation',muscle:'Bíceps',   sec:[],                  loc:['gym','home'], eq:'dumbbell',  lvl:['beginner','intermediate','advanced'],ji:'low',cpd:false,tip:'Supina la muñeca durante el recorrido',noFor:[]},
-  {name:'Curl concentrado',                pat:'isolation',muscle:'Bíceps',   sec:[],                  loc:['gym','home'], eq:'dumbbell',  lvl:['intermediate','advanced'],ji:'low',   cpd:false,tip:'Codo en la rodilla interior, sin inercia',noFor:[]},
-  {name:'Curl en polea baja',              pat:'isolation',muscle:'Bíceps',   sec:[],                  loc:['gym'],        eq:'cable',     lvl:['intermediate','advanced'],ji:'low',   cpd:false,tip:'Tensión constante a diferencia del curl libre',noFor:[]},
-  {name:'Curl predicador con barra EZ',    pat:'isolation',muscle:'Bíceps',   sec:[],                  loc:['gym'],        eq:'barbell',   lvl:['intermediate','advanced'],ji:'low',   cpd:false,tip:'No extiendas completamente los codos abajo',noFor:['joint_injury']},
-  {name:'Extensión de tríceps en polea',   pat:'isolation',muscle:'Tríceps',  sec:[],                  loc:['gym'],        eq:'cable',     lvl:['beginner','intermediate','advanced'],ji:'low',cpd:false,tip:'Codos fijos al torso, extensión completa abajo',noFor:[]},
-  {name:'Press francés con barra EZ',      pat:'isolation',muscle:'Tríceps',  sec:[],                  loc:['gym'],        eq:'barbell',   lvl:['intermediate','advanced'],ji:'medium',cpd:false,tip:'Solo el antebrazo se mueve; codos apuntando al techo',noFor:['joint_injury']},
-  {name:'Extensión de tríceps overhead',   pat:'isolation',muscle:'Tríceps',  sec:[],                  loc:['gym','home'], eq:'dumbbell',  lvl:['intermediate','advanced'],ji:'low',   cpd:false,tip:'Estira la cabeza larga del tríceps al máximo',noFor:['shoulder_injury']},
-  {name:'Kickback de tríceps',             pat:'isolation',muscle:'Tríceps',  sec:[],                  loc:['gym','home'], eq:'dumbbell',  lvl:['intermediate'],           ji:'low',   cpd:false,tip:'Codo fijo, solo extiende el antebrazo atrás',noFor:[]},
-  {name:'Elevaciones laterales',           pat:'isolation',muscle:'Hombros',  sec:[],                  loc:['gym','home'], eq:'dumbbell',  lvl:['beginner','intermediate','advanced'],ji:'low',cpd:false,tip:'Codos ligeramente doblados, lleva hasta la horizontal',noFor:['shoulder_injury']},
-  {name:'Elevaciones frontales',           pat:'isolation',muscle:'Hombros',  sec:[],                  loc:['gym','home'], eq:'dumbbell',  lvl:['beginner','intermediate'],ji:'low',   cpd:false,tip:'Alterna brazos o hazlo simultáneo a baja carga',noFor:['shoulder_injury']},
-  {name:'Pájaro (posterior del deltoides)',pat:'isolation',muscle:'Hombros',  sec:['Espalda'],          loc:['gym','home'], eq:'dumbbell',  lvl:['intermediate','advanced'],ji:'low',   cpd:false,tip:'Torso horizontal a 90°, codos ligeramente flexionados',noFor:[]},
-  {name:'Encogimientos de hombros',        pat:'isolation',muscle:'Trapecios',sec:[],                  loc:['gym','home'], eq:'dumbbell',  lvl:['beginner','intermediate'],ji:'low',   cpd:false,tip:'Solo sube y baja; no rotar los hombros',noFor:[]},
+  // ── AISLAMIENTOS — BÍCEPS (10 ejercicios) ─────────────────────────────────
+  {name:'Curl de bíceps con barra',                   pat:'isolation',muscle:'Bíceps',   sec:[],loc:['gym'],        eq:'barbell',   lvl:['beginner','intermediate','advanced'],ji:'low',cpd:false,tip:'No balancees el cuerpo; codos pegados al torso',noFor:[],multiplicador_peso:0.15},
+  {name:'Curl de bíceps con mancuernas',              pat:'isolation',muscle:'Bíceps',   sec:[],loc:['gym','home'], eq:'dumbbell',  lvl:['beginner','intermediate','advanced'],ji:'low',cpd:false,tip:'Supina la muñeca durante el recorrido',noFor:[],multiplicador_peso:0.12},
+  {name:'Curl concentrado',                           pat:'isolation',muscle:'Bíceps',   sec:[],loc:['gym','home'], eq:'dumbbell',  lvl:['intermediate','advanced'],ji:'low',   cpd:false,tip:'Codo en la rodilla interior, sin inercia',noFor:[],multiplicador_peso:0.10},
+  {name:'Curl en polea baja',                         pat:'isolation',muscle:'Bíceps',   sec:[],loc:['gym'],        eq:'cable',     lvl:['intermediate','advanced'],ji:'low',   cpd:false,tip:'Tensión constante a diferencia del curl libre',noFor:[],multiplicador_peso:0.12},
+  {name:'Curl predicador con barra EZ',               pat:'isolation',muscle:'Bíceps',   sec:[],loc:['gym'],        eq:'barbell',   lvl:['intermediate','advanced'],ji:'low',   cpd:false,tip:'No extiendas completamente los codos abajo',noFor:['joint_injury'],multiplicador_peso:0.12},
+  {name:'Curl martillo con mancuernas',               pat:'isolation',muscle:'Bíceps',   sec:[],loc:['gym','home'], eq:'dumbbell',  lvl:['beginner','intermediate','advanced'],ji:'low',cpd:false,tip:'Agarre neutro activa el braquial y el antebrazo',noFor:[],multiplicador_peso:0.13},
+  {name:'Curl inclinado en banco',                    pat:'isolation',muscle:'Bíceps',   sec:[],loc:['gym','home'], eq:'dumbbell',  lvl:['intermediate','advanced'],ji:'low',   cpd:false,tip:'Banco a 45°, alarga la cabeza larga del bíceps',noFor:[],multiplicador_peso:0.10},
+  {name:'Curl con barra EZ de pie',                   pat:'isolation',muscle:'Bíceps',   sec:[],loc:['gym'],        eq:'barbell',   lvl:['beginner','intermediate'],ji:'low',   cpd:false,tip:'Barra EZ reduce estrés en las muñecas vs barra recta',noFor:['joint_injury'],multiplicador_peso:0.13},
+  {name:'Curl en polea alta',                         pat:'isolation',muscle:'Bíceps',   sec:[],loc:['gym'],        eq:'cable',     lvl:['intermediate','advanced'],ji:'low',   cpd:false,tip:'Codo alto y fijo; solo el antebrazo se acerca a la cabeza',noFor:[],multiplicador_peso:0.10},
+  {name:'Curl de araña con mancuerna',                pat:'isolation',muscle:'Bíceps',   sec:[],loc:['gym','home'], eq:'dumbbell',  lvl:['intermediate','advanced'],ji:'low',   cpd:false,tip:'Pecho apoyado en banco inclinado, codos apuntan al suelo',noFor:[],multiplicador_peso:0.10},
+
+  // ── AISLAMIENTOS — TRÍCEPS (10 ejercicios) ────────────────────────────────
+  {name:'Extensión de tríceps en polea',              pat:'isolation',muscle:'Tríceps',  sec:[],loc:['gym'],        eq:'cable',     lvl:['beginner','intermediate','advanced'],ji:'low',cpd:false,tip:'Codos fijos al torso, extensión completa abajo',noFor:[],multiplicador_peso:0.12},
+  {name:'Extensión de tríceps con cuerda en polea',   pat:'isolation',muscle:'Tríceps',  sec:[],loc:['gym'],        eq:'cable',     lvl:['beginner','intermediate','advanced'],ji:'low',cpd:false,tip:'Abre las muñecas al final para mayor rango',noFor:[],multiplicador_peso:0.12},
+  {name:'Press francés con barra EZ',                 pat:'isolation',muscle:'Tríceps',  sec:[],loc:['gym'],        eq:'barbell',   lvl:['intermediate','advanced'],ji:'medium',cpd:false,tip:'Solo el antebrazo se mueve; codos apuntando al techo',noFor:['joint_injury'],multiplicador_peso:0.15},
+  {name:'Extensión de tríceps overhead',              pat:'isolation',muscle:'Tríceps',  sec:[],loc:['gym','home'], eq:'dumbbell',  lvl:['intermediate','advanced'],ji:'low',   cpd:false,tip:'Estira la cabeza larga del tríceps al máximo',noFor:['shoulder_injury'],multiplicador_peso:0.12},
+  {name:'Kickback de tríceps',                        pat:'isolation',muscle:'Tríceps',  sec:[],loc:['gym','home'], eq:'dumbbell',  lvl:['intermediate'],           ji:'low',   cpd:false,tip:'Codo fijo, solo extiende el antebrazo atrás',noFor:[],multiplicador_peso:0.08},
+  {name:'Press de tríceps en polea baja',             pat:'isolation',muscle:'Tríceps',  sec:[],loc:['gym'],        eq:'cable',     lvl:['intermediate'],           ji:'low',   cpd:false,tip:'Codos pegados al cuerpo, empuja hacia abajo y atrás',noFor:[],multiplicador_peso:0.10},
+  {name:'Extensión unilateral de tríceps en polea',   pat:'isolation',muscle:'Tríceps',  sec:[],loc:['gym'],        eq:'cable',     lvl:['intermediate','advanced'],ji:'low',   cpd:false,tip:'Un brazo a la vez para corregir asimetrías',noFor:[],multiplicador_peso:0.08},
+  {name:'Pullover para tríceps con mancuerna',        pat:'isolation',muscle:'Tríceps',  sec:[],loc:['gym','home'], eq:'dumbbell',  lvl:['intermediate'],           ji:'low',   cpd:false,tip:'Codos en punta, no jales con el dorsal',noFor:['shoulder_injury'],multiplicador_peso:0.10},
+  {name:'Tríceps en banca estrecha (barra)',          pat:'isolation',muscle:'Tríceps',  sec:['Pecho'],loc:['gym'],  eq:'barbell',   lvl:['intermediate','advanced'],ji:'medium',cpd:false,tip:'Agarre cerrado, codos apuntan al frente al bajar',noFor:['joint_injury'],multiplicador_peso:0.25},
+  {name:'Tríceps con mancuerna a dos manos',          pat:'isolation',muscle:'Tríceps',  sec:[],loc:['gym','home'], eq:'dumbbell',  lvl:['beginner','intermediate'],ji:'low',   cpd:false,tip:'Sujeta una mancuerna con ambas manos por encima de la cabeza',noFor:['shoulder_injury'],multiplicador_peso:0.10},
+
+  // ── AISLAMIENTOS — HOMBROS (5) y TRAPECIOS (1) ───────────────────────────
+  {name:'Elevaciones laterales',                      pat:'isolation',muscle:'Hombros',  sec:[],loc:['gym','home'], eq:'dumbbell',  lvl:['beginner','intermediate','advanced'],ji:'low',cpd:false,tip:'Codos ligeramente doblados, lleva hasta la horizontal',noFor:['shoulder_injury'],multiplicador_peso:0.08},
+  {name:'Elevaciones frontales',                      pat:'isolation',muscle:'Hombros',  sec:[],loc:['gym','home'], eq:'dumbbell',  lvl:['beginner','intermediate'],ji:'low',   cpd:false,tip:'Alterna brazos o hazlo simultáneo a baja carga',noFor:['shoulder_injury'],multiplicador_peso:0.07},
+  {name:'Pájaro (posterior del deltoides)',           pat:'isolation',muscle:'Hombros',  sec:['Espalda'],loc:['gym','home'],eq:'dumbbell',lvl:['intermediate','advanced'],ji:'low',cpd:false,tip:'Torso horizontal a 90°, codos ligeramente flexionados',noFor:[],multiplicador_peso:0.07},
+  {name:'Elevaciones laterales en cable',             pat:'isolation',muscle:'Hombros',  sec:[],loc:['gym'],        eq:'cable',     lvl:['beginner','intermediate'],ji:'low',   cpd:false,tip:'Polea a la cadera, codo ligeramente doblado todo el arco',noFor:['shoulder_injury'],multiplicador_peso:0.07},
+  {name:'Elevaciones frontales en cable',             pat:'isolation',muscle:'Hombros',  sec:[],loc:['gym'],        eq:'cable',     lvl:['beginner','intermediate'],ji:'low',   cpd:false,tip:'Polea baja, lleva el brazo hasta la horizontal sin impulso',noFor:['shoulder_injury'],multiplicador_peso:0.07},
+  {name:'Encogimientos de hombros',                   pat:'isolation',muscle:'Trapecios',sec:[],loc:['gym','home'], eq:'dumbbell',  lvl:['beginner','intermediate'],ji:'low',   cpd:false,tip:'Solo sube y baja; no rotar los hombros',noFor:[],multiplicador_peso:0.20},
 
   // ── CORE ANTI-ROTACIÓN / ESTABILIZACIÓN (core_anti) ─────────────────────
-  {name:'Plancha frontal',                 pat:'core_anti',muscle:'Core',    sec:['Hombros'],          loc:['gym','home'], eq:'bodyweight',lvl:['beginner','intermediate','advanced'],ji:'low',cpd:false,tip:'Caderas niveladas, no dejes caer la cintura',noFor:[]},
-  {name:'Plancha lateral',                 pat:'core_anti',muscle:'Core',    sec:['Glúteos'],          loc:['gym','home'], eq:'bodyweight',lvl:['beginner','intermediate','advanced'],ji:'low',cpd:false,tip:'Cadera levantada, cuerpo en línea recta',noFor:[]},
-  {name:'Pallof press en polea',           pat:'core_anti',muscle:'Core',    sec:['Hombros'],          loc:['gym'],        eq:'cable',     lvl:['intermediate','advanced'],ji:'low',   cpd:false,tip:'Resiste la rotación; pies separados a ancho de hombros',noFor:[]},
-  {name:'Dead bug',                        pat:'core_anti',muscle:'Core',    sec:[],                   loc:['home'],       eq:'bodyweight',lvl:['beginner','intermediate'],ji:'low',   cpd:false,tip:'Presiona la zona lumbar contra el suelo en todo momento',noFor:[]},
-  {name:'Rueda abdominal (ab wheel)',      pat:'core_anti',muscle:'Core',    sec:['Hombros','Espalda'],loc:['gym','home'], eq:'household', lvl:['advanced'],               ji:'medium',cpd:false,tip:'Anti-extensión: mantén la columna neutral al extender',noFor:['back_pain','shoulder_injury']},
-  {name:'Bird dog',                        pat:'core_anti',muscle:'Core',    sec:[],                   loc:['home'],       eq:'bodyweight',lvl:['beginner','intermediate'],ji:'low',   cpd:false,tip:'Brazo y pierna opuestos, no rotes la pelvis',noFor:[]},
-  {name:'Plancha con toque de hombros',    pat:'core_anti',muscle:'Core',    sec:['Hombros'],          loc:['gym','home'], eq:'bodyweight',lvl:['intermediate','advanced'],ji:'low',   cpd:false,tip:'Caderas quietas mientras tocas el hombro opuesto',noFor:[]},
-  {name:'Hollow body hold',                pat:'core_anti',muscle:'Core',    sec:[],                   loc:['gym','home'], eq:'bodyweight',lvl:['intermediate','advanced'],ji:'low',   cpd:false,tip:'Zona lumbar en el suelo, piernas extendidas a 45°',noFor:[]},
+  {name:'Plancha frontal',                            pat:'core_anti',muscle:'Core',    sec:['Hombros'],loc:['gym','home'],  eq:'bodyweight',lvl:['beginner','intermediate','advanced'],ji:'low',cpd:false,tip:'Caderas niveladas, no dejes caer la cintura',noFor:[],multiplicador_peso:0},
+  {name:'Plancha lateral',                            pat:'core_anti',muscle:'Core',    sec:['Glúteos'],loc:['gym','home'],  eq:'bodyweight',lvl:['beginner','intermediate','advanced'],ji:'low',cpd:false,tip:'Cadera levantada, cuerpo en línea recta',noFor:[],multiplicador_peso:0},
+  {name:'Pallof press en polea',                      pat:'core_anti',muscle:'Core',    sec:['Hombros'],loc:['gym'],         eq:'cable',     lvl:['intermediate','advanced'],ji:'low',   cpd:false,tip:'Resiste la rotación; pies separados a ancho de hombros',noFor:[],multiplicador_peso:0.08},
+  {name:'Dead bug',                                   pat:'core_anti',muscle:'Core',    sec:[],         loc:['home'],        eq:'bodyweight',lvl:['beginner','intermediate'],ji:'low',   cpd:false,tip:'Presiona la zona lumbar contra el suelo en todo momento',noFor:[],multiplicador_peso:0},
+  {name:'Rueda abdominal (ab wheel)',                 pat:'core_anti',muscle:'Core',    sec:['Hombros','Espalda'],loc:['gym','home'],eq:'household',lvl:['advanced'],ji:'medium',cpd:false,tip:'Anti-extensión: mantén la columna neutral al extender',noFor:['back_pain','shoulder_injury'],multiplicador_peso:0},
+  {name:'Bird dog',                                   pat:'core_anti',muscle:'Core',    sec:[],         loc:['home'],        eq:'bodyweight',lvl:['beginner','intermediate'],ji:'low',   cpd:false,tip:'Brazo y pierna opuestos, no rotes la pelvis',noFor:[],multiplicador_peso:0},
+  {name:'Plancha con toque de hombros',               pat:'core_anti',muscle:'Core',    sec:['Hombros'],loc:['gym','home'],  eq:'bodyweight',lvl:['intermediate','advanced'],ji:'low',   cpd:false,tip:'Caderas quietas mientras tocas el hombro opuesto',noFor:[],multiplicador_peso:0},
+  {name:'Hollow body hold',                           pat:'core_anti',muscle:'Core',    sec:[],         loc:['gym','home'],  eq:'bodyweight',lvl:['intermediate','advanced'],ji:'low',   cpd:false,tip:'Zona lumbar en el suelo, piernas extendidas a 45°',noFor:[],multiplicador_peso:0},
 
   // ── ROTACIÓN / FLEXIÓN DE CORE (rotation) ────────────────────────────────
-  {name:'Crunch abdominal',                pat:'rotation',muscle:'Core',     sec:[],                   loc:['gym','home'], eq:'bodyweight',lvl:['beginner','intermediate'],ji:'low',   cpd:false,tip:'Solo levanta hombros, no el torso completo',noFor:['back_pain']},
-  {name:'Crunch con bicicleta',            pat:'rotation',muscle:'Core',     sec:[],                   loc:['gym','home'], eq:'bodyweight',lvl:['beginner','intermediate'],ji:'low',   cpd:false,tip:'Codo al rodilla opuesta, no jales el cuello',noFor:['back_pain']},
-  {name:'Russian twist',                   pat:'rotation',muscle:'Core',     sec:[],                   loc:['gym','home'], eq:'bodyweight',lvl:['intermediate','advanced'],ji:'low',   cpd:false,tip:'Pies pueden estar elevados para más dificultad',noFor:['back_pain']},
-  {name:'Woodchop en polea',               pat:'rotation',muscle:'Core',     sec:['Hombros'],          loc:['gym'],        eq:'cable',     lvl:['intermediate','advanced'],ji:'low',   cpd:false,tip:'La fuerza viene de la rotación, no de los brazos',noFor:[]},
-  {name:'Elevación de piernas tumbado',    pat:'rotation',muscle:'Core',     sec:[],                   loc:['gym','home'], eq:'bodyweight',lvl:['intermediate','advanced'],ji:'medium',cpd:false,tip:'Zona lumbar pegada al suelo en todo el movimiento',noFor:['back_pain']},
-  {name:'Crunch en polea',                 pat:'rotation',muscle:'Core',     sec:[],                   loc:['gym'],        eq:'cable',     lvl:['intermediate','advanced'],ji:'low',   cpd:false,tip:'Contrae el abdomen; la fuerza no viene de los brazos',noFor:['back_pain']},
-  {name:'Reverse crunch',                  pat:'rotation',muscle:'Core',     sec:[],                   loc:['gym','home'], eq:'bodyweight',lvl:['beginner','intermediate'],ji:'low',   cpd:false,tip:'Rodillas al pecho usando el abdomen, no el impulso',noFor:[]},
-  {name:'Elevaciones de piernas en barra', pat:'rotation',muscle:'Core',     sec:[],                   loc:['gym'],        eq:'bodyweight',lvl:['advanced'],               ji:'medium',cpd:false,tip:'Evita balancear, sube las piernas rectas o dobladas',noFor:['shoulder_injury']},
+  {name:'Crunch abdominal',                           pat:'rotation',muscle:'Core',     sec:[],         loc:['gym','home'],  eq:'bodyweight',lvl:['beginner','intermediate'],ji:'low',   cpd:false,tip:'Solo levanta hombros, no el torso completo',noFor:['back_pain'],multiplicador_peso:0},
+  {name:'Crunch con bicicleta',                       pat:'rotation',muscle:'Core',     sec:[],         loc:['gym','home'],  eq:'bodyweight',lvl:['beginner','intermediate'],ji:'low',   cpd:false,tip:'Codo al rodilla opuesta, no jales el cuello',noFor:['back_pain'],multiplicador_peso:0},
+  {name:'Russian twist',                              pat:'rotation',muscle:'Core',     sec:[],         loc:['gym','home'],  eq:'bodyweight',lvl:['intermediate','advanced'],ji:'low',   cpd:false,tip:'Pies pueden estar elevados para más dificultad',noFor:['back_pain'],multiplicador_peso:0},
+  {name:'Woodchop en polea',                          pat:'rotation',muscle:'Core',     sec:['Hombros'],loc:['gym'],         eq:'cable',     lvl:['intermediate','advanced'],ji:'low',   cpd:false,tip:'La fuerza viene de la rotación, no de los brazos',noFor:[],multiplicador_peso:0.08},
+  {name:'Elevación de piernas tumbado',               pat:'rotation',muscle:'Core',     sec:[],         loc:['gym','home'],  eq:'bodyweight',lvl:['intermediate','advanced'],ji:'medium',cpd:false,tip:'Zona lumbar pegada al suelo en todo el movimiento',noFor:['back_pain'],multiplicador_peso:0},
+  {name:'Crunch en polea',                            pat:'rotation',muscle:'Core',     sec:[],         loc:['gym'],         eq:'cable',     lvl:['intermediate','advanced'],ji:'low',   cpd:false,tip:'Contrae el abdomen; la fuerza no viene de los brazos',noFor:['back_pain'],multiplicador_peso:0.08},
+  {name:'Reverse crunch',                             pat:'rotation',muscle:'Core',     sec:[],         loc:['gym','home'],  eq:'bodyweight',lvl:['beginner','intermediate'],ji:'low',   cpd:false,tip:'Rodillas al pecho usando el abdomen, no el impulso',noFor:[],multiplicador_peso:0},
+  {name:'Elevaciones de piernas en barra',            pat:'rotation',muscle:'Core',     sec:[],         loc:['gym'],         eq:'bodyweight',lvl:['advanced'],               ji:'medium',cpd:false,tip:'Evita balancear, sube las piernas rectas o dobladas',noFor:['shoulder_injury'],multiplicador_peso:0},
 
   // ── CARDIO / POTENCIA (cardio) ────────────────────────────────────────────
-  {name:'Burpees',                         pat:'cardio', muscle:'Cardio',    sec:['Core','Pecho'],     loc:['gym','home'], eq:'bodyweight',lvl:['intermediate','advanced'],ji:'medium',cpd:false,tip:'Aterrizaje suave, cadera atrás al bajar',noFor:['joint_injury','heart_disease']},
-  {name:'Mountain climbers',               pat:'cardio', muscle:'Cardio',    sec:['Core'],             loc:['gym','home'], eq:'bodyweight',lvl:['beginner','intermediate','advanced'],ji:'medium',cpd:false,tip:'Caderas niveladas, ritmo controlado',noFor:[]},
-  {name:'Saltos de cajón',                 pat:'cardio', muscle:'Cardio',    sec:['Cuádriceps','Glúteos'],loc:['gym'],     eq:'bodyweight',lvl:['intermediate','advanced'],ji:'high',  cpd:false,tip:'Aterrizaje con rodillas flexionadas y suave',noFor:['joint_injury','knee_injury','osteoporosis']},
-  {name:'Saltos al lugar',                 pat:'cardio', muscle:'Cardio',    sec:[],                   loc:['gym','home'], eq:'bodyweight',lvl:['beginner','intermediate'],ji:'medium',cpd:false,tip:'Talones sin tocar el suelo, ritmo constante',noFor:['joint_injury','osteoporosis']},
-  {name:'Jumping jacks',                   pat:'cardio', muscle:'Cardio',    sec:[],                   loc:['gym','home'], eq:'bodyweight',lvl:['beginner','intermediate'],ji:'low',   cpd:false,tip:'Coordinación de brazos y piernas simultánea',noFor:['joint_injury']},
-  {name:'Mountain climbers lateral',       pat:'cardio', muscle:'Cardio',    sec:['Core'],             loc:['gym','home'], eq:'bodyweight',lvl:['intermediate','advanced'],ji:'medium',cpd:false,tip:'Rodillas al codo del mismo lado, más oblicuos',noFor:[]},
-  {name:'Skipping (rodillas arriba)',       pat:'cardio', muscle:'Cardio',    sec:[],                   loc:['gym','home'], eq:'bodyweight',lvl:['beginner','intermediate'],ji:'medium',cpd:false,tip:'Brazos en coordinación, talones no tocan el piso',noFor:['joint_injury']},
-  {name:'Salto a la cuerda (30 seg)',       pat:'cardio', muscle:'Cardio',    sec:[],                   loc:['gym','home'], eq:'household', lvl:['beginner','intermediate','advanced'],ji:'medium',cpd:false,tip:'Puntillas, salto mínimo, muñecas giran la cuerda',noFor:['joint_injury','osteoporosis']},
+  {name:'Burpees',                                    pat:'cardio', muscle:'Cardio',    sec:['Core','Pecho'],loc:['gym','home'],eq:'bodyweight',lvl:['intermediate','advanced'],ji:'medium',cpd:false,tip:'Aterrizaje suave, cadera atrás al bajar',noFor:['joint_injury','heart_disease'],multiplicador_peso:0},
+  {name:'Mountain climbers',                          pat:'cardio', muscle:'Cardio',    sec:['Core'],        loc:['gym','home'],eq:'bodyweight',lvl:['beginner','intermediate','advanced'],ji:'medium',cpd:false,tip:'Caderas niveladas, ritmo controlado',noFor:[],multiplicador_peso:0},
+  {name:'Saltos de cajón',                            pat:'cardio', muscle:'Cardio',    sec:['Cuádriceps','Glúteos'],loc:['gym'],eq:'bodyweight',lvl:['intermediate','advanced'],ji:'high', cpd:false,tip:'Aterrizaje con rodillas flexionadas y suave',noFor:['joint_injury','knee_injury','osteoporosis'],multiplicador_peso:0},
+  {name:'Saltos al lugar',                            pat:'cardio', muscle:'Cardio',    sec:[],              loc:['gym','home'],eq:'bodyweight',lvl:['beginner','intermediate'],ji:'medium',cpd:false,tip:'Talones sin tocar el suelo, ritmo constante',noFor:['joint_injury','osteoporosis'],multiplicador_peso:0},
+  {name:'Jumping jacks',                              pat:'cardio', muscle:'Cardio',    sec:[],              loc:['gym','home'],eq:'bodyweight',lvl:['beginner','intermediate'],ji:'low',   cpd:false,tip:'Coordinación de brazos y piernas simultánea',noFor:['joint_injury'],multiplicador_peso:0},
+  {name:'Mountain climbers lateral',                  pat:'cardio', muscle:'Cardio',    sec:['Core'],        loc:['gym','home'],eq:'bodyweight',lvl:['intermediate','advanced'],ji:'medium',cpd:false,tip:'Rodillas al codo del mismo lado, más oblicuos',noFor:[],multiplicador_peso:0},
+  {name:'Skipping (rodillas arriba)',                  pat:'cardio', muscle:'Cardio',    sec:[],              loc:['gym','home'],eq:'bodyweight',lvl:['beginner','intermediate'],ji:'medium',cpd:false,tip:'Brazos en coordinación, talones no tocan el piso',noFor:['joint_injury'],multiplicador_peso:0},
+  {name:'Salto a la cuerda (30 seg)',                 pat:'cardio', muscle:'Cardio',    sec:[],              loc:['gym','home'],eq:'household', lvl:['beginner','intermediate','advanced'],ji:'medium',cpd:false,tip:'Puntillas, salto mínimo, muñecas giran la cuerda',noFor:['joint_injury','osteoporosis'],multiplicador_peso:0},
 ];
 
 /* ── Mensajes motivacionales ──────────────────────────────────────────────── */
 const AR_MOTIV_START = [
-  'Hoy tocó entrenar. No es opción, es el plan. Vamos.',
-  'Entraste al gym — eso ya fue lo más difícil. Ahora a trabajar.',
-  'El cuerpo que quieres no se construye pensándolo. Se construye hoy.',
-  'Cinco minutos adentro y se te pasa el "no tenía ganas". Arranca.',
-  'Este entrenamiento existe porque ayer tú decidiste que sí. Dale.',
-  'No hay días fáciles, solo días que valió la pena. Haz que este valga.',
-  'Aquí no hay atajos. Solo series, reps y tú contra ti mismo. Vamos.',
-  'La rutina de hoy ya está programada. Tu trabajo es ejecutarla. Hazlo.',
-  'Mientras otros buscan la excusa, tú buscas la carga. Así se diferencia.',
-  'El progreso no se acumula cuando entrenas con ganas. Se acumula cuando entrenas de todas formas.',
-  'Tienes tiempo, tienes el gym, tienes la rutina. Solo te falta empezar.',
-  'Cada kilogramo extra en la barra es una conversación contigo mismo que ganaste.',
-  'El cuerpo se adapta si lo obligas a hacerlo. Oblígalo hoy.',
-  'Visualiza el último ejercicio ya terminado. Ahora llega ahí.',
-  'Tu rival no sabe que estás aquí. Pero tus músculos sí.',
-  'El que entrena cuando tiene ganas mejora. El que entrena siempre, transforma.',
-  'Nada de calentar demasiado suave. Estás acá para trabajar.',
-  'Calor, frío, cansancio — cualquier excusa que tengas, la barra no la escucha.',
-  'Este gym no te conoce por tu nombre sino por tu constancia. Deja tu marca hoy.',
-  'Pesado o liviano, rápido o lento — lo que importa es que termines. Termina.'
+  'Hoy no negocias con tu cabeza. Entras, ejecutas y sales mejor de lo que llegaste.',
+  'El peso no sabe que estás cansado. Tú sí. Por eso eres quien manda hoy.',
+  'Una sesión más. Un día más que tu versión de ayer se queda atrás.',
+  'No hace falta que sea perfecta. Hace falta que ocurra.',
+  'Cada repetición de hoy es deuda cobrada a tu futuro self.'
 ];
 
 const AR_MOTIV_FINISH = [
-  'Hecho. Eso es lo que hace quien va en serio.',
-  'Sesión completada. Tu cuerpo procesó ese trabajo — y lo sigue procesando en este momento.',
-  'Cerraste la sesión. No todos los que empezaron hoy terminaron. Tú sí.',
-  'Eso se llama aparecer cuando toca. El progreso ya viene en camino.',
-  'Ahora a comer bien y dormir duro — ahí es donde creces de verdad.',
-  'Saliste del gym mejor de lo que entraste. Eso es lo único que importa.',
-  'Las series están en el historial. Los músculos, estimulados. Trabajo bien hecho.',
-  'Completaste lo que programaste. Sin excusas, sin recortes. Eso merece respeto.',
-  'Hoy ganaste el único partido que importa: el de la constancia.',
-  'Otra sesión en el historial. Otro día que se suma a la racha. Sigue.',
-  'El trabajo ya está hecho. El cuerpo hace el resto mientras descansas.',
-  'Eso fue real. Sin atajos. La versión de mañana ya te lo está agradeciendo.',
-  'Terminaste cuando muchos ni empezaron. Eso dice más de ti que cualquier marca personal.',
-  'Sesión guardada. La próxima va a ser mejor — así funciona la progresión.',
-  'Le diste al cuerpo lo que necesitaba hoy. Ahora dale lo que necesita para recuperar.',
-  'No todos los días son épicos, pero todos suman. Hoy sumaste.',
-  'Eso fue disciplina pura. No emoción, no motivación del momento. Disciplina real.',
-  'Proteína, agua, sueño. Ahora el cuerpo hace su trabajo — tú ya hiciste el tuyo.',
-  'Un entrenamiento más que la semana pasada. Ese es el único conteo que importa.',
-  'Completado. Ahora a recuperar bien para que el próximo sea aún mejor.'
+  'Sesión completada. Eso no lo borra nadie.',
+  'Mientras otros pensaban en entrenar, tú ya terminaste.',
+  'El músculo no creció en el gym. Creció porque apareciste cuando no tenías que hacerlo.',
+  'Brutal. Siguiente.',
+  'No fue fácil. Por eso cuenta.',
+  'Tu cuerpo registró cada repetición. Los resultados vienen solos.',
+  'Hoy sumaste. Mañana se nota.',
+  'La consistencia hace lo que la motivación no puede. Hoy fuiste consistente.',
+  'Sesión en el banco. Con intereses.',
+  'Esto es lo que separa intención de identidad. Hoy fuiste atleta.'
 ];
 
 /* ── Contraindicaciones por condición médica ────────────────────────────── */
@@ -6863,26 +6863,39 @@ const AR_FOCUS_MUSCLES = {
 
 /* ── Parámetros por objetivo, nivel y energía ──────────────────────────── */
 function _arParams(goal, level, energy, timeMins) {
-  const goalBase = {
-    strength:    {sets:5, repsLow:3,  repsHigh:6,  rest:210, rir:1},
-    hypertrophy: {sets:4, repsLow:8,  repsHigh:12, rest:75,  rir:2},
-    endurance:   {sets:3, repsLow:15, repsHigh:20, rest:35,  rir:3},
-    fat_loss:    {sets:3, repsLow:12, repsHigh:15, rest:30,  rir:2},
-  }[goal] || {sets:3, repsLow:10, repsHigh:12, rest:60, rir:2};
+  const table = {
+    strength: {
+      high:   {sets:4, repsLow:4,  repsHigh:6,  rest:180, rir:1},
+      normal: {sets:3, repsLow:5,  repsHigh:7,  rest:180, rir:2},
+      low:    {sets:3, repsLow:6,  repsHigh:8,  rest:210, rir:3},
+    },
+    hypertrophy: {
+      high:   {sets:4, repsLow:8,  repsHigh:10, rest:90,  rir:1},
+      normal: {sets:3, repsLow:10, repsHigh:12, rest:90,  rir:2},
+      low:    {sets:3, repsLow:12, repsHigh:15, rest:120, rir:3},
+    },
+    fat_loss: {
+      high:   {sets:3, repsLow:12, repsHigh:15, rest:45,  rir:2},
+      normal: {sets:3, repsLow:15, repsHigh:15, rest:60,  rir:3},
+      low:    {sets:2, repsLow:15, repsHigh:15, rest:60,  rir:4},
+    },
+    endurance: {
+      high:   {sets:3, repsLow:15, repsHigh:20, rest:45,  rir:3},
+      normal: {sets:3, repsLow:15, repsHigh:20, rest:45,  rir:4},
+      low:    {sets:3, repsLow:15, repsHigh:20, rest:45,  rir:4},
+    },
+  };
+  const goalBase = {...((table[goal]||table.hypertrophy)[energy] || (table[goal]||table.hypertrophy).normal)};
+  if (level === 'beginner') { goalBase.sets = Math.max(2, goalBase.sets - 1); goalBase.rir = Math.min(goalBase.rir + 1, 5); }
 
-  if (level === 'beginner') { goalBase.sets = Math.max(2, goalBase.sets - 1); goalBase.rir += 1; }
-  if (energy === 'high') goalBase.rir = Math.max(0, goalBase.rir - 1);  // alta energía = más intensidad, no más volumen
-  if (energy === 'low')  { goalBase.sets = Math.max(2, goalBase.sets - 1); goalBase.rest += 20; }
-
-  const exCount = {30:4, 45:6, 60:8, 90:11}[timeMins] || 6;
-  const warmup  = {30:3, 45:5, 60:5, 90:8 }[timeMins] || 5;
-  const cooldown= {30:2, 45:3, 60:5, 90:7 }[timeMins] || 3;
-
+  const exCount  = {30:4,  45:6,  60:8,  90:11}[timeMins] || 6;
+  const warmup   = {30:3,  45:5,  60:5,  90:8 }[timeMins] || 5;
+  const cooldown = {30:2,  45:3,  60:5,  90:7 }[timeMins] || 3;
   return { ...goalBase, exCount, warmup, cooldown };
 }
 
-/* ── Peso sugerido basado en historial ─────────────────────────────────── */
-function _arSuggestWeight(exName, baseWeight, energy) {
+/* ── Peso sugerido: historial tiene prioridad; si no hay, fórmula por peso corporal ── */
+function _arSuggestWeight(exName, multiplicador, userBW, level, energy) {
   const logs = DB.userWlogs(S.uid || '');
   let lastWeight = 0;
   for (let i = logs.length - 1; i >= 0; i--) {
@@ -6892,9 +6905,15 @@ function _arSuggestWeight(exName, baseWeight, energy) {
       if (lastWeight > 0) break;
     }
   }
-  if (!lastWeight) return baseWeight;
-  const pct = energy === 'low' ? 0.90 : energy === 'high' ? 1.05 : 1.025;
-  return Math.round(lastWeight * pct / 2.5) * 2.5;
+  if (lastWeight > 0) {
+    // Historial encontrado: aplicar ajuste del 2.5% por defecto, ±según energía
+    const pct = energy === 'low' ? 0.975 : energy === 'high' ? 1.025 : 1.0;
+    return Math.round(lastWeight * pct / 2.5) * 2.5;
+  }
+  // Sin historial: fórmula por peso corporal × multiplicador × nivel
+  const lvlMult = {beginner:1.0, intermediate:1.5, advanced:2.0}[level] || 1.0;
+  const eAdj    = energy === 'low' ? 0.90 : energy === 'high' ? 1.05 : 1.0;
+  return Math.max(2.5, Math.round(userBW * multiplicador * lvlMult * eAdj / 2.5) * 2.5);
 }
 
 /* ── Detectar patrones entrenados en últimos 2 días ─────────────────────── */
@@ -6913,13 +6932,16 @@ function _arRecentPatterns() {
 /* ── Ejercicios usados en la sesión más reciente ────────────────────────── */
 function _arRecentExNames() {
   const logs = DB.userWlogs(S.uid || '').sort((a,b) => b.date.localeCompare(a.date));
-  if (!logs.length) return new Set();
-  return new Set((logs[0].exercises || []).map(e => e.name));
+  const names = new Set();
+  logs.slice(0, 3).forEach(l => (l.exercises||[]).forEach(e => names.add(e.name)));
+  return names;
 }
 
 /* ── Generador principal con lógica biomecánica ─────────────────────────── */
 function generateAutoRoutine(ans) {
   const u        = DB.user(S.uid || '');
+  const uHist    = u?.physicalHistory || [];
+  const userBW   = uHist.length ? (uHist[uHist.length-1].weight || 70) : 70;
   const medConds = u?.medicalConditions || [];
   const noForSet = new Set(medConds.flatMap(c => AR_CONTRAINDICATIONS[c] || []));
 
@@ -7051,12 +7073,8 @@ function generateAutoRoutine(ans) {
     const repsStr = isCore && e.pat==='cardio' ? '30 seg'
                   : `${params.repsLow}-${params.repsHigh}`;
 
-    const baseW  = (e.eq==='bodyweight'||e.eq==='household') ? 0
-                 : Math.round(params.rir < 2
-                     ? (['Cuádriceps','Isquiotibiales','Glúteos'].includes(e.muscle) ? 70 : e.muscle==='Pecho' ? 60 : e.muscle==='Espalda' ? 55 : 30)
-                     : (['Cuádriceps','Isquiotibiales','Glúteos'].includes(e.muscle) ? 50 : e.muscle==='Pecho' ? 45 : e.muscle==='Espalda' ? 40 : 20)
-                   / 2.5) * 2.5;
-    const weight = _arSuggestWeight(e.name, baseW, ans.energy);
+    const weight = (e.eq==='bodyweight'||e.eq==='household') ? 0
+                 : _arSuggestWeight(e.name, e.multiplicador_peso||0.25, userBW, ans.level, ans.energy);
 
     // Técnica intensificadora (solo avanzado + alta energía + último ejercicio por grupo)
     const dropSet   = adv && isLast && !isCore;
