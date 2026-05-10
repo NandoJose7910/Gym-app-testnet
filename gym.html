@@ -5530,7 +5530,22 @@ ${todayDay ? `
     const el = document.getElementById('today-progress-txt');
     if(el) el.textContent = n + ' ejercicio' + (n!==1?'s':'') + ' para registrar hoy';
   })();<\/script>
-  ` : `<p style="color:var(--text-dim)">${todayDay.type==='training'?'Sin ejercicios definidos para hoy':'Día de descanso — recupera bien tus músculos'}</p>`}
+  ` : todayDay.type === 'training'
+      ? `<p style="color:var(--text-dim)">Sin ejercicios definidos para hoy.</p>`
+      : `<div style="padding:4px 0">
+           <p style="color:var(--text-dim);margin:0 0 14px">
+             ${todayDay.restType==='active'?'Día de descanso activo — actividad ligera recomendada.':'Día de descanso total — recupera bien tus músculos.'}
+           </p>
+           <div style="background:rgba(0,255,102,.06);border:1px solid rgba(0,255,102,.25);border-radius:8px;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+             <div>
+               <div style="font-size:.88rem;font-weight:600;margin-bottom:2px">¿Quieres entrenar de todas formas?</div>
+               <div style="font-size:.78rem;color:var(--text-dim)">Genera una rutina adaptada a tu energía y tiempo de hoy</div>
+             </div>
+             <button class="btn btn-primary btn-sm" onclick="openAutoRoutineSurvey();document.getElementById('ar-survey-wrap').scrollIntoView({behavior:'smooth'})">
+               🤖 Generar rutina para hoy
+             </button>
+           </div>
+         </div>`}
 </div>` : ''}
 
 <h3 style="margin:0 0 12px">Plan completo — ${escH(active.name)}</h3>
@@ -6825,11 +6840,11 @@ const AR_QUESTIONS = [
 ];
 
 /* ─── Persistencia de borrador ──────────────────────────────────────────── */
-function _arDraftKey() { return 'gp_ar_draft_' + (S.uid||'x'); }
+function _arDraftKey() { return 'gp_autoRoutine_' + (S.uid||'x') + '_' + today(); }
 
 function _arSaveDraft(inputVals) {
   try {
-    const draft = { date: today(), routine: _arRoutine, inputs: inputVals || {} };
+    const draft = { routine: _arRoutine, inputs: inputVals || {} };
     localStorage.setItem(_arDraftKey(), JSON.stringify(draft));
   } catch(e) {}
 }
@@ -6838,9 +6853,7 @@ function _arLoadDraft() {
   try {
     const raw = localStorage.getItem(_arDraftKey());
     if (!raw) return null;
-    const draft = JSON.parse(raw);
-    if (draft.date !== today()) { localStorage.removeItem(_arDraftKey()); return null; }
-    return draft;
+    return JSON.parse(raw);
   } catch(e) { return null; }
 }
 
@@ -7020,9 +7033,9 @@ function _arRenderRoutine(savedInputs) {
   </div>`).join('')}
 
   <div style="display:flex;gap:10px;align-items:center;margin-top:14px;flex-wrap:wrap">
-    <button class="btn btn-primary" onclick="saveAutoRoutineSession()">💾 Guardar sesión</button>
+    <button class="btn btn-primary" onclick="finalizeAutoRoutine()">✅ Finalizar y guardar en mis estadísticas</button>
     <button class="btn btn-sm" onclick="openAutoRoutineSurvey()">🔄 Generar otra</button>
-    <span id="ar-save-msg" style="font-size:.85rem;color:var(--green);display:none">✅ Sesión guardada</span>
+    <span id="ar-save-msg" style="font-size:.85rem;color:var(--green);display:none">✅ Sesión guardada correctamente</span>
   </div>
 </div>`;
 }
@@ -7046,7 +7059,7 @@ function _arTryRestoreDraft() {
 }
 
 /* ─── Guarda la sesión de rutina automática ─────────────────────────────── */
-function saveAutoRoutineSession() {
+function finalizeAutoRoutine() {
   if (!_arRoutine) return;
   const exercises = _arRoutine.exercises.map((ex, n) => {
     const numSets = ex.sets || 1;
@@ -7080,10 +7093,18 @@ function saveAutoRoutineSession() {
   DB.addWlog(rec);
   _arClearDraft();
 
-  const msg = document.getElementById('ar-save-msg');
-  if (msg) { msg.style.display='inline'; setTimeout(()=>{ msg.style.display='none'; }, 3500); }
-  console.log('[GymApp] Auto-sesión guardada:', rec.id);
+  const wrap = document.getElementById('ar-survey-wrap');
+  if (wrap) wrap.innerHTML = `
+<div class="session-logger" style="text-align:center;padding:28px 20px">
+  <div style="font-size:2.5rem;margin-bottom:10px">🎉</div>
+  <div style="font-weight:700;font-size:1rem;margin-bottom:6px">¡Sesión guardada en tus estadísticas!</div>
+  <div style="font-size:.82rem;color:var(--text-dim);margin-bottom:18px">${_arRoutine.focus} · ${_arRoutine.duration} · ${exercises.length} ejercicios</div>
+  <button class="btn btn-sm" onclick="openAutoRoutineSurvey()">🔄 Generar otra rutina</button>
+</div>`;
+  console.log('[GymApp] Auto-sesión finalizada:', rec.id);
 }
+// Alias por compatibilidad con código anterior
+const saveAutoRoutineSession = finalizeAutoRoutine;
 
 // Asistencias demo (últimas semanas)
 const DEMO_ATT = (() => {
