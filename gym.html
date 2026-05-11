@@ -85,6 +85,7 @@ input,select,textarea { font-family:'Barlow',sans-serif; }
   justify-content:center;
   z-index:1000;
   padding:16px;
+  overflow-y:auto;
 }
 
 .login-bg-accent {
@@ -563,6 +564,14 @@ input,select,textarea { font-family:'Barlow',sans-serif; }
   font-family:'Bebas Neue',sans-serif;
   font-size:24px;
   letter-spacing:2px;
+}
+.page-header {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  flex-wrap:wrap;
+  gap:12px;
+  margin-bottom:24px;
 }
 
 /* ======================================================
@@ -1201,7 +1210,9 @@ tbody td {
 }
 @media (max-width:768px) {
   #sidebar { display:none; }
-  #bottom-nav { display:block; }
+  #bottom-nav { display:block; height:64px; padding:0; }
+  .bnav-items { height:100%; }
+  .bnav-item { height:100%; padding:5px 8px; word-break:break-word; text-align:center; justify-content:center; }
   #view { padding:16px 16px 80px; }
   #topbar { padding:0 16px; }
   .g2, .g3, .g4 { grid-template-columns:1fr; }
@@ -1214,6 +1225,30 @@ tbody td {
   #toast-box { left:16px; right:16px; bottom:80px; }
   .toast { min-width:unset; }
   .login-box { padding:32px 24px; }
+  /* Admin list tables → vertical cards */
+  #tl-table, #nl-table, #pg-table { display:block; }
+  #tl-table thead, #nl-table thead, #pg-table thead { display:none; }
+  #tl-table tbody, #nl-table tbody, #pg-table tbody { display:block; }
+  #tl-table tbody tr, #nl-table tbody tr, #pg-table tbody tr {
+    display:block;
+    border:1px solid #2a2a2a;
+    border-radius:8px;
+    margin:8px 16px;
+    padding:12px;
+  }
+  #tl-table tbody td, #nl-table tbody td, #pg-table tbody td {
+    display:block;
+    padding:3px 0;
+    border:none;
+    text-align:left;
+  }
+  #tl-table tbody td:last-child, #nl-table tbody td:last-child, #pg-table tbody td:last-child { padding-top:10px; }
+  #tl-table tbody td:last-child .btn, #nl-table tbody td:last-child .btn, #pg-table tbody td:last-child .btn {
+    width:100%;
+    display:block;
+    text-align:center;
+    box-sizing:border-box;
+  }
 }
 @media (max-width:480px) {
   .topbar-title { font-size:20px; }
@@ -1221,6 +1256,13 @@ tbody td {
   .sec-title { font-size:20px; }
   .g2 { grid-template-columns:1fr; }
   .delta-grid { grid-template-columns:1fr 1fr; }
+}
+@media (max-height:680px) {
+  .login-box { padding:20px 20px; }
+  .login-logo { font-size:36px; }
+  .login-tagline { font-size:13px; margin-bottom:18px; }
+  .lg-field { margin-bottom:14px; }
+  .role-tabs { margin-bottom:16px; }
 }
 
 /* ======================================================
@@ -5572,7 +5614,8 @@ ${active.days.map((day,i) => {
   </div>
   <div id="daybody-mt-${i}" style="display:none">
     ${trainingDays && day.exercises && day.exercises.length ? `
-    <table class="data-table" style="margin-top:8px">
+    <div style="overflow-x:auto">
+    <table class="data-table" style="margin-top:8px;min-width:600px">
       <thead><tr><th>#</th><th>Ejercicio</th><th>Grupo</th><th>Series</th><th>Reps</th><th>Peso</th><th>Descanso</th></tr></thead>
       <tbody>
         ${day.exercises.map((ex,n)=>`<tr>
@@ -5582,7 +5625,8 @@ ${active.days.map((day,i) => {
           <td>${ex.weight>0?ex.weight+'kg':'—'}</td><td>${ex.rest}s</td>
         </tr>`).join('')}
       </tbody>
-    </table>` : `<p style="color:var(--text-dim);padding:8px 0">
+    </table>
+    </div>` : `<p style="color:var(--text-dim);padding:8px 0">
       ${trainingDays?'Sin ejercicios definidos':day.restType==='active'?'Actividad ligera recomendada':'Descanso completo'}</p>`}
   </div>
 </div>`;
@@ -7392,7 +7436,7 @@ function _arRenderRoutine(savedInputs) {
               value="${sv(repsId)}" placeholder="${String(ex.reps).split('-')[0]||10}"
               oninput="_arAutoSave()"></td>
           <td>${ex.isBodyw
-            ? `<span style="font-size:.93rem;color:var(--text-dim)">${wLabel}</span><input id="${weightId}" type="number" min="0" step="0.5" class="form-control" style="margin-top:3px" value="${sv(weightId)}" placeholder="Carga extra (kg)" oninput="_arAutoSave()">`
+            ? `<div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap"><span style="font-size:.93rem;color:var(--text-dim);white-space:nowrap">${wLabel}</span><input id="${weightId}" type="number" min="0" step="0.5" class="form-control" style="flex:1;min-width:80px" value="${sv(weightId)}" placeholder="Carga extra (kg)" oninput="_arAutoSave()"></div>`
             : `<input id="${weightId}" type="number" min="0" step="0.5" class="form-control" value="${sv(weightId)}" placeholder="${wPh}" oninput="_arAutoSave()">`}</td>
           <td><input id="${rirId}" type="number" min="0" max="5" class="form-control"
               value="${defRir}" placeholder="${ex.rir}"
