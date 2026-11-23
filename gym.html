@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MorfoFit — Sistema Integral de Gestión</title>
+<title>Energym — Sistema Integral de Gestión</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -32,10 +32,10 @@
   --bg-card:     #141414;
   --bg-card2:    #1e1e1e;
   --bg-card3:    #252525;
-  --green:       #00FF66;
-  --green-dk:    #00cc44;
-  --green-dim:   rgba(0,255,102,.10);
-  --green-dim2:  rgba(0,255,102,.05);
+  --green:       #FFB800;
+  --green-dk:    #cc9200;
+  --green-dim:   rgba(255,184,0,.10);
+  --green-dim2:  rgba(255,184,0,.05);
   --white:       #ffffff;
   --gray:        #888888;
   --gray-lt:     #444444;
@@ -1599,7 +1599,7 @@ tbody td {
 <div id="login-screen">
   <div class="login-bg-accent"></div>
   <div class="login-box">
-    <div class="login-logo">MORFO<span>FIT</span></div>
+    <div class="login-logo">ENER<span>GYM</span></div>
     <div class="login-tagline">Sistema Integral de Gestión</div>
 
     <div class="role-tabs">
@@ -1654,7 +1654,7 @@ tbody td {
   <!-- SIDEBAR (desktop) -->
   <nav id="sidebar">
     <div class="sidebar-head">
-      <div class="sidebar-logo">MORFO<span>FIT</span></div>
+      <div class="sidebar-logo">ENER<span>GYM</span></div>
       <button class="sidebar-toggle-btn" onclick="toggleSidebar()" title="Colapsar menú">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
           <line x1="3" y1="12" x2="21" y2="12"/>
@@ -2131,7 +2131,7 @@ function navigate(view, param) {
   S.param = param || null;
   updateNavActive(view);
 
-  const title = VIEW_TITLES[view] || 'MorfoFit';
+  const title = VIEW_TITLES[view] || 'Energym';
   document.getElementById('topbar-title').textContent = title.replace('📊 ','').replace('👥 ','').replace('👤 ','').replace('📋 ','').replace('💪 ','').replace('🥗 ','').replace('📈 ','');
   document.getElementById('topbar-extra').innerHTML = '';
 
@@ -3152,7 +3152,7 @@ function exportUserJSON(userId) {
   const blob = new Blob([JSON.stringify(data, null, 2)], { type:'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = `morfofit_${u.cedula}_${today()}.json`;
+  a.download = `energym_${u.cedula}_${today()}.json`;
   a.click();
   toast('JSON exportado ✅', 'ok');
 }
