@@ -797,6 +797,17 @@ tbody td {
   display:flex;
   align-items:center;
   gap:8px;
+  cursor:pointer;
+  user-select:none;
+}
+.fsec-title::after { content:'▾'; margin-left:auto; font-size:.85rem; opacity:.5; transition:transform .2s; }
+.fsec.collapsed .fsec-title::after { transform:rotate(-90deg); }
+.fsec-body { overflow:hidden; transition:max-height .3s ease; }
+.fsec.collapsed .fsec-body { max-height:0 !important; }
+@media (min-width:600px) {
+  .fsec-title { cursor:default; }
+  .fsec-title::after { display:none; }
+  .fsec.collapsed .fsec-body { max-height:none !important; overflow:visible; }
 }
 
 /* ======================================================
@@ -1667,8 +1678,8 @@ tbody td {
       <button class="btn-login" onclick="doLogin()">INGRESAR</button>
     </div>
 
-    <div class="login-hint">
-      Demo — haz clic en cualquier cuenta para autocompletar
+    <div class="login-hint" style="font-size:.75rem;opacity:.5">
+      Clic en una cuenta para entrar directamente
     </div>
 
     <div id="demo-accounts" style="margin-top:14px;width:100%;max-width:360px">
@@ -1695,6 +1706,16 @@ tbody td {
       <div class="demo-row" onclick="fillLogin('trainer','1003','samuel123')">
         <span class="demo-av">S</span>
         <div class="demo-info"><span class="demo-name">Samuel</span><span class="demo-cred">1003 / samuel123</span></div>
+        <span class="demo-arrow">→</span>
+      </div>
+      <div class="demo-row" onclick="fillLogin('trainer','1004','duban123')">
+        <span class="demo-av">D</span>
+        <div class="demo-info"><span class="demo-name">Duban</span><span class="demo-cred">1004 / duban123</span></div>
+        <span class="demo-arrow">→</span>
+      </div>
+      <div class="demo-row" onclick="fillLogin('trainer','1005','leonardo123')">
+        <span class="demo-av">L</span>
+        <div class="demo-info"><span class="demo-name">Leonardo</span><span class="demo-cred">1005 / leonardo123</span></div>
         <span class="demo-arrow">→</span>
       </div>
 
@@ -2278,6 +2299,23 @@ const VIEW_TITLES = {
 };
 
 function navigate(view, param) {
+  // Verificar permisos para entrenadores
+  if (S.role === 'trainer') {
+    const t = DB.trainer(S.uid);
+    const PERM_MAP = {
+      training:    'crearRutinas',
+      'train-detail': 'crearRutinas',
+      nutrition:   'crearNutricion',
+      'nutri-detail': 'crearNutricion',
+      valuation:   'registrarMediciones',
+      'val-detail':'registrarMediciones',
+    };
+    const reqPerm = PERM_MAP[view];
+    if (reqPerm && t && !t.permisos?.[reqPerm]) {
+      toast(`Sin permiso: ${reqPerm === 'crearRutinas' ? 'Crear Rutinas' : reqPerm === 'crearNutricion' ? 'Crear Nutrición' : 'Registrar Mediciones'}`, 'err');
+      return;
+    }
+  }
   destroyCharts();
   S.view  = view;
   S.param = param || null;
@@ -2327,6 +2365,7 @@ function renderDashboard(v) {
   const nutris   = DB.nutris();
   const todayStr = today();
 
+  const pendingPays = DB.payments().filter(p => p.estado === 'pendiente').length;
   let active = 0, expired = 0, withDebt = 0, expiringSoon = 0;
   const expiringList = [];
   const birthdays    = [];
@@ -2382,6 +2421,11 @@ function renderDashboard(v) {
     <div class="stat-lbl">Asistencias Hoy</div>
     <div class="stat-val">${todayAtt.length}</div>
     <div class="stat-sub">${todayAtt.length > 0 ? 'registradas' : 'sin registros aún'}</div>
+  </div>
+  <div class="stat-card ${pendingPays > 0 ? 'orange' : ''}" style="cursor:pointer" onclick="navigate('payments')">
+    <div class="stat-lbl">Pagos Pendientes</div>
+    <div class="stat-val">${pendingPays}</div>
+    <div class="stat-sub">${pendingPays > 0 ? '⏳ por validar' : '✅ al día'}</div>
   </div>
 </div>
 
@@ -2951,6 +2995,20 @@ function _personalTab(u) {
         ${u.hasSurgeries ? `<div class="mt-12"><div class="text-xs text-gray">CIRUGÍAS</div><div class="text-sm mt-4">${escH(u.surgeriesDesc || '—')}</div></div>` : ''}
       </div>
     </div>
+  </div>` : ''}
+
+  ${(u.tipoSangre || u.emergencia1?.nombre || u.emergencia2?.nombre) ? `
+  <div class="card">
+    <div class="card-title">🚨 Emergencia</div>
+    <div class="g2">
+      <div>
+        ${u.tipoSangre ? `<div class="flex-b mb-8"><div class="text-xs text-gray">TIPO DE SANGRE</div><span style="font-size:1.1rem;font-weight:700;color:var(--green)">${escH(u.tipoSangre)}</span></div>` : ''}
+        ${u.emergencia1?.nombre ? `<div class="mb-8"><div class="text-xs text-gray">CONTACTO 1</div><div class="text-sm fw-600 mt-4">${escH(u.emergencia1.nombre)}</div>${u.emergencia1.tel?`<div class="text-sm text-gray">📞 ${escH(u.emergencia1.tel)}</div>`:''}</div>` : ''}
+      </div>
+      <div>
+        ${u.emergencia2?.nombre ? `<div><div class="text-xs text-gray">CONTACTO 2</div><div class="text-sm fw-600 mt-4">${escH(u.emergencia2.nombre)}</div>${u.emergencia2.tel?`<div class="text-sm text-gray">📞 ${escH(u.emergencia2.tel)}</div>`:''}</div>` : ''}
+      </div>
+    </div>
   </div>` : ''}`;
 }
 
@@ -2964,8 +3022,37 @@ function _medLabel(code) {
 /* ======================================================
    MÓDULO 1 — CRUD MIEMBROS
 ====================================================== */
-function showAddMemberModal()    { showModal(_memberFormHTML(null), 'modal-md'); }
-function showEditMemberModal(id) { const u = DB.user(id); if (u) showModal(_memberFormHTML(u), 'modal-md'); }
+function showAddMemberModal()    { showModal(_memberFormHTML(null), 'modal-md'); _initFsecCollapse(); }
+function showEditMemberModal(id) { const u = DB.user(id); if (u) { showModal(_memberFormHTML(u), 'modal-md'); _initFsecCollapse(); } }
+
+function _initFsecCollapse() {
+  requestAnimationFrame(() => {
+    document.querySelectorAll('.modal .fsec').forEach((sec, i) => {
+      const title = sec.querySelector('.fsec-title');
+      if (!title) return;
+      // Wrap body content (everything after title) in fsec-body if not already
+      if (!sec.querySelector('.fsec-body')) {
+        const body = document.createElement('div');
+        body.className = 'fsec-body';
+        while (title.nextSibling) body.appendChild(title.nextSibling);
+        sec.appendChild(body);
+      }
+      const body = sec.querySelector('.fsec-body');
+      // First section open, rest collapsed by default on mobile
+      if (window.innerWidth < 600 && i > 0) {
+        sec.classList.add('collapsed');
+        body.style.maxHeight = '0';
+      } else {
+        body.style.maxHeight = body.scrollHeight + 'px';
+      }
+      title.onclick = () => {
+        if (window.innerWidth >= 600) return;
+        const isCollapsed = sec.classList.toggle('collapsed');
+        body.style.maxHeight = isCollapsed ? '0' : body.scrollHeight + 'px';
+      };
+    });
+  });
+}
 
 function _memberFormHTML(u) {
   const isNew = !u;
@@ -7985,8 +8072,8 @@ function renderCaja(v) {
         </div>
         <div class="field">
           <label>Plan</label>
-          <select id="caja-plan" onchange="cajaUpdateMonto()">
-            ${DB.memPlans().map(p=>`<option value="${p.id}" data-precio="${p.precio}" data-dias="${p.duracionDias}">${escH(p.nombre)} — $${p.precio.toLocaleString('es-CO')}</option>`).join('')}
+          <select id="caja-plan" onchange="cajaUpdateMonto(this)">
+            ${DB.memPlans().map(p=>`<option value="${p.id}" data-precio="${p.precio}" data-dias="${p.duracionDias}">${escH(p.nombre)}${p.precio?` — $${p.precio.toLocaleString('es-CO')}`:''}</option>`).join('')}
           </select>
         </div>
       </div>
@@ -8004,9 +8091,12 @@ function renderCaja(v) {
         if (!pays.length) return '<p class="text-dim">Sin pagos registrados.</p>';
         return pays.map(p=>{
           const u = DB.user(p.userId);
-          return `<div class="card" style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;margin-bottom:6px">
-            <div><strong>${escH(u?.name||'—')}</strong><span style="color:var(--text-dim);margin-left:8px;font-size:.85rem">${p.planNombre}</span></div>
-            <div style="text-align:right"><div style="color:var(--green);font-weight:600">$${(p.monto||0).toLocaleString('es-CO')}</div><div style="font-size:.8rem;color:var(--text-dim)">${p.fecha}</div></div>
+          const origen = p.origenCaja
+            ? `<span style="font-size:.7rem;padding:1px 6px;border-radius:4px;background:#1a2a1a;color:var(--green);border:1px solid #2a3a2a">Caja</span>`
+            : `<span style="font-size:.7rem;padding:1px 6px;border-radius:4px;background:#1a1a2a;color:#8888ff;border:1px solid #2a2a4a">Online</span>`;
+          return `<div class="card" style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;margin-bottom:6px;gap:8px">
+            <div><strong>${escH(u?.name||'—')}</strong> ${origen} <span style="color:var(--text-dim);margin-left:4px;font-size:.85rem">${escH(p.planNombre)}</span></div>
+            <div style="text-align:right;flex-shrink:0"><div style="color:var(--green);font-weight:600">$${(p.monto||0).toLocaleString('es-CO')}</div><div style="font-size:.8rem;color:var(--text-dim)">${p.fecha}</div></div>
           </div>`;
         }).join('');
       })()}
@@ -8015,8 +8105,8 @@ function renderCaja(v) {
   cajaUpdateMonto();
 }
 
-function cajaUpdateMonto() {
-  const sel = document.getElementById('caja-plan');
+function cajaUpdateMonto(sel) {
+  sel = sel || document.getElementById('caja-plan');
   if (!sel) return;
   const opt = sel.options[sel.selectedIndex];
   const el  = document.getElementById('caja-monto');
@@ -8307,7 +8397,7 @@ function renderMyPayments(v) {
     </div>` : ''}
 
     <div class="card" style="padding:20px;margin-bottom:20px">
-      <h3 style="margin:0 0 14px">Pagar membresía</h3>
+      <h3 style="margin:0 0 14px">${st.s === 'active' || st.s === 'expiring' ? '🔄 Renovar membresía' : '💳 Pagar membresía'}</h3>
       <div class="field" style="margin-bottom:16px">
         <label>Selecciona tu plan</label>
         <select id="pay-plan-sel" onchange="myPayUpdateMonto()">
