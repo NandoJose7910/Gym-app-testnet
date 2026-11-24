@@ -1736,6 +1736,41 @@ tbody td {
         <div class="demo-info"><span class="demo-name">Diego Rodríguez</span><span class="demo-cred">Cédula: 5555666677</span></div>
         <span class="demo-arrow">→</span>
       </div>
+      <div class="demo-row" onclick="fillLogin('member','3344556677')">
+        <span class="demo-av" style="background:rgba(255,100,100,.15);color:#ff7777">M</span>
+        <div class="demo-info"><span class="demo-name">María Restrepo</span><span class="demo-cred">Cédula: 3344556677 · Semestral</span></div>
+        <span class="demo-arrow">→</span>
+      </div>
+      <div class="demo-row" onclick="fillLogin('member','1098765432')">
+        <span class="demo-av" style="background:rgba(100,200,255,.15);color:#64c8ff">A</span>
+        <div class="demo-info"><span class="demo-name">Andrés Ospina</span><span class="demo-cred">Cédula: 1098765432 · Anual</span></div>
+        <span class="demo-arrow">→</span>
+      </div>
+      <div class="demo-row" onclick="fillLogin('member','4321098765')">
+        <span class="demo-av" style="background:rgba(200,150,255,.15);color:#c896ff">S</span>
+        <div class="demo-info"><span class="demo-name">Sandra Vargas</span><span class="demo-cred">Cédula: 4321098765 · Trimestral</span></div>
+        <span class="demo-arrow">→</span>
+      </div>
+      <div class="demo-row" onclick="fillLogin('member','7788990011')">
+        <span class="demo-av" style="background:rgba(255,180,50,.15);color:#ffb432">G</span>
+        <div class="demo-info"><span class="demo-name">Gustavo Morales</span><span class="demo-cred">Cédula: 7788990011 · Veterano 6 años</span></div>
+        <span class="demo-arrow">→</span>
+      </div>
+      <div class="demo-row" onclick="fillLogin('member','1234567891')">
+        <span class="demo-av" style="background:rgba(255,100,200,.15);color:#ff64c8">V</span>
+        <div class="demo-info"><span class="demo-name">Valentina Ríos</span><span class="demo-cred">Cédula: 1234567891 · Tiquete 15</span></div>
+        <span class="demo-arrow">→</span>
+      </div>
+      <div class="demo-row" onclick="fillLogin('member','9900112233')">
+        <span class="demo-av" style="background:rgba(50,220,150,.15);color:#32dc96">H</span>
+        <div class="demo-info"><span class="demo-name">Hernán Zuluaga</span><span class="demo-cred">Cédula: 9900112233 · Semestral</span></div>
+        <span class="demo-arrow">→</span>
+      </div>
+      <div class="demo-row" onclick="fillLogin('member','2233445566')">
+        <span class="demo-av" style="background:rgba(150,180,255,.15);color:#96b4ff">P</span>
+        <div class="demo-info"><span class="demo-name">Patricia Gómez</span><span class="demo-cred">Cédula: 2233445566 · Veterana 7 años</span></div>
+        <span class="demo-arrow">→</span>
+      </div>
     </div>
   </div>
 </div>
@@ -6515,6 +6550,125 @@ const DEMO_USERS = [
       { date:'2023-07-05', weight:91, height:175, bodyFat:27, muscleMass:37,
         measures:{ chest:106, waist:96, hip:105, rArm:35, lArm:35, rThigh:60, lThigh:60 }, restHR:82 }
     ]
+  },
+  {
+    id: 'u04', name: 'María Isabel Restrepo Cardona', cedula: '3344556677',
+    phone: '3157891234', email: 'maria.restrepo@email.com', birthdate: '1981-04-12',
+    gender: 'F', occupation: 'Administradora de Empresas', workHoursPerDay: 8, sleepHoursAvg: 7,
+    activityLevel: 'low', joinDate: '2021-03-20',
+    membership: { status:'active', type:'Semestral', startDate:'2026-08-01', endDate:'2027-02-01' },
+    trunkBox: [], debt: { amount:0, description:'' }, referredBy: null, referralPoints: 25, referralCount: 0,
+    medicalConditions: ['hipertension'],
+    medicalNotes: 'Hipertensión controlada con medicación. Sobrepeso grado I. Autorizada para ejercicio moderado. Evitar Valsalva y esfuerzos máximos.',
+    medications: 'Enalapril 10mg, Atorvastatina 20mg',
+    hasSurgeries: false, surgeriesDesc: '',
+    objectives: { primary:'lose_weight', secondary:'Bajar de peso y controlar tensión arterial', daysPerWeek:3, sessionDuration:50, equipment:'gym_only' },
+    tipoSangre: 'O+',
+    emergencia1: { nombre:'Juan Pablo Restrepo', tel:'3001234500' },
+    emergencia2: { nombre:'Dr. Alberto Morales (médico)', tel:'6044123456' },
+    physicalHistory: []
+  },
+  {
+    id: 'u05', name: 'Andrés Felipe Ospina Ruiz', cedula: '1098765432',
+    phone: '3209876543', email: 'andres.ospina@email.com', birthdate: '2004-07-18',
+    gender: 'M', occupation: 'Estudiante Universitario', workHoursPerDay: 4, sleepHoursAvg: 7,
+    activityLevel: 'high', joinDate: '2026-07-01',
+    membership: { status:'active', type:'Anual', startDate:'2026-07-01', endDate:'2027-07-01' },
+    trunkBox: [], debt: { amount:0, description:'' }, referredBy: 'u01', referralPoints: 0, referralCount: 0,
+    medicalConditions: [],
+    medicalNotes: 'Sin condiciones médicas. Excelente estado físico base.',
+    medications: '',
+    hasSurgeries: false, surgeriesDesc: '',
+    objectives: { primary:'gain_muscle', secondary:'Ganar masa muscular y fuerza general', daysPerWeek:5, sessionDuration:70, equipment:'gym_only' },
+    tipoSangre: 'A+',
+    emergencia1: { nombre:'Clara Ruiz de Ospina', tel:'3101234567' },
+    emergencia2: { nombre:'', tel:'' },
+    physicalHistory: []
+  },
+  {
+    id: 'u06', name: 'Sandra Milena Vargas Acosta', cedula: '4321098765',
+    phone: '3153456789', email: 'sandra.vargas@email.com', birthdate: '1988-02-14',
+    gender: 'F', occupation: 'Psicóloga', workHoursPerDay: 7, sleepHoursAvg: 6,
+    activityLevel: 'moderate', joinDate: '2024-02-28',
+    membership: { status:'active', type:'Trimestral', startDate:'2026-10-15', endDate:'2027-01-15' },
+    trunkBox: [], debt: { amount:0, description:'' }, referredBy: null, referralPoints: 0, referralCount: 0,
+    medicalConditions: ['back_pain'],
+    medicalNotes: 'Lumbalgia crónica. Escoliosis leve derecha (10°). Prohibido peso libre en posición vertical con carga espinal. Prioridad: core estabilizador.',
+    medications: 'Ibuprofeno 400mg (SOS), Vitamina D3 2000UI',
+    hasSurgeries: false, surgeriesDesc: '',
+    objectives: { primary:'general_fitness', secondary:'Aliviar lumbalgia, mejorar postura y reducir estrés', daysPerWeek:3, sessionDuration:45, equipment:'gym_only' },
+    tipoSangre: 'B+',
+    emergencia1: { nombre:'Marco Vargas', tel:'3002345678' },
+    emergencia2: { nombre:'', tel:'' },
+    physicalHistory: []
+  },
+  {
+    id: 'u07', name: 'Gustavo Alberto Morales Bermúdez', cedula: '7788990011',
+    phone: '3185678901', email: 'gustavo.morales@email.com', birthdate: '1968-09-05',
+    gender: 'M', occupation: 'Pensionado', workHoursPerDay: 2, sleepHoursAvg: 7,
+    activityLevel: 'low', joinDate: '2020-05-10',
+    membership: { status:'active', type:'Mensual', startDate:'2026-11-10', endDate:'2026-12-10' },
+    trunkBox: [], debt: { amount:0, description:'' }, referredBy: null, referralPoints: 0, referralCount: 0,
+    medicalConditions: ['diabetes', 'heart_condition'],
+    medicalNotes: 'Diabetes tipo 2 controlada. Cardiopatía hipertensiva leve — FC máxima permitida: 130 ppm. Solo ejercicio aeróbico moderado y fuerza liviana. Monitorear glucemia pre/post ejercicio.',
+    medications: 'Metformina 850mg c/8h, Lisinopril 5mg, Aspirina 100mg',
+    hasSurgeries: true, surgeriesDesc: 'Angioplastia coronaria — 2017',
+    objectives: { primary:'general_fitness', secondary:'Mantener movilidad y controlar glucemia con ejercicio regular', daysPerWeek:2, sessionDuration:40, equipment:'gym_only' },
+    tipoSangre: 'AB+',
+    emergencia1: { nombre:'Marta Elena Morales (esposa)', tel:'3012345678' },
+    emergencia2: { nombre:'Dr. Rodrigo Suárez (cardiólogo)', tel:'6044987654' },
+    physicalHistory: []
+  },
+  {
+    id: 'u08', name: 'Valentina Ríos Cárdenas', cedula: '1234567891',
+    phone: '3006543210', email: 'valentina.rios@email.com', birthdate: '2007-05-30',
+    gender: 'F', occupation: 'Estudiante de Diseño', workHoursPerDay: 3, sleepHoursAvg: 8,
+    activityLevel: 'moderate', joinDate: '2026-09-01',
+    membership: { status:'active', type:'Tiquete 15 Entradas', startDate:'2026-09-01', endDate:'2027-03-01', entradasUsadas:12, entradasTotal:15 },
+    trunkBox: [], debt: { amount:0, description:'' }, referredBy: 'u02', referralPoints: 0, referralCount: 0,
+    medicalConditions: [],
+    medicalNotes: 'Escoliosis leve (10°). Sin restricciones mayores para ejercicio.',
+    medications: '',
+    hasSurgeries: false, surgeriesDesc: '',
+    objectives: { primary:'general_fitness', secondary:'Mejorar condición física general y tonificar', daysPerWeek:2, sessionDuration:45, equipment:'gym_only' },
+    tipoSangre: 'O-',
+    emergencia1: { nombre:'Liliana Cárdenas (mamá)', tel:'3156789012' },
+    emergencia2: { nombre:'', tel:'' },
+    physicalHistory: []
+  },
+  {
+    id: 'u09', name: 'Hernán Darío Zuluaga Mesa', cedula: '9900112233',
+    phone: '3214321098', email: 'hernan.zuluaga@email.com', birthdate: '1993-12-01',
+    gender: 'M', occupation: 'Arquitecto', workHoursPerDay: 9, sleepHoursAvg: 6,
+    activityLevel: 'moderate', joinDate: '2025-01-15',
+    membership: { status:'active', type:'Semestral', startDate:'2026-07-01', endDate:'2027-01-01' },
+    trunkBox: [], debt: { amount:0, description:'' }, referredBy: null, referralPoints: 0, referralCount: 0,
+    medicalConditions: ['back_pain'],
+    medicalNotes: 'Hernia discal L4-L5 confirmada por RMN. Dolor lumbar crónico. Prohibido: peso muerto con barra, sentadilla cargada, ejercicios de alto impacto. Prioritario: core estabilizador, glúteos, tracción.',
+    medications: 'Pregabalina 75mg (noche), Diclofenaco (SOS)',
+    hasSurgeries: false, surgeriesDesc: '',
+    objectives: { primary:'rehabilitation', secondary:'Fortalecer core para aliviar hernia discal y volver al deporte', daysPerWeek:3, sessionDuration:50, equipment:'gym_only' },
+    tipoSangre: 'A-',
+    emergencia1: { nombre:'Isabel Mesa de Zuluaga', tel:'3101122334' },
+    emergencia2: { nombre:'', tel:'' },
+    physicalHistory: []
+  },
+  {
+    id: 'u10', name: 'Patricia Elena Gómez Salcedo', cedula: '2233445566',
+    phone: '3043210987', email: 'patricia.gomez@email.com', birthdate: '1959-07-14',
+    gender: 'F', occupation: 'Ama de casa', workHoursPerDay: 0, sleepHoursAvg: 8,
+    activityLevel: 'low', joinDate: '2019-08-25',
+    membership: { status:'expired', type:'Anual', startDate:'2024-10-01', endDate:'2025-10-01' },
+    trunkBox: [], debt: { amount:85000, description:'Mensualidad pendiente — Nov 2025' }, referredBy: null, referralPoints: 0, referralCount: 0,
+    medicalConditions: ['joint_injury'],
+    medicalNotes: 'Artritis bilateral en rodillas (grado II). Osteoporosis inicial (densitometría 2024). Absolutamente prohibido impacto. Solo ejercicios de bajo impacto, en máquinas o piso.',
+    medications: 'Calcio + Vitamina D3, Glucosamina 500mg, Ibuprofeno (SOS)',
+    hasSurgeries: true, surgeriesDesc: 'Prótesis cadera izquierda — 2022',
+    objectives: { primary:'rehabilitation', secondary:'Mantener movilidad, prevenir caídas y mejorar calidad de vida', daysPerWeek:2, sessionDuration:35, equipment:'gym_only' },
+    tipoSangre: 'B-',
+    emergencia1: { nombre:'Fernando Gómez (hijo)', tel:'3167890123' },
+    emergencia2: { nombre:'Clínica Los Alpes', tel:'6042345678' },
+    physicalHistory: []
   }
 ];
 
@@ -7814,7 +7968,14 @@ const DEMO_ATT = (() => {
   const users = [
     { id:'u01', freq:4, start:'2025-01-01' },
     { id:'u02', freq:3, start:'2023-07-01' },
-    { id:'u03', freq:2, start:'2023-01-15' }
+    { id:'u03', freq:2, start:'2023-01-15' },
+    { id:'u04', freq:3, start:'2021-04-01' },
+    { id:'u05', freq:5, start:'2026-07-01' },
+    { id:'u06', freq:3, start:'2024-03-01' },
+    { id:'u07', freq:2, start:'2020-06-01' },
+    { id:'u08', freq:2, start:'2026-09-01' },
+    { id:'u09', freq:3, start:'2025-02-01' },
+    { id:'u10', freq:1, start:'2019-09-01' }
   ];
   users.forEach(({ id, freq, start }) => {
     const d = new Date(start + 'T12:00:00');
@@ -7880,6 +8041,62 @@ function initApp() {
        measures:{chest:104,waist:92,hip:102,rArm:35,lArm:35,rThigh:59,lThigh:59},restHR:79},
       {date:'2025-01-15',weight:85,height:175,bodyFat:23,muscleMass:39,
        measures:{chest:103,waist:89,hip:100,rArm:36,lArm:35,rThigh:58,lThigh:58},restHR:76}
+    ],
+    u04: [
+      {date:'2021-04-01',weight:88,height:162,bodyFat:38,muscleMass:26,
+       measures:{chest:102,waist:95,hip:112,rArm:33,lArm:32,rThigh:62,lThigh:61},restHR:88},
+      {date:'2022-01-15',weight:84,height:162,bodyFat:35,muscleMass:27,
+       measures:{chest:100,waist:91,hip:109,rArm:32,lArm:31,rThigh:60,lThigh:59},restHR:85},
+      {date:'2023-05-10',weight:80,height:162,bodyFat:32,muscleMass:28,
+       measures:{chest:98,waist:87,hip:106,rArm:31,lArm:30,rThigh:58,lThigh:57},restHR:82},
+      {date:'2024-11-20',weight:77,height:162,bodyFat:30,muscleMass:29,
+       measures:{chest:97,waist:84,hip:104,rArm:30,lArm:29,rThigh:57,lThigh:56},restHR:79},
+      {date:'2026-02-10',weight:75,height:162,bodyFat:28,muscleMass:30,
+       measures:{chest:96,waist:81,hip:102,rArm:30,lArm:29,rThigh:56,lThigh:55},restHR:76}
+    ],
+    u05: [
+      {date:'2026-07-01',weight:65,height:175,bodyFat:15,muscleMass:38,
+       measures:{chest:92,waist:76,hip:92,rArm:32,lArm:31,rThigh:54,lThigh:53},restHR:62},
+      {date:'2026-10-15',weight:68,height:175,bodyFat:14,muscleMass:40.5,
+       measures:{chest:95,waist:76,hip:93,rArm:33.5,lArm:33,rThigh:56,lThigh:55},restHR:60}
+    ],
+    u06: [
+      {date:'2024-02-28',weight:67,height:165,bodyFat:28,muscleMass:28,
+       measures:{chest:91,waist:76,hip:99,rArm:29,lArm:28,rThigh:54,lThigh:53},restHR:76},
+      {date:'2025-02-15',weight:64,height:165,bodyFat:25,muscleMass:29,
+       measures:{chest:90,waist:73,hip:97,rArm:28,lArm:27,rThigh:52,lThigh:51},restHR:72},
+      {date:'2026-02-20',weight:62,height:165,bodyFat:23,muscleMass:30,
+       measures:{chest:89,waist:71,hip:96,rArm:28,lArm:27,rThigh:51,lThigh:50},restHR:70}
+    ],
+    u07: [
+      {date:'2020-05-10',weight:98,height:172,bodyFat:33,muscleMass:35,
+       measures:{chest:110,waist:104,hip:112,rArm:36,lArm:35,rThigh:62,lThigh:61},restHR:92},
+      {date:'2021-06-01',weight:93,height:172,bodyFat:30,muscleMass:36,
+       measures:{chest:108,waist:99,hip:109,rArm:35,lArm:34,rThigh:60,lThigh:59},restHR:88},
+      {date:'2022-09-15',weight:90,height:172,bodyFat:28,muscleMass:37,
+       measures:{chest:106,waist:96,hip:107,rArm:35,lArm:34,rThigh:59,lThigh:58},restHR:85},
+      {date:'2024-03-20',weight:87,height:172,bodyFat:26,muscleMass:37.5,
+       measures:{chest:104,waist:93,hip:105,rArm:34,lArm:33,rThigh:58,lThigh:57},restHR:82},
+      {date:'2025-11-01',weight:85,height:172,bodyFat:25,muscleMass:38,
+       measures:{chest:103,waist:91,hip:104,rArm:34,lArm:33,rThigh:57,lThigh:56},restHR:80}
+    ],
+    u08: [
+      {date:'2026-09-01',weight:55,height:162,bodyFat:22,muscleMass:26,
+       measures:{chest:84,waist:68,hip:92,rArm:26,lArm:25,rThigh:50,lThigh:49},restHR:68}
+    ],
+    u09: [
+      {date:'2025-01-15',weight:84,height:180,bodyFat:22,muscleMass:38,
+       measures:{chest:102,waist:88,hip:100,rArm:35,lArm:34,rThigh:58,lThigh:57},restHR:76},
+      {date:'2025-09-20',weight:82,height:180,bodyFat:20,muscleMass:39,
+       measures:{chest:102,waist:85,hip:99,rArm:35,lArm:34,rThigh:57,lThigh:56},restHR:73},
+      {date:'2026-06-15',weight:80,height:180,bodyFat:18,muscleMass:40,
+       measures:{chest:103,waist:83,hip:98,rArm:36,lArm:35,rThigh:57,lThigh:56},restHR:71}
+    ],
+    u10: [
+      {date:'2019-09-01',weight:71,height:155,bodyFat:40,muscleMass:21,
+       measures:{chest:95,waist:88,hip:104,rArm:30,lArm:29,rThigh:56,lThigh:55},restHR:84},
+      {date:'2023-05-10',weight:68,height:155,bodyFat:37,muscleMass:22,
+       measures:{chest:93,waist:85,hip:102,rArm:29,lArm:28,rThigh:54,lThigh:53},restHR:80}
     ]
   };
 
@@ -7967,6 +8184,22 @@ function initApp() {
         { id:'tr4', nombre:'Duban',    cedula:'1004', password:'duban123',    permisos:{ crearRutinas:true,  crearNutricion:true,  registrarMediciones:true,  generadorAutomatico:false, verTodosLosClientes:false }, clientesAsignados:[] },
         { id:'tr5', nombre:'Leonardo', cedula:'1005', password:'leonardo123', permisos:{ crearRutinas:true,  crearNutricion:true,  registrarMediciones:true,  generadorAutomatico:true,  verTodosLosClientes:false }, clientesAsignados:[] },
       ]);
+    }
+
+    /* ── PASO 6: Inyectar nuevos usuarios demo en sesiones existentes ────────
+       Permite que usuarios que ya tienen localStorage con solo u01-u03
+       reciban los 7 nuevos perfiles sin borrar sus datos. */
+    const NEW_DEMO_IDS = ['u04','u05','u06','u07','u08','u09','u10'];
+    const existingUsers = DB.users();
+    const existingIds = existingUsers.map(u => u.id);
+    const missingUsers = DEMO_USERS.filter(u => NEW_DEMO_IDS.includes(u.id) && !existingIds.includes(u.id));
+    if (missingUsers.length > 0) {
+      const withHist = missingUsers.map(u =>
+        PHIST_DEMO[u.id] ? Object.assign({}, u, { physicalHistory: PHIST_DEMO[u.id] }) : u
+      );
+      DB.setUsers([...existingUsers, ...withHist]);
+      /* Regenerar asistencia incluyendo nuevos usuarios */
+      try { DB.setAtt(DEMO_ATT); } catch(e) {}
     }
 
   } catch (err) {
