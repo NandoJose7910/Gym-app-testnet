@@ -215,11 +215,27 @@ input,select,textarea { font-family:'Barlow',sans-serif; }
 
 .login-hint {
   margin-top:20px;
-  font-size:16px;
+  font-size:13px;
   color:var(--gray);
   text-align:center;
   line-height:1.8;
 }
+.demo-row {
+  display:flex;align-items:center;gap:10px;
+  padding:8px 10px;border-radius:8px;cursor:pointer;
+  border:1px solid #1e1e1e;background:#0f0f0f;
+  margin-bottom:4px;transition:background .15s,border-color .15s;
+}
+.demo-row:hover { background:#1a1a0d;border-color:rgba(255,184,0,.35); }
+.demo-av {
+  width:32px;height:32px;border-radius:50%;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  background:#1c1c1c;color:var(--green);font-weight:700;font-size:.85rem;
+}
+.demo-info { display:flex;flex-direction:column;flex:1;min-width:0; }
+.demo-name { font-size:.82rem;font-weight:600;color:var(--text); }
+.demo-cred { font-size:.72rem;color:var(--text-dim); }
+.demo-arrow { color:#444;font-size:.9rem;flex-shrink:0; }
 
 /* ======================================================
    APP LAYOUT
@@ -1652,9 +1668,52 @@ tbody td {
     </div>
 
     <div class="login-hint">
-      Admin: <strong>admin / GymPro2024</strong><br>
-      Entrenadores: cédula + contraseña asignada<br>
-      Miembros: ingresa con tu cédula
+      Demo — haz clic en cualquier cuenta para autocompletar
+    </div>
+
+    <div id="demo-accounts" style="margin-top:14px;width:100%;max-width:360px">
+      <div style="font-size:.7rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text-dim);margin-bottom:8px;text-align:center">Cuentas de demostración</div>
+
+      <div style="font-size:.68rem;text-transform:uppercase;letter-spacing:.06em;color:#555;margin-bottom:4px;padding:0 2px">Administrador</div>
+      <div class="demo-row" onclick="fillLogin('admin','admin','GymPro2024')">
+        <span class="demo-av" style="background:#2a2a1a;color:var(--green)">A</span>
+        <div class="demo-info"><span class="demo-name">Administrador</span><span class="demo-cred">admin / GymPro2024</span></div>
+        <span class="demo-arrow">→</span>
+      </div>
+
+      <div style="font-size:.68rem;text-transform:uppercase;letter-spacing:.06em;color:#555;margin:8px 0 4px;padding:0 2px">Entrenadores</div>
+      <div class="demo-row" onclick="fillLogin('trainer','1001','juanca123')">
+        <span class="demo-av">J</span>
+        <div class="demo-info"><span class="demo-name">Juanca</span><span class="demo-cred">1001 / juanca123</span></div>
+        <span class="demo-arrow">→</span>
+      </div>
+      <div class="demo-row" onclick="fillLogin('trainer','1002','ruben123')">
+        <span class="demo-av">R</span>
+        <div class="demo-info"><span class="demo-name">Ruben</span><span class="demo-cred">1002 / ruben123</span></div>
+        <span class="demo-arrow">→</span>
+      </div>
+      <div class="demo-row" onclick="fillLogin('trainer','1003','samuel123')">
+        <span class="demo-av">S</span>
+        <div class="demo-info"><span class="demo-name">Samuel</span><span class="demo-cred">1003 / samuel123</span></div>
+        <span class="demo-arrow">→</span>
+      </div>
+
+      <div style="font-size:.68rem;text-transform:uppercase;letter-spacing:.06em;color:#555;margin:8px 0 4px;padding:0 2px">Miembros</div>
+      <div class="demo-row" onclick="fillLogin('member','1020304050')">
+        <span class="demo-av">C</span>
+        <div class="demo-info"><span class="demo-name">Carlos Martínez</span><span class="demo-cred">Cédula: 1020304050</span></div>
+        <span class="demo-arrow">→</span>
+      </div>
+      <div class="demo-row" onclick="fillLogin('member','9876543210')">
+        <span class="demo-av">L</span>
+        <div class="demo-info"><span class="demo-name">Laura González</span><span class="demo-cred">Cédula: 9876543210</span></div>
+        <span class="demo-arrow">→</span>
+      </div>
+      <div class="demo-row" onclick="fillLogin('member','5555666677')">
+        <span class="demo-av">D</span>
+        <div class="demo-info"><span class="demo-name">Diego Rodríguez</span><span class="demo-cred">Cédula: 5555666677</span></div>
+        <span class="demo-arrow">→</span>
+      </div>
     </div>
   </div>
 </div>
@@ -2002,6 +2061,20 @@ function confirmDlg(msg, cb, title = 'Confirmar acción') {
 /* ======================================================
    AUTH — Login / Logout
 ====================================================== */
+function fillLogin(role, user, pass) {
+  setRole(role);
+  if (role === 'admin') {
+    document.getElementById('inp-user').value = user;
+    document.getElementById('inp-pass').value = pass;
+  } else if (role === 'trainer') {
+    document.getElementById('inp-trainer-ced').value = user;
+    document.getElementById('inp-trainer-pass').value = pass;
+  } else {
+    document.getElementById('inp-cedula').value = user;
+  }
+  doLogin();
+}
+
 function setRole(role) {
   S._role = role;
   document.getElementById('tab-admin').classList.toggle('active',   role === 'admin');
