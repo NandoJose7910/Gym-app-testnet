@@ -1242,6 +1242,7 @@ tbody td {
   .bnav-item { height:100%; padding:5px 8px; word-break:break-word; text-align:center; justify-content:center; }
   #view { padding:16px 16px 80px; }
   #topbar { padding:0 16px; }
+  #topbar-logout { display:flex !important; }
   .g2, .g3, .g4 { grid-template-columns:1fr; }
   .frow-2, .frow-3, .frow-4 { grid-template-columns:1fr; }
   .nutri-totals { grid-template-columns:1fr 1fr; }
@@ -1774,6 +1775,10 @@ tbody td {
     <div id="topbar">
       <span class="topbar-title" id="topbar-title">Dashboard</span>
       <div id="topbar-extra"></div>
+      <button id="topbar-logout" onclick="logout()" title="Cerrar sesión"
+        style="display:none;margin-left:auto;background:none;border:1px solid #333;color:var(--text-dim);border-radius:6px;padding:5px 10px;cursor:pointer;font-size:.8rem;flex-shrink:0">
+        ⬅ Salir
+      </button>
     </div>
     <div id="view">
       <!-- Views rendered here by JS -->
@@ -2231,9 +2236,12 @@ function buildSidebar() {
                 <span class="nav-icon">${it.icon}</span>
                 <span class="nav-label">${it.label}</span>${badgeHtml}
               </div>`;
-    bhtml += `<div class="bnav-item" data-view="${it.view}" onclick="navigate('${it.view}')">
-                <span>${it.icon}</span><span>${it.label.split(' ')[0]}</span>
-              </div>`;
+    const BNAV_VIEWS = ['dashboard','members','training','nutrition','payments','my-payments','trainer-dash','trainer-clients'];
+    if (BNAV_VIEWS.includes(it.view)) {
+      bhtml += `<div class="bnav-item" data-view="${it.view}" onclick="navigate('${it.view}')">
+                  <span>${it.icon}</span><span>${it.label.split(' ')[0]}</span>
+                </div>`;
+    }
   });
 
   nav.innerHTML  = html;
@@ -6390,7 +6398,7 @@ const DEMO_USERS = [
     sleepHoursAvg: 7,
     activityLevel: 'moderate',
     joinDate: '2022-01-10',
-    membership: { status:'active', type:'Mensual', startDate:'2026-04-01', endDate:'2026-05-17' },
+    membership: { status:'active', type:'Anual', startDate:'2026-11-01', endDate:'2027-11-01' },
     trunkBox: [
       { id:'tb01', months:1, type:'Mensual', addedDate:'2026-03-01', used:false }
     ],
@@ -6438,7 +6446,7 @@ const DEMO_USERS = [
     sleepHoursAvg: 6,
     activityLevel: 'low',
     joinDate: '2023-06-15',
-    membership: { status:'active', type:'Mensual', startDate:'2026-04-02', endDate:'2026-05-05' },
+    membership: { status:'active', type:'Trimestral', startDate:'2026-10-01', endDate:'2027-01-01' },
     trunkBox: [],
     debt: { amount:0, description:'' },
     referredBy: 'u01',
@@ -7924,6 +7932,21 @@ function initApp() {
     });
     if (dirty) DB.setUsers(users);
 
+    /* ── PASO 3b: Actualizar membresías demo vencidas (migración) ─────────── */
+    const usersNow = DB.users();
+    const DEMO_MEM_FIX = { u01: { type:'Anual', startDate:'2026-11-01', endDate:'2027-11-01' }, u02: { type:'Trimestral', startDate:'2026-10-01', endDate:'2027-01-01' } };
+    let memDirty = false;
+    Object.keys(DEMO_MEM_FIX).forEach(id => {
+      const idx = usersNow.findIndex(u => u.id === id);
+      if (idx < 0) return;
+      const m = usersNow[idx].membership;
+      if (m && m.endDate && m.endDate < today()) {
+        usersNow[idx].membership = { status:'active', ...DEMO_MEM_FIX[id] };
+        memDirty = true;
+      }
+    });
+    if (memDirty) DB.setUsers(usersNow);
+
     /* ── PASO 4: Planes de membresía (idempotente) ────────────────────────── */
     if (DB.memPlans().length === 0) {
       DB.setMemPlans([
@@ -8003,7 +8026,7 @@ function renderMemPlans(v) {
 
 function openMemPlanForm(id) {
   const p = id ? DB.memPlans().find(x => x.id === id) : null;
-  openModal(`
+  showModal(`
   <div class="modal-head"><h3>${p ? 'Editar Plan' : 'Nuevo Plan'}</h3></div>
   <div class="modal-body" style="display:grid;gap:12px">
     <input type="hidden" id="mpf-id" value="${p?.id||''}">
@@ -8194,7 +8217,7 @@ function openTrainerForm(id) {
     { key:'generadorAutomatico',  label:'Generador Automático' },
     { key:'verTodosLosClientes',  label:'Ver Todos los Clientes' },
   ];
-  openModal(`
+  showModal(`
   <div class="modal-head"><h3>${t ? 'Editar Entrenador' : 'Nuevo Entrenador'}</h3></div>
   <div class="modal-body" style="display:grid;gap:12px">
     <input type="hidden" id="trf-id" value="${t?.id||''}">
@@ -8253,7 +8276,7 @@ function openTrainerClients(trainerId) {
   const t     = DB.trainer(trainerId);
   const users = DB.users();
   if (!t) return;
-  openModal(`
+  showModal(`
   <div class="modal-head"><h3>Clientes de ${escH(t.nombre)}</h3></div>
   <div class="modal-body">
     <p style="font-size:.85rem;color:var(--text-dim);margin-bottom:10px">Marca los miembros asignados a este entrenador.</p>
@@ -8325,7 +8348,7 @@ function renderAdminPayments(v) {
 function verComprobante(payId) {
   const p = DB.payments().find(x=>x.id===payId);
   if (!p||!p.screenshotBase64) return;
-  openModal(`
+  showModal(`
   <div class="modal-head"><h3>Comprobante de pago</h3></div>
   <div class="modal-body" style="text-align:center">
     <img src="${p.screenshotBase64}" style="max-width:100%;border-radius:8px;max-height:70vh;object-fit:contain">
@@ -8479,7 +8502,7 @@ function enviarSolicitudPago() {
 function renderTrainerDash(v) {
   const t = DB.trainer(S.uid);
   if (!t) { v.innerHTML = '<p class="text-dim">Entrenador no encontrado.</p>'; return; }
-  const clts = t.verTodosLosClientes ? DB.users() :
+  const clts = t.permisos?.verTodosLosClientes ? DB.users() :
     (t.clientesAsignados||[]).map(id=>DB.user(id)).filter(Boolean);
   const PERMS = [
     { key:'crearRutinas',         label:'Crear Rutinas',        icon:'💪' },
