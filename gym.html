@@ -1603,8 +1603,9 @@ tbody td {
     <div class="login-tagline">Disciplina · Excusas · Resultados</div>
 
     <div class="role-tabs">
-      <button class="role-tab active" id="tab-admin" onclick="setRole('admin')">🔐 Administrador</button>
-      <button class="role-tab" id="tab-member" onclick="setRole('member')">👤 Miembro</button>
+      <button class="role-tab active" id="tab-admin"    onclick="setRole('admin')">🔐 Admin</button>
+      <button class="role-tab"        id="tab-trainer"  onclick="setRole('trainer')">🏋️ Entrenador</button>
+      <button class="role-tab"        id="tab-member"   onclick="setRole('member')">👤 Miembro</button>
     </div>
 
     <div class="login-form">
@@ -1627,6 +1628,17 @@ tbody td {
           </div>
         </div>
       </div>
+      <!-- Trainer fields -->
+      <div id="trainer-fields" class="hidden">
+        <div class="lg-field">
+          <label>Cédula</label>
+          <input type="text" id="inp-trainer-ced" placeholder="Número de cédula" autocomplete="off" onkeydown="if(event.key==='Enter')doLogin()">
+        </div>
+        <div class="lg-field">
+          <label>Contraseña</label>
+          <input type="password" id="inp-trainer-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
+        </div>
+      </div>
       <!-- Member fields -->
       <div id="member-fields" class="hidden">
         <div class="lg-field">
@@ -1640,7 +1652,8 @@ tbody td {
     </div>
 
     <div class="login-hint">
-      Admin: <strong>admin</strong> / <strong>GymPro2024</strong><br>
+      Admin: <strong>admin / GymPro2024</strong><br>
+      Entrenadores: cédula + contraseña asignada<br>
       Miembros: ingresa con tu cédula
     </div>
   </div>
@@ -1707,11 +1720,11 @@ tbody td {
    ESTADO GLOBAL
 ====================================================== */
 const S = {
-  role:    null,   // 'admin' | 'member'
-  uid:     null,   // userId activo (rol miembro)
-  view:    null,   // vista actual
-  param:   null,   // parámetro de vista (userId, etc.)
-  charts:  {}      // instancias Chart.js activas
+  role:    null,   // 'admin' | 'member' | 'trainer'
+  uid:     null,   // userId activo (miembro) o trainerId (entrenador)
+  view:    null,
+  param:   null,
+  charts:  {}
 };
 
 /* ======================================================
@@ -1777,6 +1790,27 @@ const DB = {
   setWlogs: (d) => localStorage.setItem('gp_wlogs', JSON.stringify(d)),
   userWlogs:(uid) => DB.wlogs().filter(l => l.userId === uid),
   addWlog:  (rec) => { const a = DB.wlogs(); a.push(rec); DB.setWlogs(a); },
+
+  // Planes de membresía (suscripciones)
+  memPlans:    () => JSON.parse(localStorage.getItem('gp_memplans') || '[]'),
+  setMemPlans: (d) => localStorage.setItem('gp_memplans', JSON.stringify(d)),
+
+  // Entrenadores
+  trainers:    () => JSON.parse(localStorage.getItem('gp_trainers') || '[]'),
+  setTrainers: (d) => localStorage.setItem('gp_trainers', JSON.stringify(d)),
+  trainer:     (id) => DB.trainers().find(t => t.id === id) || null,
+  saveTrainer: (t)  => {
+    const arr = DB.trainers();
+    const i   = arr.findIndex(x => x.id === t.id);
+    i >= 0 ? arr[i] = t : arr.push(t);
+    DB.setTrainers(arr);
+  },
+  delTrainer:  (id) => DB.setTrainers(DB.trainers().filter(t => t.id !== id)),
+
+  // Solicitudes de pago de membresía (self-service)
+  payments:    () => JSON.parse(localStorage.getItem('gp_payments') || '[]'),
+  setPayments: (d) => localStorage.setItem('gp_payments', JSON.stringify(d)),
+  addPayment:  (p) => { const a = DB.payments(); a.push(p); DB.setPayments(a); },
 
   // Flag inicialización
   isInit: () => localStorage.getItem('gp_init') === '1',
@@ -1970,10 +2004,12 @@ function confirmDlg(msg, cb, title = 'Confirmar acción') {
 ====================================================== */
 function setRole(role) {
   S._role = role;
-  document.getElementById('tab-admin').classList.toggle('active',  role === 'admin');
-  document.getElementById('tab-member').classList.toggle('active', role === 'member');
-  document.getElementById('admin-fields').classList.toggle('hidden',  role !== 'admin');
-  document.getElementById('member-fields').classList.toggle('hidden', role !== 'member');
+  document.getElementById('tab-admin').classList.toggle('active',   role === 'admin');
+  document.getElementById('tab-trainer').classList.toggle('active', role === 'trainer');
+  document.getElementById('tab-member').classList.toggle('active',  role === 'member');
+  document.getElementById('admin-fields').classList.toggle('hidden',   role !== 'admin');
+  document.getElementById('trainer-fields').classList.toggle('hidden', role !== 'trainer');
+  document.getElementById('member-fields').classList.toggle('hidden',  role !== 'member');
   document.getElementById('login-error').style.display = 'none';
 }
 
@@ -1988,9 +2024,18 @@ function doLogin() {
   if (role === 'admin') {
     const user = document.getElementById('inp-user').value.trim();
     const pass = document.getElementById('inp-pass').value;
-    console.log('[GymApp doLogin] admin attempt — user:', user, '| pass match:', pass === DB.adminPass());
     if (user === 'admin' && pass === DB.adminPass()) {
       S.role = 'admin'; S.uid = null;
+      launchApp();
+    } else {
+      document.getElementById('login-error').style.display = 'block';
+    }
+  } else if (role === 'trainer') {
+    const ced  = document.getElementById('inp-trainer-ced').value.trim();
+    const pass = document.getElementById('inp-trainer-pass').value;
+    const t    = DB.trainers().find(x => x.cedula === ced && x.password === pass);
+    if (t) {
+      S.role = 'trainer'; S.uid = t.id;
       launchApp();
     } else {
       document.getElementById('login-error').style.display = 'block';
@@ -1998,7 +2043,6 @@ function doLogin() {
   } else {
     const ced = document.getElementById('inp-cedula').value.trim();
     const u   = DB.users().find(x => x.cedula === ced);
-    console.log('[GymApp doLogin] member attempt — cedula:', ced, '| found:', !!u);
     if (u) {
       S.role = 'member'; S.uid = u.id;
       launchApp();
@@ -2013,7 +2057,9 @@ function launchApp() {
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app').classList.add('show');
   buildSidebar();
-  navigate(S.role === 'admin' ? 'dashboard' : 'profile');
+  if (S.role === 'admin')        navigate('dashboard');
+  else if (S.role === 'trainer') navigate('trainer-dash');
+  else                           navigate('profile');
 }
 
 function logout() {
@@ -2023,7 +2069,7 @@ function logout() {
   document.getElementById('app').classList.remove('show');
   document.getElementById('login-screen').style.display = 'flex';
   // Limpiar inputs
-  ['inp-user','inp-pass','inp-cedula'].forEach(id => {
+  ['inp-user','inp-pass','inp-cedula','inp-trainer-ced','inp-trainer-pass'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.value = '';
   });
@@ -2041,25 +2087,42 @@ function destroyCharts() {
 ====================================================== */
 const ADMIN_NAV = [
   { label:'PRINCIPAL', type:'group' },
-  { view:'dashboard', icon:'📊', label:'Dashboard' },
-  { view:'members',   icon:'👥', label:'Miembros' },
+  { view:'dashboard',  icon:'📊', label:'Dashboard' },
+  { view:'members',    icon:'👥', label:'Miembros' },
   { label:'MÓDULOS', type:'group' },
-  { view:'valuation', icon:'📋', label:'Valoraciones' },
-  { view:'training',  icon:'💪', label:'Entrenamientos' },
-  { view:'nutrition', icon:'🥗', label:'Nutrición' },
-  { view:'progress',  icon:'📈', label:'Avances' },
+  { view:'valuation',  icon:'📋', label:'Valoraciones' },
+  { view:'training',   icon:'💪', label:'Entrenamientos' },
+  { view:'nutrition',  icon:'🥗', label:'Nutrición' },
+  { view:'progress',   icon:'📈', label:'Avances' },
+  { label:'GESTIÓN', type:'group' },
+  { view:'trainers',   icon:'🏋️', label:'Entrenadores' },
+  { view:'mem-plans',  icon:'🎫', label:'Membresías' },
+  { view:'caja',       icon:'💰', label:'Caja' },
+  { view:'payments',   icon:'🔔', label:'Pagos', badge: true },
 ];
 const MEMBER_NAV = [
   { view:'profile',      icon:'👤', label:'Mi Perfil' },
   { view:'my-training',  icon:'💪', label:'Mi Entrenamiento' },
   { view:'my-nutrition', icon:'🥗', label:'Mi Nutrición' },
   { view:'my-progress',  icon:'📈', label:'Mis Avances' },
+  { view:'my-payments',  icon:'💳', label:'Mi Membresía' },
+];
+const TRAINER_NAV = [
+  { label:'PRINCIPAL', type:'group' },
+  { view:'trainer-dash',    icon:'🏠', label:'Inicio' },
+  { label:'CLIENTES', type:'group' },
+  { view:'trainer-clients', icon:'👥', label:'Mis Clientes' },
+  { label:'HERRAMIENTAS', type:'group' },
+  { view:'training',        icon:'💪', label:'Rutinas' },
+  { view:'nutrition',       icon:'🥗', label:'Nutrición' },
+  { view:'valuation',       icon:'📋', label:'Valoraciones' },
 ];
 
 function buildSidebar() {
   const nav   = document.getElementById('sidebar-nav');
   const bnav  = document.getElementById('bnav-items');
-  const items = S.role === 'admin' ? ADMIN_NAV : MEMBER_NAV;
+  const items = S.role === 'admin' ? ADMIN_NAV : S.role === 'trainer' ? TRAINER_NAV : MEMBER_NAV;
+  const pendingPay = S.role === 'admin' ? DB.payments().filter(p => p.estado === 'pendiente').length : 0;
   let html = '', bhtml = '';
 
   items.forEach(it => {
@@ -2067,9 +2130,12 @@ function buildSidebar() {
       html += `<div class="nav-group-label">${it.label}</div>`;
       return;
     }
+    const badgeHtml = (it.badge && pendingPay > 0)
+      ? `<span style="margin-left:auto;background:var(--green);color:#000;border-radius:999px;font-size:.65rem;font-weight:700;padding:1px 6px;min-width:18px;text-align:center">${pendingPay}</span>`
+      : '';
     html  += `<div class="nav-item" data-view="${it.view}" title="${it.label}" onclick="navigate('${it.view}')">
                 <span class="nav-icon">${it.icon}</span>
-                <span class="nav-label">${it.label}</span>
+                <span class="nav-label">${it.label}</span>${badgeHtml}
               </div>`;
     bhtml += `<div class="bnav-item" data-view="${it.view}" onclick="navigate('${it.view}')">
                 <span>${it.icon}</span><span>${it.label.split(' ')[0]}</span>
@@ -2079,11 +2145,17 @@ function buildSidebar() {
   nav.innerHTML  = html;
   bnav.innerHTML = bhtml;
 
-  // Info usuario en sidebar
   if (S.role === 'admin') {
     document.getElementById('s-avatar').textContent = 'A';
     document.getElementById('s-name').textContent   = 'Administrador';
     document.getElementById('s-role').textContent   = 'Admin';
+  } else if (S.role === 'trainer') {
+    const t = DB.trainer(S.uid);
+    if (t) {
+      document.getElementById('s-avatar').textContent = t.nombre.charAt(0).toUpperCase();
+      document.getElementById('s-name').textContent   = t.nombre;
+      document.getElementById('s-role').textContent   = 'Entrenador';
+    }
   } else {
     const u = DB.user(S.uid);
     if (u) {
@@ -2108,21 +2180,28 @@ function updateNavActive(view) {
    NAVEGACIÓN (SPA)
 ====================================================== */
 const VIEW_TITLES = {
-  dashboard:     '📊 Dashboard',
-  members:       '👥 Miembros',
-  'member-detail':'👤 Perfil del Miembro',
-  valuation:     '📋 Valoraciones',
-  'val-detail':  '📋 Valoración Física',
-  training:      '💪 Entrenamientos',
-  'train-detail':'💪 Plan de Entrenamiento',
-  nutrition:     '🥗 Nutrición',
-  'nutri-detail':'🥗 Plan de Nutrición',
-  progress:      '📈 Avances',
-  'prog-detail': '📈 Seguimiento — ',
-  profile:       '👤 Mi Perfil',
-  'my-training': '💪 Mi Entrenamiento',
-  'my-nutrition':'🥗 Mi Nutrición',
-  'my-progress': '📈 Mis Avances'
+  dashboard:        '📊 Dashboard',
+  members:          '👥 Miembros',
+  'member-detail':  '👤 Perfil del Miembro',
+  valuation:        '📋 Valoraciones',
+  'val-detail':     '📋 Valoración Física',
+  training:         '💪 Entrenamientos',
+  'train-detail':   '💪 Plan de Entrenamiento',
+  nutrition:        '🥗 Nutrición',
+  'nutri-detail':   '🥗 Plan de Nutrición',
+  progress:         '📈 Avances',
+  'prog-detail':    '📈 Seguimiento — ',
+  profile:          '👤 Mi Perfil',
+  'my-training':    '💪 Mi Entrenamiento',
+  'my-nutrition':   '🥗 Mi Nutrición',
+  'my-progress':    '📈 Mis Avances',
+  'my-payments':    '💳 Mi Membresía',
+  caja:             '💰 Caja',
+  trainers:         '🏋️ Entrenadores',
+  'mem-plans':      '🎫 Planes de Membresía',
+  payments:         '🔔 Solicitudes de Pago',
+  'trainer-dash':   '🏠 Panel Entrenador',
+  'trainer-clients':'👥 Mis Clientes',
 };
 
 function navigate(view, param) {
@@ -2152,7 +2231,14 @@ function navigate(view, param) {
     case 'profile':        renderProfile(v);           break;
     case 'my-training':    renderMyTraining(v);        break;
     case 'my-nutrition':   renderMyNutrition(v);       break;
-    case 'my-progress':    renderProgDetail(v, S.uid); break;
+    case 'my-progress':      renderProgDetail(v, S.uid);     break;
+    case 'my-payments':      renderMyPayments(v);            break;
+    case 'caja':             renderCaja(v);                  break;
+    case 'trainers':         renderTrainers(v);              break;
+    case 'mem-plans':        renderMemPlans(v);              break;
+    case 'payments':         renderAdminPayments(v);         break;
+    case 'trainer-dash':     renderTrainerDash(v);           break;
+    case 'trainer-clients':  renderTrainerClients(v);        break;
     default:
       v.innerHTML = `<div class="empty-state"><div class="empty-ico">🔍</div><p class="empty-txt">Vista no encontrada</p></div>`;
   }
@@ -2858,7 +2944,7 @@ function _memberFormHTML(u) {
       <div class="fsec-title">🎫 Membresía</div>
       <div class="frow frow-3">
         <div class="field"><label>Tipo</label><select id="fm-mtype">
-          ${['Mensual','Trimestral','Semestral','Anual'].map(t => `<option ${(u?.membership?.type||'Mensual')===t?'selected':''}>${t}</option>`).join('')}
+          ${(DB.memPlans().length ? DB.memPlans() : [{nombre:'Mensual'},{nombre:'Trimestral'},{nombre:'Semestral'},{nombre:'Anual'}]).map(p => `<option ${(u?.membership?.type||'Mensual')===p.nombre?'selected':''}>${p.nombre}</option>`).join('')}
         </select></div>
         <div class="field"><label>Fecha inicio</label><input id="fm-mstart" type="date" value="${u?.membership?.startDate||today()}"></div>
         <div class="field"><label>Fecha vencimiento</label><input id="fm-mend" type="date" value="${u?.membership?.endDate||''}"></div>
@@ -2917,6 +3003,25 @@ function _memberFormHTML(u) {
         <div class="field"><label>Descripción de cirugías</label><input id="fm-surgerydesc" value="${escH(u?.surgeriesDesc||'')}" placeholder="Tipo y fecha"></div>
       </div>
     </div>
+
+    <div class="fsec">
+      <div class="fsec-title">🩸 Tipo de Sangre</div>
+      <div class="frow frow-2">
+        <div class="field"><label>Tipo de sangre</label><select id="fm-sangre">
+          <option value="">— No sé —</option>
+          ${['A+','A-','B+','B-','AB+','AB-','O+','O-'].map(t=>`<option value="${t}" ${u?.tipoSangre===t?'selected':''}>${t}</option>`).join('')}
+        </select></div>
+      </div>
+      <div class="fsec-title" style="margin-top:12px">🚨 Contactos de Emergencia</div>
+      <div class="frow frow-2">
+        <div class="field"><label>Contacto 1 — Nombre</label><input id="fm-em1-nom" value="${escH(u?.emergencia1?.nombre||'')}" placeholder="Nombre completo"></div>
+        <div class="field"><label>Contacto 1 — Teléfono</label><input id="fm-em1-tel" value="${escH(u?.emergencia1?.tel||'')}" placeholder="Número de celular"></div>
+      </div>
+      <div class="frow frow-2">
+        <div class="field"><label>Contacto 2 — Nombre</label><input id="fm-em2-nom" value="${escH(u?.emergencia2?.nombre||'')}" placeholder="Nombre completo"></div>
+        <div class="field"><label>Contacto 2 — Teléfono</label><input id="fm-em2-tel" value="${escH(u?.emergencia2?.tel||'')}" placeholder="Número de celular"></div>
+      </div>
+    </div>
   </div>
   <div class="modal-foot">
     <button class="btn btn-outline" onclick="closeModal()">Cancelar</button>
@@ -2969,6 +3074,9 @@ function saveMemberForm(isNew) {
     medications:    document.getElementById('fm-meds').value.trim(),
     hasSurgeries:   document.getElementById('fm-surgery').value === 'true',
     surgeriesDesc:  document.getElementById('fm-surgerydesc').value.trim(),
+    tipoSangre:     document.getElementById('fm-sangre').value || null,
+    emergencia1:    { nombre: document.getElementById('fm-em1-nom').value.trim(), tel: document.getElementById('fm-em1-tel').value.trim() },
+    emergencia2:    { nombre: document.getElementById('fm-em2-nom').value.trim(), tel: document.getElementById('fm-em2-tel').value.trim() },
     objectives: {
       primary:         document.getElementById('fm-obj').value,
       secondary:       prevUser?.objectives?.secondary || '',
@@ -7656,6 +7764,28 @@ function initApp() {
     });
     if (dirty) DB.setUsers(users);
 
+    /* ── PASO 4: Planes de membresía (idempotente) ────────────────────────── */
+    if (DB.memPlans().length === 0) {
+      DB.setMemPlans([
+        { id:'mp1', nombre:'Mensual',           precio:85000,  duracionDias:30,   descripcion:'1 mes de acceso completo' },
+        { id:'mp2', nombre:'Trimestral',         precio:220000, duracionDias:90,   descripcion:'3 meses — ahorra $35.000' },
+        { id:'mp3', nombre:'Semestral',          precio:400000, duracionDias:180,  descripcion:'6 meses — ahorra $110.000' },
+        { id:'mp4', nombre:'Anual',              precio:740000, duracionDias:365,  descripcion:'1 año — ahorra $280.000' },
+        { id:'mp5', nombre:'Tiquete 15 Entradas',precio:0,      duracionDias:30,   descripcion:'15 entradas, válido 30 días', esTiquete:true, entradas:15 },
+      ]);
+    }
+
+    /* ── PASO 5: Entrenadores por defecto (idempotente) ───────────────────── */
+    if (DB.trainers().length === 0) {
+      DB.setTrainers([
+        { id:'tr1', nombre:'Juanca',   cedula:'1001', password:'juanca123',   permisos:{ crearRutinas:true,  crearNutricion:false, registrarMediciones:true,  generadorAutomatico:true,  verTodosLosClientes:false }, clientesAsignados:[] },
+        { id:'tr2', nombre:'Ruben',    cedula:'1002', password:'ruben123',    permisos:{ crearRutinas:true,  crearNutricion:true,  registrarMediciones:true,  generadorAutomatico:true,  verTodosLosClientes:true  }, clientesAsignados:[] },
+        { id:'tr3', nombre:'Samuel',   cedula:'1003', password:'samuel123',   permisos:{ crearRutinas:true,  crearNutricion:false, registrarMediciones:false, generadorAutomatico:false, verTodosLosClientes:false }, clientesAsignados:[] },
+        { id:'tr4', nombre:'Duban',    cedula:'1004', password:'duban123',    permisos:{ crearRutinas:true,  crearNutricion:true,  registrarMediciones:true,  generadorAutomatico:false, verTodosLosClientes:false }, clientesAsignados:[] },
+        { id:'tr5', nombre:'Leonardo', cedula:'1005', password:'leonardo123', permisos:{ crearRutinas:true,  crearNutricion:true,  registrarMediciones:true,  generadorAutomatico:true,  verTodosLosClientes:false }, clientesAsignados:[] },
+      ]);
+    }
+
   } catch (err) {
     /* ── FALLBACK DE EMERGENCIA ───────────────────────────────────────────────
        Si algo falló durante la init, resetea todo desde cero para garantizar
@@ -7679,6 +7809,547 @@ function initApp() {
   }
 
   setRole('admin');
+}
+
+/* ======================================================
+   MÓDULO — PLANES DE MEMBRESÍA (admin)
+====================================================== */
+function renderMemPlans(v) {
+  const plans = DB.memPlans();
+  v.innerHTML = `
+  <div style="max-width:700px;margin:0 auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <h2 style="margin:0">Planes de Membresía</h2>
+      <button class="btn btn-green" onclick="openMemPlanForm()">+ Nuevo Plan</button>
+    </div>
+    <div id="mp-list">
+      ${plans.map(p => `
+      <div class="card" style="display:flex;justify-content:space-between;align-items:center;padding:14px 18px;margin-bottom:8px;gap:12px">
+        <div>
+          <strong>${escH(p.nombre)}</strong>
+          ${p.esTiquete ? `<span style="font-size:.7rem;background:#333;padding:2px 6px;border-radius:4px;margin-left:6px">Tiquete</span>` : ''}
+          <div style="font-size:.85rem;color:var(--text-dim);margin-top:2px">${escH(p.descripcion||'')}</div>
+          ${p.esTiquete ? `<div style="font-size:.8rem;color:var(--green)">${p.entradas} entradas · ${p.duracionDias} días vigencia</div>`
+                        : `<div style="font-size:.8rem;color:var(--green)">$${p.precio.toLocaleString('es-CO')} · ${p.duracionDias} días</div>`}
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-sm btn-outline" onclick="openMemPlanForm('${p.id}')">✏️</button>
+          <button class="btn btn-sm" style="background:#c0392b;color:#fff" onclick="delMemPlan('${p.id}')">🗑</button>
+        </div>
+      </div>`).join('') || '<p class="text-dim">Sin planes definidos.</p>'}
+    </div>
+  </div>`;
+}
+
+function openMemPlanForm(id) {
+  const p = id ? DB.memPlans().find(x => x.id === id) : null;
+  openModal(`
+  <div class="modal-head"><h3>${p ? 'Editar Plan' : 'Nuevo Plan'}</h3></div>
+  <div class="modal-body" style="display:grid;gap:12px">
+    <input type="hidden" id="mpf-id" value="${p?.id||''}">
+    <div class="field"><label>Nombre del plan</label><input id="mpf-nombre" value="${escH(p?.nombre||'')}" placeholder="Ej: Mensual"></div>
+    <div class="frow frow-2">
+      <div class="field"><label>Precio (COP)</label><input type="number" id="mpf-precio" value="${p?.precio||0}" min="0"></div>
+      <div class="field"><label>Duración (días)</label><input type="number" id="mpf-dias" value="${p?.duracionDias||30}" min="1"></div>
+    </div>
+    <div class="field"><label>Descripción</label><input id="mpf-desc" value="${escH(p?.descripcion||'')}" placeholder="Ej: 1 mes de acceso completo"></div>
+    <div class="field"><label style="display:flex;align-items:center;gap:8px">
+      <input type="checkbox" id="mpf-tiquete" ${p?.esTiquete?'checked':''} onchange="document.getElementById('mpf-entradas-row').style.display=this.checked?'':'none'">
+      Es tiquete (acceso por entradas)
+    </label></div>
+    <div id="mpf-entradas-row" style="display:${p?.esTiquete?'':'none'}">
+      <div class="field"><label>Número de entradas</label><input type="number" id="mpf-entradas" value="${p?.entradas||15}" min="1"></div>
+    </div>
+  </div>
+  <div class="modal-foot">
+    <button class="btn btn-outline" onclick="closeModal()">Cancelar</button>
+    <button class="btn btn-green" onclick="saveMemPlan()">💾 Guardar</button>
+  </div>`);
+}
+
+function saveMemPlan() {
+  const nombre = document.getElementById('mpf-nombre').value.trim();
+  if (!nombre) { toast('El nombre es obligatorio', 'err'); return; }
+  const id      = document.getElementById('mpf-id').value || uid();
+  const precio  = parseInt(document.getElementById('mpf-precio').value) || 0;
+  const dias    = parseInt(document.getElementById('mpf-dias').value) || 30;
+  const desc    = document.getElementById('mpf-desc').value.trim();
+  const tiq     = document.getElementById('mpf-tiquete').checked;
+  const entradas= parseInt(document.getElementById('mpf-entradas').value) || 15;
+  const plans   = DB.memPlans().filter(x => x.id !== id);
+  plans.push({ id, nombre, precio, duracionDias: dias, descripcion: desc, ...(tiq ? { esTiquete:true, entradas } : {}) });
+  DB.setMemPlans(plans);
+  closeModal();
+  toast('Plan guardado', 'ok');
+  navigate('mem-plans');
+}
+
+function delMemPlan(id) {
+  confirmDlg('¿Eliminar este plan?', () => {
+    DB.setMemPlans(DB.memPlans().filter(x => x.id !== id));
+    toast('Plan eliminado', 'wrn');
+    navigate('mem-plans');
+  });
+}
+
+/* ======================================================
+   MÓDULO — CAJA (admin)
+====================================================== */
+function renderCaja(v) {
+  const users = DB.users();
+  const today_ = today();
+  v.innerHTML = `
+  <div style="max-width:900px;margin:0 auto">
+    <h2 style="margin-bottom:16px">Caja — Registrar Pago Manual</h2>
+    <div class="card" style="padding:20px;margin-bottom:20px">
+      <div class="frow frow-2" style="gap:12px;margin-bottom:12px">
+        <div class="field">
+          <label>Miembro</label>
+          <select id="caja-uid">
+            <option value="">— Seleccionar —</option>
+            ${users.map(u=>`<option value="${u.id}">${escH(u.name)} (${u.cedula})</option>`).join('')}
+          </select>
+        </div>
+        <div class="field">
+          <label>Plan</label>
+          <select id="caja-plan" onchange="cajaUpdateMonto()">
+            ${DB.memPlans().map(p=>`<option value="${p.id}" data-precio="${p.precio}" data-dias="${p.duracionDias}">${escH(p.nombre)} — $${p.precio.toLocaleString('es-CO')}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+      <div class="frow frow-2" style="gap:12px;margin-bottom:12px">
+        <div class="field"><label>Monto cobrado (COP)</label><input type="number" id="caja-monto" placeholder="85000" min="0"></div>
+        <div class="field"><label>Fecha inicio membresía</label><input type="date" id="caja-start" value="${today_}"></div>
+      </div>
+      <div class="field" style="margin-bottom:12px"><label>Notas (opcional)</label><input id="caja-notas" placeholder="Ej: Pagó en efectivo"></div>
+      <button class="btn btn-green" onclick="saveCajaPago()">💰 Registrar Pago y Activar Membresía</button>
+    </div>
+    <h3>Pagos recientes (últimos 30 días)</h3>
+    <div id="caja-hist">
+      ${(() => {
+        const pays = DB.payments().filter(p=>p.estado==='aprobado').slice(-20).reverse();
+        if (!pays.length) return '<p class="text-dim">Sin pagos registrados.</p>';
+        return pays.map(p=>{
+          const u = DB.user(p.userId);
+          return `<div class="card" style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;margin-bottom:6px">
+            <div><strong>${escH(u?.name||'—')}</strong><span style="color:var(--text-dim);margin-left:8px;font-size:.85rem">${p.planNombre}</span></div>
+            <div style="text-align:right"><div style="color:var(--green);font-weight:600">$${(p.monto||0).toLocaleString('es-CO')}</div><div style="font-size:.8rem;color:var(--text-dim)">${p.fecha}</div></div>
+          </div>`;
+        }).join('');
+      })()}
+    </div>
+  </div>`;
+  cajaUpdateMonto();
+}
+
+function cajaUpdateMonto() {
+  const sel = document.getElementById('caja-plan');
+  if (!sel) return;
+  const opt = sel.options[sel.selectedIndex];
+  const el  = document.getElementById('caja-monto');
+  if (el && opt) el.value = opt.dataset.precio || '';
+}
+
+function saveCajaPago() {
+  const uid_   = document.getElementById('caja-uid').value;
+  const planId = document.getElementById('caja-plan').value;
+  const monto  = parseInt(document.getElementById('caja-monto').value) || 0;
+  const start  = document.getElementById('caja-start').value;
+  if (!uid_)  { toast('Selecciona un miembro', 'err'); return; }
+  if (!planId){ toast('Selecciona un plan', 'err'); return; }
+  if (!start) { toast('Ingresa la fecha de inicio', 'err'); return; }
+  const plan = DB.memPlans().find(p => p.id === planId);
+  if (!plan) { toast('Plan no encontrado', 'err'); return; }
+  const u = DB.user(uid_);
+  if (!u) return;
+  const endDate = addDays(start, plan.duracionDias);
+  u.membership = { status:'active', type:plan.nombre, startDate:start, endDate };
+  DB.saveUser(u);
+  DB.addPayment({
+    id: uid(), userId: uid_, planId, planNombre: plan.nombre, monto,
+    fecha: today(), estado: 'aprobado', origenCaja: true,
+    notas: document.getElementById('caja-notas').value.trim()
+  });
+  toast(`Membresía activada para ${u.name}`, 'ok');
+  navigate('caja');
+}
+
+function addDays(dateStr, days) {
+  const d = new Date(dateStr);
+  d.setDate(d.getDate() + days);
+  return d.toISOString().slice(0,10);
+}
+
+/* ======================================================
+   MÓDULO — ENTRENADORES (admin)
+====================================================== */
+function renderTrainers(v) {
+  const trainers = DB.trainers();
+  const users    = DB.users();
+  const PERMS = [
+    { key:'crearRutinas',         label:'Crear Rutinas' },
+    { key:'crearNutricion',       label:'Crear Nutrición' },
+    { key:'registrarMediciones',  label:'Registrar Mediciones' },
+    { key:'generadorAutomatico',  label:'Generador Automático' },
+    { key:'verTodosLosClientes',  label:'Ver Todos los Clientes' },
+  ];
+  v.innerHTML = `
+  <div style="max-width:900px;margin:0 auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <h2 style="margin:0">Entrenadores</h2>
+      <button class="btn btn-green" onclick="openTrainerForm()">+ Nuevo Entrenador</button>
+    </div>
+    ${trainers.map(t => {
+      const clts = (t.clientesAsignados||[]).map(id=>DB.user(id)?.name||id);
+      return `<div class="card" style="padding:16px;margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;align-items:start;gap:12px;margin-bottom:10px">
+          <div>
+            <strong style="font-size:1.05rem">${escH(t.nombre)}</strong>
+            <span style="color:var(--text-dim);font-size:.85rem;margin-left:8px">Cédula: ${escH(t.cedula)}</span>
+            <div style="font-size:.8rem;color:var(--text-dim);margin-top:3px">${clts.length} cliente(s) asignado(s)</div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-sm btn-outline" onclick="openTrainerForm('${t.id}')">✏️ Editar</button>
+            <button class="btn btn-sm btn-outline" onclick="openTrainerClients('${t.id}')">👥 Clientes</button>
+            <button class="btn btn-sm" style="background:#c0392b;color:#fff" onclick="delTrainer('${t.id}')">🗑</button>
+          </div>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px">
+          ${PERMS.map(p => `<span style="font-size:.75rem;padding:3px 8px;border-radius:4px;background:${t.permisos?.[p.key]?'rgba(255,184,0,.15)':'#1a1a1a'};border:1px solid ${t.permisos?.[p.key]?'var(--green)':'#333'};color:${t.permisos?.[p.key]?'var(--green)':'var(--text-dim)'}">${p.label}</span>`).join('')}
+        </div>
+      </div>`;
+    }).join('') || '<p class="text-dim">Sin entrenadores registrados.</p>'}
+  </div>`;
+}
+
+function openTrainerForm(id) {
+  const t = id ? DB.trainer(id) : null;
+  const PERMS = [
+    { key:'crearRutinas',         label:'Crear Rutinas' },
+    { key:'crearNutricion',       label:'Crear Nutrición' },
+    { key:'registrarMediciones',  label:'Registrar Mediciones' },
+    { key:'generadorAutomatico',  label:'Generador Automático' },
+    { key:'verTodosLosClientes',  label:'Ver Todos los Clientes' },
+  ];
+  openModal(`
+  <div class="modal-head"><h3>${t ? 'Editar Entrenador' : 'Nuevo Entrenador'}</h3></div>
+  <div class="modal-body" style="display:grid;gap:12px">
+    <input type="hidden" id="trf-id" value="${t?.id||''}">
+    <div class="frow frow-2">
+      <div class="field"><label>Nombre</label><input id="trf-nombre" value="${escH(t?.nombre||'')}" placeholder="Ej: Juanca"></div>
+      <div class="field"><label>Cédula</label><input id="trf-cedula" value="${escH(t?.cedula||'')}" placeholder="Número de cédula"></div>
+    </div>
+    <div class="field"><label>Contraseña${t?' (dejar vacío = no cambiar)':''}</label><input type="password" id="trf-pass" placeholder="Contraseña de acceso"></div>
+    <div class="fsec-title" style="margin:0;font-size:.85rem;color:var(--text-dim)">PERMISOS</div>
+    ${PERMS.map(p=>`<label style="display:flex;align-items:center;gap:10px;cursor:pointer">
+      <input type="checkbox" id="trf-${p.key}" ${t?.permisos?.[p.key]?'checked':''}>
+      ${p.label}</label>`).join('')}
+  </div>
+  <div class="modal-foot">
+    <button class="btn btn-outline" onclick="closeModal()">Cancelar</button>
+    <button class="btn btn-green" onclick="saveTrainerForm()">💾 Guardar</button>
+  </div>`);
+}
+
+function saveTrainerForm() {
+  const nombre = document.getElementById('trf-nombre').value.trim();
+  const cedula = document.getElementById('trf-cedula').value.trim();
+  if (!nombre) { toast('El nombre es obligatorio', 'err'); return; }
+  if (!cedula) { toast('La cédula es obligatoria', 'err'); return; }
+  const existingId = document.getElementById('trf-id').value;
+  const pass = document.getElementById('trf-pass').value;
+  const existing = existingId ? DB.trainer(existingId) : null;
+  if (!existingId && !pass) { toast('La contraseña es obligatoria para nuevo entrenador', 'err'); return; }
+  const PKEYS = ['crearRutinas','crearNutricion','registrarMediciones','generadorAutomatico','verTodosLosClientes'];
+  const permisos = {};
+  PKEYS.forEach(k => permisos[k] = document.getElementById('trf-'+k).checked);
+  const saved = {
+    id:                existingId || uid(),
+    nombre, cedula,
+    password:          pass || existing?.password || '',
+    permisos,
+    clientesAsignados: existing?.clientesAsignados || []
+  };
+  DB.saveTrainer(saved);
+  closeModal();
+  toast('Entrenador guardado', 'ok');
+  navigate('trainers');
+}
+
+function delTrainer(id) {
+  const t = DB.trainer(id);
+  if (!t) return;
+  confirmDlg(`¿Eliminar a <strong>${escH(t.nombre)}</strong>?`, () => {
+    DB.delTrainer(id);
+    toast('Entrenador eliminado', 'wrn');
+    navigate('trainers');
+  });
+}
+
+function openTrainerClients(trainerId) {
+  const t     = DB.trainer(trainerId);
+  const users = DB.users();
+  if (!t) return;
+  openModal(`
+  <div class="modal-head"><h3>Clientes de ${escH(t.nombre)}</h3></div>
+  <div class="modal-body">
+    <p style="font-size:.85rem;color:var(--text-dim);margin-bottom:10px">Marca los miembros asignados a este entrenador.</p>
+    ${users.map(u=>`<label style="display:flex;align-items:center;gap:10px;padding:6px 0;cursor:pointer;border-bottom:1px solid #1a1a1a">
+      <input type="checkbox" class="tc-chk" value="${u.id}" ${(t.clientesAsignados||[]).includes(u.id)?'checked':''}>
+      ${escH(u.name)} <span style="color:var(--text-dim);font-size:.8rem">(${u.cedula})</span>
+    </label>`).join('')}
+  </div>
+  <div class="modal-foot">
+    <button class="btn btn-outline" onclick="closeModal()">Cancelar</button>
+    <button class="btn btn-green" onclick="saveTrainerClients('${trainerId}')">💾 Guardar</button>
+  </div>`);
+}
+
+function saveTrainerClients(trainerId) {
+  const t = DB.trainer(trainerId);
+  if (!t) return;
+  t.clientesAsignados = Array.from(document.querySelectorAll('.tc-chk:checked')).map(c=>c.value);
+  DB.saveTrainer(t);
+  closeModal();
+  toast('Clientes actualizados', 'ok');
+  navigate('trainers');
+}
+
+/* ======================================================
+   MÓDULO — PAGOS PENDIENTES (admin)
+====================================================== */
+function renderAdminPayments(v) {
+  const pays = DB.payments().filter(p=>p.estado==='pendiente');
+  const all  = DB.payments().filter(p=>p.estado!=='pendiente').slice(-10).reverse();
+  v.innerHTML = `
+  <div style="max-width:900px;margin:0 auto">
+    <h2 style="margin-bottom:16px">Solicitudes de Pago <span style="font-size:.85rem;color:var(--text-dim)">(${pays.length} pendiente${pays.length!==1?'s':''})</span></h2>
+    <div id="pay-list">
+      ${pays.length===0 ? '<div class="card" style="padding:20px;text-align:center;color:var(--text-dim)">No hay solicitudes pendientes ✅</div>' :
+        pays.map(p=>{
+          const u = DB.user(p.userId);
+          return `<div class="card" style="padding:16px;margin-bottom:12px" id="pay-${p.id}">
+            <div style="display:flex;justify-content:space-between;align-items:start;gap:12px;margin-bottom:10px">
+              <div>
+                <strong>${escH(u?.name||'—')}</strong>
+                <span style="color:var(--text-dim);font-size:.85rem;margin-left:8px">${escH(p.planNombre)}</span>
+                <div style="color:var(--green);font-weight:600;margin-top:3px">$${(p.monto||0).toLocaleString('es-CO')}</div>
+                <div style="font-size:.8rem;color:var(--text-dim);margin-top:2px">${p.fecha}</div>
+              </div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap">
+                ${p.screenshotBase64?`<button class="btn btn-sm btn-outline" onclick="verComprobante('${p.id}')">🖼 Comprobante</button>`:'<span style="font-size:.8rem;color:var(--text-dim)">Sin imagen</span>'}
+                <button class="btn btn-sm btn-green" onclick="aprobarPago('${p.id}')">✅ Aprobar</button>
+                <button class="btn btn-sm" style="background:#c0392b;color:#fff" onclick="rechazarPago('${p.id}')">❌ Rechazar</button>
+              </div>
+            </div>
+          </div>`;
+        }).join('')}
+    </div>
+    ${all.length?`<h3 style="margin-top:20px">Historial reciente</h3>
+      ${all.map(p=>{
+        const u=DB.user(p.userId);
+        return `<div style="display:flex;justify-content:space-between;padding:8px 12px;border-bottom:1px solid #1a1a1a;font-size:.9rem">
+          <div>${escH(u?.name||'—')} · ${escH(p.planNombre)}</div>
+          <div style="display:flex;gap:12px;align-items:center">
+            <span style="color:${p.estado==='aprobado'?'var(--green)':'#e74c3c'}">${p.estado==='aprobado'?'✅ Aprobado':'❌ Rechazado'}</span>
+            <span style="color:var(--text-dim);font-size:.8rem">${p.fechaValidacion||p.fecha}</span>
+          </div>
+        </div>`;
+      }).join('')}` : ''}
+  </div>`;
+}
+
+function verComprobante(payId) {
+  const p = DB.payments().find(x=>x.id===payId);
+  if (!p||!p.screenshotBase64) return;
+  openModal(`
+  <div class="modal-head"><h3>Comprobante de pago</h3></div>
+  <div class="modal-body" style="text-align:center">
+    <img src="${p.screenshotBase64}" style="max-width:100%;border-radius:8px;max-height:70vh;object-fit:contain">
+  </div>
+  <div class="modal-foot"><button class="btn btn-outline" onclick="closeModal()">Cerrar</button></div>`);
+}
+
+function aprobarPago(payId) {
+  const pays = DB.payments();
+  const idx  = pays.findIndex(x=>x.id===payId);
+  if (idx<0) return;
+  const p    = pays[idx];
+  const plan = DB.memPlans().find(x=>x.id===p.planId);
+  if (!plan) { toast('Plan no encontrado', 'err'); return; }
+  const u = DB.user(p.userId);
+  if (!u) return;
+  const startDate = today();
+  const endDate   = addDays(startDate, plan.duracionDias);
+  u.membership = { status:'active', type:plan.nombre, startDate, endDate };
+  DB.saveUser(u);
+  pays[idx] = { ...p, estado:'aprobado', fechaValidacion: today() };
+  DB.setPayments(pays);
+  buildSidebar();
+  toast(`Membresía activada para ${u.name}`, 'ok');
+  navigate('payments');
+}
+
+function rechazarPago(payId) {
+  confirmDlg('¿Rechazar esta solicitud de pago?', () => {
+    const pays = DB.payments();
+    const idx  = pays.findIndex(x=>x.id===payId);
+    if (idx<0) return;
+    pays[idx] = { ...pays[idx], estado:'rechazado', fechaValidacion: today() };
+    DB.setPayments(pays);
+    buildSidebar();
+    toast('Solicitud rechazada', 'wrn');
+    navigate('payments');
+  });
+}
+
+/* ======================================================
+   MÓDULO — MI MEMBRESÍA (miembro)
+====================================================== */
+function renderMyPayments(v) {
+  const u = DB.user(S.uid);
+  if (!u) return;
+  const mem    = u.membership || {};
+  const st     = memStatus(u);
+  const plans  = DB.memPlans();
+  const myPays = DB.payments().filter(p=>p.userId===S.uid).slice(-5).reverse();
+  const hasPending = DB.payments().some(p=>p.userId===S.uid&&p.estado==='pendiente');
+
+  v.innerHTML = `
+  <div style="max-width:700px;margin:0 auto">
+    <div class="card" style="padding:20px;margin-bottom:20px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <strong>Estado actual</strong>
+        <span style="padding:4px 10px;border-radius:6px;font-size:.8rem;font-weight:700;
+          background:${st.s==='active'?'rgba(255,184,0,.15)':st.s==='expiring'?'rgba(255,170,0,.15)':'rgba(200,50,50,.15)'};
+          color:${st.s==='active'?'var(--green)':st.s==='expiring'?'#FFA500':'#e74c3c'}">
+          ${st.s==='active'?'✅ Activa':st.s==='expiring'?'⚠️ Por vencer':'❌ Vencida / Sin membresía'}
+        </span>
+      </div>
+      ${mem.type ? `<div style="font-size:.9rem;color:var(--text-dim)">Plan: <strong>${escH(mem.type)}</strong> · Vence: <strong>${mem.endDate||'—'}</strong></div>` : '<div style="color:var(--text-dim);font-size:.9rem">Sin membresía activa.</div>'}
+    </div>
+
+    ${hasPending ? `<div class="card" style="padding:14px;margin-bottom:16px;border:1px solid #FFA500;background:rgba(255,170,0,.07)">
+      <span style="color:#FFA500">⏳ Tienes una solicitud de pago en revisión. El administrador la validará pronto.</span>
+    </div>` : ''}
+
+    <div class="card" style="padding:20px;margin-bottom:20px">
+      <h3 style="margin:0 0 14px">Pagar membresía</h3>
+      <div class="field" style="margin-bottom:16px">
+        <label>Selecciona tu plan</label>
+        <select id="pay-plan-sel" onchange="myPayUpdateMonto()">
+          ${plans.map(p=>`<option value="${p.id}" data-monto="${p.precio}">${escH(p.nombre)}${p.precio?` — $${p.precio.toLocaleString('es-CO')}`:' — Precio especial'}</option>`).join('')}
+        </select>
+      </div>
+      <div class="card" style="padding:14px;margin-bottom:16px;background:#111;border:1px solid #2a2a2a">
+        <div style="font-size:.85rem;color:var(--text-dim);margin-bottom:6px">Transferir por Nequi / Daviplata a:</div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+          <span style="font-size:1.1rem;font-weight:700">3148577625</span>
+          <button class="btn btn-sm btn-outline" onclick="navigator.clipboard.writeText('3148577625').then(()=>toast('Número copiado','ok'))">📋 Copiar</button>
+        </div>
+        <div style="font-size:.85rem;color:var(--text-dim);margin-bottom:4px">A nombre de: <strong>Ruben Avila</strong></div>
+        <div style="display:flex;align-items:center;gap:10px;margin-top:8px">
+          <span style="font-size:.9rem">Monto: <strong id="pay-monto-txt">—</strong></span>
+          <button class="btn btn-sm btn-outline" onclick="copyPayMonto()">📋 Copiar monto</button>
+        </div>
+      </div>
+      <div class="field" style="margin-bottom:12px">
+        <label>Adjuntar comprobante (captura de pantalla)</label>
+        <input type="file" id="pay-img" accept="image/*" style="color:var(--text)">
+      </div>
+      <button class="btn btn-green" onclick="enviarSolicitudPago()" ${hasPending?'disabled style="opacity:.5"':''}>
+        ${hasPending ? '⏳ Solicitud ya enviada' : '📤 Enviar solicitud de pago'}
+      </button>
+    </div>
+
+    ${myPays.length ? `<h3>Mis pagos</h3>
+      ${myPays.map(p=>`<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #1a1a1a;font-size:.9rem">
+        <div>${escH(p.planNombre)}</div>
+        <div style="display:flex;gap:12px;align-items:center">
+          <span style="color:${p.estado==='aprobado'?'var(--green)':p.estado==='pendiente'?'#FFA500':'#e74c3c'}">${p.estado==='aprobado'?'✅ Aprobado':p.estado==='pendiente'?'⏳ Pendiente':'❌ Rechazado'}</span>
+          <span style="color:var(--text-dim);font-size:.8rem">${p.fecha}</span>
+        </div>
+      </div>`).join('')}` : ''}
+  </div>`;
+  myPayUpdateMonto();
+}
+
+function myPayUpdateMonto() {
+  const sel = document.getElementById('pay-plan-sel');
+  const txt = document.getElementById('pay-monto-txt');
+  if (!sel||!txt) return;
+  const monto = parseInt(sel.options[sel.selectedIndex]?.dataset.monto||0);
+  txt.textContent = monto ? `$${monto.toLocaleString('es-CO')}` : 'A convenir';
+}
+
+function copyPayMonto() {
+  const sel = document.getElementById('pay-plan-sel');
+  if (!sel) return;
+  const monto = sel.options[sel.selectedIndex]?.dataset.monto||'';
+  if (monto) navigator.clipboard.writeText(monto).then(()=>toast('Monto copiado','ok'));
+}
+
+function enviarSolicitudPago() {
+  const sel = document.getElementById('pay-plan-sel');
+  const fileEl = document.getElementById('pay-img');
+  if (!sel) return;
+  const plan = DB.memPlans().find(x=>x.id===sel.value);
+  if (!plan) { toast('Selecciona un plan', 'err'); return; }
+  const file = fileEl?.files?.[0];
+  if (!file) { toast('Adjunta el comprobante de pago', 'err'); return; }
+  const reader = new FileReader();
+  reader.onload = e => {
+    DB.addPayment({
+      id: uid(), userId: S.uid, planId: plan.id, planNombre: plan.nombre,
+      monto: plan.precio, screenshotBase64: e.target.result,
+      fecha: today(), estado: 'pendiente'
+    });
+    toast('Solicitud enviada. El admin la revisará pronto.', 'ok');
+    navigate('my-payments');
+  };
+  reader.readAsDataURL(file);
+}
+
+/* ======================================================
+   MÓDULO — TRAINER DASH (entrenador)
+====================================================== */
+function renderTrainerDash(v) {
+  const t = DB.trainer(S.uid);
+  if (!t) { v.innerHTML = '<p class="text-dim">Entrenador no encontrado.</p>'; return; }
+  const clts = t.verTodosLosClientes ? DB.users() :
+    (t.clientesAsignados||[]).map(id=>DB.user(id)).filter(Boolean);
+  const PERMS = [
+    { key:'crearRutinas',         label:'Crear Rutinas',        icon:'💪' },
+    { key:'crearNutricion',       label:'Crear Nutrición',      icon:'🥗' },
+    { key:'registrarMediciones',  label:'Mediciones',           icon:'📋' },
+    { key:'generadorAutomatico',  label:'Generador Automático', icon:'🤖' },
+  ];
+  v.innerHTML = `
+  <div style="max-width:900px;margin:0 auto">
+    <div class="card" style="padding:20px;margin-bottom:20px">
+      <div style="font-size:1.1rem;font-weight:700;margin-bottom:8px">Hola, ${escH(t.nombre)} 👋</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px">
+        ${PERMS.filter(p=>t.permisos?.[p.key]).map(p=>`<span style="font-size:.8rem;padding:4px 10px;border-radius:6px;background:rgba(255,184,0,.12);color:var(--green);border:1px solid rgba(255,184,0,.3)">${p.icon} ${p.label}</span>`).join('')}
+      </div>
+    </div>
+    <h3 style="margin-bottom:12px">Mis Clientes (${clts.length})</h3>
+    ${clts.length===0 ? '<p class="text-dim">Sin clientes asignados. Contacta al administrador.</p>' :
+      `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px">
+        ${clts.map(u=>{
+          const st=memStatus(u);
+          return `<div class="card" style="padding:14px;cursor:pointer" onclick="navigate('member-detail','${u.id}')">
+            <div style="font-weight:600;margin-bottom:4px">${escH(u.name.split(' ').slice(0,2).join(' '))}</div>
+            <div style="font-size:.8rem;color:var(--text-dim)">${u.cedula}</div>
+            <div style="font-size:.8rem;margin-top:4px;color:${st.s==='active'?'var(--green)':st.s==='expiring'?'#FFA500':'#e74c3c'}">${st.s==='active'?'Activo':st.s==='expiring'?'Por vencer':'Vencido'}</div>
+          </div>`;
+        }).join('')}
+      </div>`}
+    ${t.permisos?.crearRutinas ? `<div style="margin-top:20px"><button class="btn btn-green" onclick="navigate('training')">💪 Ir a Rutinas</button></div>` : ''}
+  </div>`;
+}
+
+function renderTrainerClients(v) {
+  renderTrainerDash(v);
 }
 
 // Arrancar al cargar
